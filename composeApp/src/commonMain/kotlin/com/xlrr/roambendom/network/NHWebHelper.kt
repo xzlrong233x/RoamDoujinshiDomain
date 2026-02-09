@@ -6,6 +6,7 @@ import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.parameter
 import io.ktor.http.encodeURLQueryComponent
 import java.time.LocalDateTime
@@ -60,7 +61,9 @@ object NHWebHelper {
             parameter("page", page)
         }
         else {
-            NetHelper.getWebDocument(prefix)
+            NetHelper.getWebDocument(prefix) {
+                parameter("page", page)
+            }
         } ?: return result(0, listOf())
         //if (
         //    doc.body().let {

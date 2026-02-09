@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,6 +49,8 @@ import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Size
+import com.xlrr.roambendom.LocalAnimatedVisibilityScope
+import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
 import org.jetbrains.compose.resources.painterResource
@@ -110,14 +113,15 @@ fun CardLabel(
 }
 
 @Composable
-fun ItemInfoCard(
+fun ItemInfoCardWithShared(
     url: String,
     page: String,
     title: String,
     restriction: CRestriction?,
     extraText: String? = null,
     extraComposer: @Composable () -> Unit = {},
-    onclick: () -> Unit = {}
+    onclick: () -> Unit = {},
+    imgLabel: String? = null
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -129,28 +133,43 @@ fun ItemInfoCard(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                SubcomposeAsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current)
-                        .data(url)
-                        .size(Size.ORIGINAL)
-                        .build(),
-                    filterQuality = FilterQuality.Medium,
-                    contentDescription = null,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).fillMaxWidth(),
-                    loading = { x ->
-                        Image(
-                            painterResource(Res.drawable.loading_jpg),
-                            contentDescription = "Image in loading"
+                with(LocalSharedTransitionScope.current) {
+                    var mod: Modifier = Modifier
+                    if (imgLabel != null) {
+                        mod = mod.sharedBounds(
+                            rememberSharedContentState(imgLabel),
+                            LocalAnimatedVisibilityScope.current
                         )
-                    },
-                    error = {x ->
-                        Image(
-                            painterResource(Res.drawable.empty_page),
-                            contentDescription = "Image in error"
-                        )
-                        Text(x.result.throwable.message.toString())
                     }
-                )
+                    SubcomposeAsyncImage(
+                        model = Regex("https://[it]\\d.nhentai.net")
+                            .replace(url, "").let {
+                                ImageRequest.Builder(LocalPlatformContext.current)
+                                    .diskCacheKey(it)
+                                    .memoryCacheKey(it)
+                                    .data(url)
+                                    .size(Size.ORIGINAL)
+                                    .build()
+                            },
+                        filterQuality = FilterQuality.Medium,
+                        contentDescription = null,
+                        modifier = mod.clip(RoundedCornerShape(12.dp)).fillMaxWidth(),
+                        loading = { x ->
+                            Image(
+                                painterResource(Res.drawable.loading_jpg),
+                                contentDescription = "Image in loading"
+                            )
+                        },
+                        error = { x ->
+                            println("request $url failed, msg: ${x.result.throwable.message}")
+                            Image(
+                                painterResource(Res.drawable.empty_page),
+                                contentDescription = "Image in error"
+                            )
+                            Text(x.result.throwable.message.toString())
+                        }
+                    )
+                }
                 FlowColumn(
                     Modifier.align(Alignment.TopEnd), verticalArrangement = Arrangement.spacedBy(4.dp),
                     itemHorizontalAlignment = Alignment.End
@@ -191,7 +210,7 @@ class MaxSize(private val size: Dp, private val maxCount: Int, private val perDe
         val px = size.roundToPx()
         val p = perDecrease.roundToPx()
         return if (availableSize > px) {
-            val num = min(round((availableSize + spacing.toDouble()) / (px + spacing)).toInt(), maxCount)
+            val num = min(ceil((availableSize + spacing.toDouble()) / (px + spacing)).toInt(), maxCount)
             var sz = (availableSize - (num - 1) * spacing) / num
             if (p > 0 && num > 1 && px > sz) { //添加这个判断是为了减少StaggeredGrid因为项目大小微调而产生的鬼畜
                 sz = px - p * ceil((px - sz).toDouble() / p).toInt()

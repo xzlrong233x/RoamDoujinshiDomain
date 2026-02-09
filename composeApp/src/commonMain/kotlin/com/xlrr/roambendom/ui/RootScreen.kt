@@ -1,49 +1,26 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.*
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
@@ -73,6 +50,10 @@ private val navItems: List<NavItem> = listOf(
     )
 )
 
+val SmallScreenDpLine = 480.dp
+val MediumScreenDpLine = 720.dp
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     var lessThan3 by remember { mutableStateOf(false) }
@@ -81,6 +62,22 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val curScreen = GlobalData.nav.backStack.last()
     val scope = rememberCoroutineScope()
+
+    val maxUpPx = with(LocalDensity.current) { 56.dp.roundToPx().toFloat() }
+    val minUpPx = 0f
+    val toolbarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = toolbarOffsetHeightPx.floatValue + delta
+                toolbarOffsetHeightPx.floatValue = newOffset.coerceIn(-maxUpPx, -minUpPx)
+                return Offset.Zero
+            }
+        }
+    }
+
     val toggleNav = {
         if (smallMode)
             scope.launch {
@@ -90,7 +87,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             }
     }
 
-    if (LocalWindowSize.current.width.value < 640f && !lessThan3) {
+    if (LocalWindowSize.current.width < MediumScreenDpLine && !lessThan3) {
         Snapshot.withMutableSnapshot {
             lessThan3 = true
             if (nailOpen) {
@@ -98,7 +95,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             }
         }
     }
-    else if (LocalWindowSize.current.width.value > 640f && lessThan3) {
+    else if (LocalWindowSize.current.width >= MediumScreenDpLine && lessThan3) {
         Snapshot.withMutableSnapshot {
             lessThan3 = false
             if (!nailOpen) {
@@ -106,11 +103,12 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             }
         }
     }
-    else if (LocalWindowSize.current.width.value < 480) {
+    if (LocalWindowSize.current.width < SmallScreenDpLine) {
         smallMode = true
     }
     else if (smallMode) {
         smallMode = false
+        toolbarOffsetHeightPx.floatValue = 0f
     }
     LaunchedEffect(smallMode) {
         if (!smallMode && drawerState.isOpen) {
@@ -137,11 +135,11 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                                 toggleNav()
                             },
                         )
-
                     }
                 }
             }
-        }
+        },
+        gesturesEnabled = smallMode
     ) {
         Scaffold(
             Modifier.fillMaxSize(),
@@ -164,64 +162,84 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                 }
             },
             floatingActionButtonPosition = FabPosition.Start,
-            topBar = {
+            contentWindowInsets = WindowInsets(
+                top = 0.dp,
+                bottom = 0.dp
+            )
+        ) { x ->
+            val h: Float by animateFloatAsState(
+                if (smallMode) maxUpPx + toolbarOffsetHeightPx.floatValue else 0f
+            )
+            Box(Modifier.padding(x).nestedScroll(nestedScrollConnection)) {
+                Column {
+                    Spacer(Modifier.background(Color(0,0,0,0))
+                        .height(with(LocalDensity.current){h.toDp()}))
+                    Row(Modifier.fillMaxSize()) {
+                        CtrlAnimatedVisibility(
+                            nailOpen && !smallMode,
+                            Modifier.fillMaxHeight(),
+                            enter = fadeIn() + expandIn(expandFrom = Alignment.CenterStart),
+                            exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterStart),
+                            label = "RailShow"
+                        ) {
+                            NavigationRail(
+                                Modifier.fillMaxHeight().padding(x),
+                            ) {
+                                navItems.forEach {
+                                    NavigationRailItem(
+                                        selected = it.selected(curScreen),
+                                        onClick = it.onClick,
+                                        icon = {
+                                            Icon(
+                                                painterResource(it.icon),
+                                                contentDescription = null
+                                            )
+                                        },
+                                        label = { Text(it.label) }
+                                    )
+                                }
+
+                                Box(Modifier.fillMaxHeight()) {
+                                    IconButton(
+                                        { nailOpen = false },
+                                        Modifier.padding(0.dp, 0.dp, 0.dp, 12.dp)
+                                            .border(2.dp, Color.Black, IconButtonDefaults.standardShape)
+                                            .align(Alignment.BottomCenter)
+                                    ) {
+                                        Icon(
+                                            painterResource(Res.drawable.chevron_left_icon),
+                                            null
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        content(x)
+                    }
+                }
                 CtrlAnimatedVisibility(smallMode,
                     Modifier.fillMaxWidth(),
                     enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
                     exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.TopCenter),
                     label = "TopBar"
                 ) {
-                    Surface {
-                        Box(Modifier.fillMaxWidth()) {
-                            IconButton({scope.launch { drawerState.open() }}) {
+                    Surface(Modifier.statusBarsPadding()
+                        .height(with(LocalDensity.current){h.toDp()}).fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.secondaryContainer) {
+                        Row(
+                            Modifier.height(with(LocalDensity.current){h.toDp()})
+                                .fillMaxWidth().offset {
+                                IntOffset(0, toolbarOffsetHeightPx.floatValue.toInt())
+                            },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton({ scope.launch { drawerState.open() } }) {
                                 Text("☰")
                             }
                         }
                     }
-                }
-            }
-        ) { x ->
-            Row(Modifier.fillMaxSize().padding(x)) {
-                CtrlAnimatedVisibility(
-                    nailOpen && !smallMode,
-                    Modifier.fillMaxHeight(),
-                    enter = fadeIn() + expandIn(expandFrom = Alignment.CenterStart),
-                    exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterStart),
-                    label = "RailShow"
-                ) {
-                    NavigationRail(
-                        Modifier.fillMaxHeight().padding(x),
-                    ) {
-                        navItems.forEach {
-                            NavigationRailItem(
-                                selected = it.selected(curScreen),
-                                onClick = it.onClick,
-                                icon = {
-                                    Icon(
-                                        painterResource(it.icon),
-                                        contentDescription = null
-                                    )
-                                },
-                                label = { Text(it.label) }
-                            )
-                        }
 
-                        Box(Modifier.fillMaxHeight()) {
-                            IconButton(
-                                { nailOpen = false },
-                                Modifier.padding(0.dp, 0.dp, 0.dp, 12.dp)
-                                    .border(2.dp, Color.Black, IconButtonDefaults.standardShape)
-                                    .align(Alignment.BottomCenter)
-                            ) {
-                                Icon(
-                                    painterResource(Res.drawable.chevron_left_icon),
-                                    null
-                                )
-                            }
-                        }
-                    }
                 }
-                content(x)
             }
         }
     }
@@ -232,7 +250,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
     val last = GlobalData.nav.backStack.last()
     AdaptiveScaffold {
         when (last) {
-            is Routes.Root.Home -> HomeScreen(modifier)
+            is Routes.Root.Home -> HomeScreen(modifier.padding(it))
         }
     }
 }

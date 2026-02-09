@@ -1,5 +1,6 @@
 package com.xlrr.roambendom
 
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -24,17 +25,14 @@ import okhttp3.OkHttpClient
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
+val LocalAnimatedVisibilityScope =
+    compositionLocalOf<AnimatedVisibilityScope> { error("not provided") }
 @OptIn(ExperimentalSharedTransitionApi::class)
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope> { error("not provided") }
 
 @Composable
 fun App() {
     setupCoil()
-    val sc = rememberCoroutineScope()
-    var result : SearchResult? by remember { mutableStateOf(null) }
-    LaunchedEffect(Unit) {
-        result = NHWebHelper.search("language:chinese")
-    }
     MaterialTheme {
         WindowSizeBox(Modifier.fillMaxWidth()) {
             SharedTransitionLayout {
