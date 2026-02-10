@@ -6,13 +6,11 @@ import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
-import io.ktor.client.plugins.timeout
 import io.ktor.client.request.parameter
 import io.ktor.http.encodeURLQueryComponent
-import java.time.LocalDateTime
 import kotlin.time.Instant
 
-private val prefix: String = "https://nhentai.net"
+private const val prefix: String = "https://nhentai.net"
 
 private fun unzipNHItem(ele: Element) : SearchItemData {
     val a = ele.child(0)
@@ -95,15 +93,20 @@ object NHWebHelper {
         }
         info.language = CLanguage.convert(lang[lang.size-1])
         info.authors = doc.select("#tags > div:nth-child(4) > span > a > span.name").map { it.text() }
-        info.comicUrls = doc.select(".gallerythumb > img").map {
-            Regex("(\\d+)t").replace(
-                Regex("t(\\d)").replace(it.attr("data-src")) { x ->
-                    "i${x.groups.last()?.value.toString()}"
-                }
-            ) { x ->
-                x.groups.last()?.value.toString()
+        doc.select(".gallerythumb > img").let { y ->
+            info.thumbUrls = y.map { dealWithUrl(it.attr("data-src")) }
+            info.pageUrls = info.thumbUrls.map {
+                Regex("(\\d+)t").replace(
+                    Regex("t(\\d)")
+                        .replace(it) { x ->
+                        "i${x.groups.last()?.value.toString()}"
+                    }
+                ) { x ->
+                    x.groups.last()?.value.toString()
+                }.replace(".webp.webp",".webp")
             }
         }
+
         info.time = Instant.parse(doc.select("time").attr("datetime")).toEpochMilliseconds()
         return info
     }

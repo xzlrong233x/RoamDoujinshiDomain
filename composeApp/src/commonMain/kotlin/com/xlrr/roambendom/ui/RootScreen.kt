@@ -1,10 +1,7 @@
 package com.xlrr.roambendom.ui
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -22,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
@@ -50,6 +48,31 @@ private val navItems: List<NavItem> = listOf(
     )
 )
 
+private class TopAppBarOffsetState(
+    val maxUpPx: Float,
+    val minUpPx: Float
+) {
+    private val _toolbarOffset = mutableFloatStateOf(0f)
+    var toolbarOffsetHeightPx: Float
+        get() {
+            if (GlobalData.nav.backStack.last() is Routes.Root.Detail) {
+                return 0f
+            }
+            return _toolbarOffset.floatValue
+        }
+        set(value) {
+            _toolbarOffset.floatValue = value
+        }
+    val nestedScrollConnection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            val delta = available.y
+            val newOffset = toolbarOffsetHeightPx + delta
+            toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
+            return Offset.Zero
+        }
+    }
+}
+
 val SmallScreenDpLine = 480.dp
 val MediumScreenDpLine = 720.dp
 
@@ -65,18 +88,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 
     val maxUpPx = with(LocalDensity.current) { 56.dp.roundToPx().toFloat() }
     val minUpPx = 0f
-    val toolbarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
-
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val newOffset = toolbarOffsetHeightPx.floatValue + delta
-                toolbarOffsetHeightPx.floatValue = newOffset.coerceIn(-maxUpPx, -minUpPx)
-                return Offset.Zero
-            }
-        }
-    }
+    val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx) }
 
     val toggleNav = {
         if (smallMode)
@@ -108,7 +120,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     }
     else if (smallMode) {
         smallMode = false
-        toolbarOffsetHeightPx.floatValue = 0f
+        topBarState.toolbarOffsetHeightPx = 0f
     }
     LaunchedEffect(smallMode) {
         if (!smallMode && drawerState.isOpen) {
@@ -168,9 +180,9 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             )
         ) { x ->
             val h: Float by animateFloatAsState(
-                if (smallMode) maxUpPx + toolbarOffsetHeightPx.floatValue else 0f
+                if (smallMode) maxUpPx + topBarState.toolbarOffsetHeightPx else 0f
             )
-            Box(Modifier.padding(x).nestedScroll(nestedScrollConnection)) {
+            Box(Modifier.padding(x).nestedScroll(topBarState.nestedScrollConnection)) {
                 Column {
                     Spacer(Modifier.background(Color(0,0,0,0))
                         .height(with(LocalDensity.current){h.toDp()}))
@@ -217,29 +229,36 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                         content(x)
                     }
                 }
-                CtrlAnimatedVisibility(smallMode,
-                    Modifier.fillMaxWidth(),
-                    enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
-                    exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.TopCenter),
-                    label = "TopBar"
-                ) {
-                    Surface(Modifier.statusBarsPadding()
-                        .height(with(LocalDensity.current){h.toDp()}).fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Row(
-                            Modifier.height(with(LocalDensity.current){h.toDp()})
-                                .fillMaxWidth().offset {
-                                IntOffset(0, toolbarOffsetHeightPx.floatValue.toInt())
+
+                Surface(Modifier.statusBarsPadding()
+                    .height(with(LocalDensity.current){h.toDp()}).fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.secondaryContainer) {
+                    Row(
+                        Modifier.height(with(LocalDensity.current){h.toDp()})
+                            .fillMaxWidth().offset {
+                                IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
                             },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (GlobalData.nav.backStack.size > 1) {
+                            IconButton({ scope.launch { GlobalData.nav.defaultBack() } }) {
+                                Text("反")
+                            }
+                        } else {
                             IconButton({ scope.launch { drawerState.open() } }) {
                                 Text("☰")
                             }
                         }
                     }
-
                 }
+//                CtrlAnimatedVisibility(smallMode,
+//                    Modifier.fillMaxWidth(),
+//                    enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
+//                    exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.TopCenter),
+//                    label = "TopBar"
+//                ) {
+//
+//                }
             }
         }
     }
@@ -249,8 +268,13 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 fun RootScreen(modifier: Modifier = Modifier) {
     val last = GlobalData.nav.backStack.last()
     AdaptiveScaffold {
-        when (last) {
-            is Routes.Root.Home -> HomeScreen(modifier.padding(it))
+        AnimatedContent(last) {x ->
+            CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
+                when (x) {
+                    is Routes.Root.Home -> HomeScreen(modifier.padding(it))
+                    is Routes.Root.Detail -> DetailScreen(x.searchItemData, modifier.padding(it))
+                }
+            }
         }
     }
 }

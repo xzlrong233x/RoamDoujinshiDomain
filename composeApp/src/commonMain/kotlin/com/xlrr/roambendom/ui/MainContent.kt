@@ -3,9 +3,7 @@ package com.xlrr.roambendom.ui
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.GlobalData
 
@@ -15,13 +13,18 @@ fun MainContent() {
     val state = GlobalData.nav.backStack.last()
     AnimatedContent(
         targetState = state,
+        contentKey = {
+            when (it) {
+                is Routes.Root -> "root"
+                else -> it
+            }
+        },
         modifier = Modifier
     ) {
-        CompositionLocalProvider(LocalAnimatedVisibilityScope provides this){
-            when (it) {
-                is Routes.Root -> RootScreen()
-                else -> Text("空空如也")
-            }
+        when (it) {
+            is Routes.Root -> RootScreen()
+            is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo)
+            else -> Text("空空如也")
         }
     }
 }

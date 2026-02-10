@@ -13,6 +13,6 @@ fun CRestriction.getColor(): Color {
     return when (this) {
         Normal -> Color.Yellow
         R18 -> Color.Red
-        R18G -> Color(0x8B000000)
+        R18G -> Color(0xFF8B0000)
     }
 }

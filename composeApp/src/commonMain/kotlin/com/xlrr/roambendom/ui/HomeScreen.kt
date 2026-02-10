@@ -1,45 +1,22 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.staggeredgrid.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.NHWebHelper
-import com.xlrr.roambendom.utils.CenterCircular
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.ItemInfoCardWithShared
-import com.xlrr.roambendom.utils.LocalWindowSize
-import com.xlrr.roambendom.utils.MaxSize
+import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
@@ -54,6 +31,8 @@ class HomeViewModel() : ViewModel() {
     var page by mutableIntStateOf(0)
     var isEnd by mutableStateOf(false)
     var loading by mutableStateOf(false)
+    var scrollState : ScrollableState? = null
+    var tempLeave by mutableStateOf(false)
 
     suspend fun reload() {
         clear()
@@ -79,15 +58,29 @@ class HomeViewModel() : ViewModel() {
 
 @Composable
 private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
-    val lstate = rememberLazyStaggeredGridState()
+    val lstate = if (viewModel.scrollState is LazyStaggeredGridState) viewModel.scrollState!! as LazyStaggeredGridState
+            else rememberLazyStaggeredGridState()
     var found by remember {
         mutableStateOf(false)
     }
+    DisposableEffect(Unit) {
+        GlobalData.forListState = lstate
+        viewModel.scrollState = lstate
+        onDispose {
+            GlobalData.forListState = null
+        }
+    }
     LaunchedEffect(lstate.layoutInfo.visibleItemsInfo) { // 这都什么跟什么啊
-        if (lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"} && !viewModel.loading) {
+        if (lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"}
+            && !viewModel.loading && !viewModel.isEnd) {
             found = true
         }
         else if (!viewModel.loading) {
+            found = false
+        }
+    }
+    LaunchedEffect(viewModel.isEnd) {
+        if (!viewModel.isEnd) {
             found = false
         }
     }
@@ -100,7 +93,7 @@ private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
         MaxSize(
             216.dp,
             max(6, LocalWindowSize.current.width.value.toInt() / 216 - 2),
-            if (LocalWindowSize.current.width < SmallScreenDpLine) 0.dp else 24.dp
+            if (LocalWindowSize.current.width < SmallScreenDpLine) 0.dp else 32.dp
         ),
         modifier,
         horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
@@ -112,21 +105,32 @@ private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
         }
         if (viewModel.content.isNotEmpty()) {
             items(viewModel.content) {
-                ItemInfoCardWithShared(
-                    it.thumb,
-                    "null",
-                    it.title,
-                    it.restriction,
-                    it.lang.toString().lowercase(),
-                    imgLabel = it.title
-                )
+                with(LocalSharedTransitionScope.current) {
+                    Box() {
+                        ItemInfoCardWithShared(
+                            it.thumb,
+                            "null",
+                            it.title,
+                            it.restriction,
+                            it.lang.toString().lowercase(),
+                            onclick = {
+                                GlobalData.nav.push(Routes.Root.Detail(it))
+                            },
+                            imgLabel = it.thumb
+                        )
+                    }
+                }
             }
-            item("nextLoading",span = StaggeredGridItemSpan.FullLine) {
+            item(if (viewModel.isEnd) "" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
                 Box(Modifier.fillMaxWidth(), Alignment.Center) {
 //                    Button({ss.launch { viewModel.requestNext() }}, enabled = !viewModel.loading) {
 //                        Text("加载更多")
 //                    }
-                    CircularProgressIndicator()
+                    if (viewModel.isEnd) {
+                        Text("没有更多了，页码${viewModel.page}")
+                    } else {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
@@ -136,7 +140,11 @@ private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewModel { HomeViewModel() }) {
     LaunchedEffect(Unit) {
-        viewModel.reload()
+        if (!viewModel.tempLeave) {
+            viewModel.reload()
+        } else {
+            viewModel.tempLeave = false
+        }
     }
     LaunchedEffect(viewModel.local) {
         GlobalData.homeContentSelection = viewModel.local
@@ -144,10 +152,29 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
     DisposableEffect(Unit) {
         onDispose {
             GlobalData.homeContentSelection = null
-            viewModel.clear()
+            if (GlobalData.nav.backStack.any { it is Routes.Root.Home }) {
+                viewModel.tempLeave = true
+            } else {
+                viewModel.clear()
+            }
         }
     }
-    Scaffold(modifier.fillMaxSize()) {pd ->
+    val showBtn by remember(GlobalData.forListState) {
+        derivedStateOf {
+            GlobalData.forListState != null
+                    && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
+        }
+    }
+    val ss = rememberCoroutineScope()
+    Scaffold(
+        modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (showBtn) { //TODO: 先占位，以后再改
+                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-100000f) } }) {
+                    Text("UP")
+                }
+            }
+        }) {pd ->
         Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
             StaggeredGridContent(modifier, viewModel)
             if (viewModel.content.isEmpty() && viewModel.loading) {

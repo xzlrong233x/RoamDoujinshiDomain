@@ -10,6 +10,7 @@ data class ArtworkInfo(
     var cover: String = "",
     var language: CLanguage = CLanguage.Unknown,
     var translated: Boolean = false,
-    var comicUrls: List<String> = listOf(),
+    var pageUrls: List<String> = listOf(),
+    var thumbUrls: List<String> = listOf(),
     var time: Long = 0
 )
