@@ -96,14 +96,13 @@ object NHWebHelper {
         doc.select(".gallerythumb > img").let { y ->
             info.thumbUrls = y.map { dealWithUrl(it.attr("data-src")) }
             info.pageUrls = info.thumbUrls.map {
-                Regex("(\\d+)t").replace(
-                    Regex("t(\\d)")
-                        .replace(it) { x ->
-                        "i${x.groups.last()?.value.toString()}"
-                    }
-                ) { x ->
+                it.replace(Regex("t(\\d)")) { x ->
+                    "i${x.groups.last()?.value.toString()}"
+                }.replace(Regex("(\\d+)t")) {x ->
                     x.groups.last()?.value.toString()
-                }.replace(".webp.webp",".webp")
+                }.replace(Regex("(\\.[^./]+).webp")) {x ->
+                    x.groups.last()?.value.toString()
+                }
             }
         }
 

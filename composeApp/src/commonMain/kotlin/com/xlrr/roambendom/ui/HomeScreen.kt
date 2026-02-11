@@ -57,36 +57,38 @@ class HomeViewModel() : ViewModel() {
 }
 
 @Composable
-private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
-    val lstate = if (viewModel.scrollState is LazyStaggeredGridState) viewModel.scrollState!! as LazyStaggeredGridState
-            else rememberLazyStaggeredGridState()
+private fun StaggeredGridContent(modifier: Modifier,
+                                 scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
+                                 loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
+                                 content: List<SearchItemData>, page: Int) {
+    val lstate = scrollState as? LazyStaggeredGridState ?: rememberLazyStaggeredGridState()
     var found by remember {
         mutableStateOf(false)
     }
     DisposableEffect(Unit) {
         GlobalData.forListState = lstate
-        viewModel.scrollState = lstate
+        changeSc(lstate)
         onDispose {
             GlobalData.forListState = null
         }
     }
     LaunchedEffect(lstate.layoutInfo.visibleItemsInfo) { // 这都什么跟什么啊
         if (lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"}
-            && !viewModel.loading && !viewModel.isEnd) {
+            && !loading && !isEnd) {
             found = true
         }
-        else if (!viewModel.loading) {
+        else if (!loading) {
             found = false
         }
     }
-    LaunchedEffect(viewModel.isEnd) {
-        if (!viewModel.isEnd) {
+    LaunchedEffect(isEnd) {
+        if (!isEnd) {
             found = false
         }
     }
     LaunchedEffect(found) {
-        if (!viewModel.loading && found) {
-            viewModel.requestNext()
+        if (!loading && found) {
+            req()
         }
     }
     LazyVerticalStaggeredGrid(
@@ -100,11 +102,11 @@ private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
         verticalItemSpacing = 4.dp,
         state = lstate
     ) {
-        item(span = StaggeredGridItemSpan.FullLine) {
+        item("head",span = StaggeredGridItemSpan.FullLine) {
             Text("这里到时候要添加NH与PIXIV的选择器", style = MaterialTheme.typography.headlineMedium)
         }
-        if (viewModel.content.isNotEmpty()) {
-            items(viewModel.content) {
+        if (content.isNotEmpty()) {
+            items(content, {it.id}) {
                 with(LocalSharedTransitionScope.current) {
                     Box() {
                         ItemInfoCardWithShared(
@@ -121,13 +123,13 @@ private fun StaggeredGridContent(modifier: Modifier, viewModel: HomeViewModel) {
                     }
                 }
             }
-            item(if (viewModel.isEnd) "" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
+            item(if (isEnd) "bottom" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
                 Box(Modifier.fillMaxWidth(), Alignment.Center) {
 //                    Button({ss.launch { viewModel.requestNext() }}, enabled = !viewModel.loading) {
 //                        Text("加载更多")
 //                    }
-                    if (viewModel.isEnd) {
-                        Text("没有更多了，页码${viewModel.page}")
+                    if (isEnd) {
+                        Text("没有更多了，页码${page}")
                     } else {
                         CircularProgressIndicator()
                     }
@@ -176,7 +178,9 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             }
         }) {pd ->
         Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
-            StaggeredGridContent(modifier, viewModel)
+            StaggeredGridContent(modifier, viewModel.scrollState, { viewModel.scrollState = it },
+                viewModel.loading, viewModel.isEnd, { viewModel.requestNext() },
+                viewModel.content, viewModel.page)
             if (viewModel.content.isEmpty() && viewModel.loading) {
                 CenterCircular()
             }

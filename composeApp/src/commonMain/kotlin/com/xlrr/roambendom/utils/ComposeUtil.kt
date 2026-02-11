@@ -197,10 +197,10 @@ class MaxSize(private val size: Dp, private val maxCount: Int, private val perDe
         val p = perDecrease.roundToPx()
         return if (availableSize > px) {
             val num = min(round((availableSize + spacing.toDouble()) / (px + spacing)).toInt(), maxCount)
-            var sz = (availableSize - (num - 1) * spacing) / num
-            if (p > 0 && num > 1 && px > sz) { //添加这个判断是为了减少StaggeredGrid因为项目大小微调而产生的鬼畜
-                sz = px - p * ceil((px - sz).toDouble() / p).toInt()
-            }
+            val sz = (availableSize - (num - 1) * spacing) / num
+//            if (p > 0 && num > 1 && px > sz) { //添加这个判断是为了减少StaggeredGrid因为项目大小微调而产生的鬼畜
+//                sz = px - p * ceil((px - sz).toDouble() / p).toInt()
+//            }
             IntArray(num) { min(sz, px) }
         } else {
             IntArray(1) {availableSize}

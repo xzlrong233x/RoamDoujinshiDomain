@@ -3,13 +3,6 @@ package com.xlrr.roambendom.config
 import androidx.compose.runtime.Composable
 
 sealed class UIType<T> {
-    data class TextFieldWithBtnUI(
-        val fieldLabel: String,
-        val btnLabel: String,
-        var onValueChange: (String) -> Unit = {},
-        val supportText: @Composable (String, Boolean, Boolean) -> Unit = { txt, result, show -> },
-        val clickEvent: suspend (String) -> Boolean = { txt -> false}
-    ) : UIType<String>()
     data class SwitchUI(
         val label: String,
         val onValueChange: (Boolean) -> Unit = {new -> }
@@ -18,5 +11,9 @@ sealed class UIType<T> {
         val label: String,
         val choiceList: List<String>
     ): UIType<Int>()
+    data class DropStringSelectUI(
+        val label: String,
+        val choiceList: List<String>
+    ): UIType<String>()
     class NoUI<T> : UIType<T>()
 }

@@ -55,9 +55,9 @@ private class TopAppBarOffsetState(
     private val _toolbarOffset = mutableFloatStateOf(0f)
     var toolbarOffsetHeightPx: Float
         get() {
-            if (GlobalData.nav.backStack.last() is Routes.Root.Detail) {
-                return 0f
-            }
+//            if (GlobalData.nav.backStack.last() is Routes.Root.Detail) {
+//                return 0f
+//            } 本来换成类储存是为了在某些情况下锁定顶边栏，但我现在还没想好在那些情况下锁定。
             return _toolbarOffset.floatValue
         }
         set(value) {
@@ -126,6 +126,9 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
         if (!smallMode && drawerState.isOpen) {
             drawerState.close()
         }
+    }
+    LaunchedEffect(GlobalData.nav.backStack.last()) {
+        topBarState.toolbarOffsetHeightPx = 0f
     }
     ModalNavigationDrawer(
         modifier = Modifier.fillMaxSize(),
@@ -242,7 +245,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                     ) {
                         if (GlobalData.nav.backStack.size > 1) {
                             IconButton({ scope.launch { GlobalData.nav.defaultBack() } }) {
-                                Text("反")
+                                Text("返")
                             }
                         } else {
                             IconButton({ scope.launch { drawerState.open() } }) {
@@ -281,7 +284,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
 
 @Composable
 @Preview
-fun Text() {
+fun Test() {
     AdaptiveScaffold {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Text("HHHHHHHH")

@@ -117,22 +117,31 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         }
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button({
-                        if (details.content == null) {
-                            return@Button
+                CtrlAnimatedVisibility(
+                    details.isSuccessful(),
+                    modifier = Modifier.fillMaxWidth(),
+                    enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
+                    exit = fadeOut(),
+                    label = "DetailToolBar"
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Button({
+                            if (details.content == null) {
+                                return@Button
+                            }
+                            GlobalData.nav.push(Routes.Artwork(details.content!!))
+                        }, shape = RoundedCornerShape(20),
+                            modifier = Modifier.width(128.dp).height(36.dp),
+                            enabled = details.isSuccessful()) {
+                            Text("阅读")
                         }
-                        GlobalData.nav.push(Routes.Artwork(details.content!!))
-                    // TODO: 实现Artwork。
-                    }, shape = RoundedCornerShape(20), modifier = Modifier.width(128.dp).height(36.dp)) {
-                        Text("阅读")
-                    }
 //                    IconButton({loved = !loved}, ) {
 //                        Icon(
 //                            painterResource(if (loved) Res.drawable.loved_btn_icon else Res.drawable.love_btn_icon),
 //                            contentDescription = null
 //                        )
 //                    } 类似收藏的功能，还没想好怎么做。
+                    }
                 }
             }
             CtrlAnimatedVisibility(
@@ -142,7 +151,8 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                 exit = fadeOut(),
                 label = "otherInfo"
             ) {
-                Column(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
                     MultiCardTagBox("标签", details.content?.tags.orEmpty())
                     MultiCardTagBox("作者", details.content?.authors.orEmpty())
                     MultiCardTagBox("团体", details.content?.groups.orEmpty())
