@@ -1,6 +1,13 @@
 package com.xlrr.roambendom.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,7 +26,16 @@ fun MainContent() {
                 else -> it
             }
         },
-        modifier = Modifier
+        modifier = Modifier,
+        transitionSpec = {
+            if (state is Routes.Artwork) {
+                slideInHorizontally(initialOffsetX = { fullW ->  fullW}).togetherWith(
+                    slideOutHorizontally(targetOffsetX = {w -> -w}) + fadeOut())
+            } else {
+                slideInHorizontally(initialOffsetX = { fullW ->  -fullW}).togetherWith(
+                    slideOutHorizontally(targetOffsetX = {w -> w}) + fadeOut())
+            }
+        }
     ) {
         when (it) {
             is Routes.Root -> RootScreen()
