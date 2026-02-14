@@ -3,9 +3,14 @@ package com.xlrr.roambendom.ui
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -13,11 +18,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalSharedTransitionScope
+import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.data.PixivTestResult
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.NHWebHelper
+import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlin.math.ceil
 import kotlin.math.max
 
 enum class HomeSelection {
@@ -27,19 +37,23 @@ enum class HomeSelection {
 
 class HomeViewModel() : ViewModel() {
     var local: HomeSelection by mutableStateOf(HomeSelection.NH)
-    val content = mutableStateListOf<SearchItemData>()
+    val content = mutableStateSetOf<SearchItemData>()
     var page by mutableIntStateOf(0)
     var isEnd by mutableStateOf(false)
+    var error: Throwable? by mutableStateOf(null)
     var loading by mutableStateOf(false)
     var scrollState : ScrollableState? = null
-    var tempLeave by mutableStateOf(false)
+    var tempLeave by mutableStateOf(false)  //这个变量主要是为了标记是否是暂时离开（即Home被压在栈下）
+    var pixivResult: PixivTestResult = PixivTestResult()
 
     suspend fun reload() {
+        error = null
         clear()
         requestNext()
     }
 
     fun clear() {
+        pixivResult = PixivTestResult()
         content.clear()
         page = 0
     }
@@ -47,21 +61,51 @@ class HomeViewModel() : ViewModel() {
     suspend fun requestNext() {
         page += 1
         loading = true
-        val result = NHWebHelper.search("", page)
-        if (result.items.isNotEmpty()) {
-            content.addAll(result.items)
+        try {
+            if (local == HomeSelection.NH) {
+                val result = NHWebHelper.search("", page)
+                if (result.items.isNotEmpty()) {
+                    content.addAll(result.items)
+                } else isEnd = true
+            } else {
+                page -= 1
+                pixivResult = PIXIVApiHelper.testPixivRequest()
+            }
+        } catch (e: Exception) {
+            error = e
         }
-        else isEnd = true
         loading = false
     }
 }
 
 @Composable
-private fun StaggeredGridContent(modifier: Modifier,
-                                 scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
-                                 loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
-                                 content: List<SearchItemData>, page: Int) {
+private fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
+    Box() {
+        ItemInfoCardWithShared(
+            it.thumb,
+            "null",
+            it.title,
+            it.restriction,
+            it.lang.toString().lowercase(),
+            onclick = {
+                GlobalData.nav.push(Routes.Root.Detail(it))
+            },
+            imgLabel = it.thumb,
+            toColumn = orColumn
+        )
+    }
+}
+
+@Composable
+private fun StaggeredGridContent(
+    modifier: Modifier,
+    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
+    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
+    content: SnapshotStateSet<SearchItemData>, page: Int, loadItem: @Composable () -> Unit,
+    headItem: @Composable () -> Unit
+) {
     val lstate = scrollState as? LazyStaggeredGridState ?: rememberLazyStaggeredGridState()
+    val mx = LocalWindowSize.current.width
     var found by remember {
         mutableStateOf(false)
     }
@@ -92,64 +136,179 @@ private fun StaggeredGridContent(modifier: Modifier,
         }
     }
     LazyVerticalStaggeredGrid(
-        MaxSize(
-            216.dp,
-            max(6, LocalWindowSize.current.width.value.toInt() / 216 - 2),
-            if (LocalWindowSize.current.width < SmallScreenDpLine) 0.dp else 32.dp
+        StaggeredGridCells.Fixed(
+            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
         ),
+//        MaxSize(
+//            216.dp,
+//            max(6, mx.value.toInt() / 216 - 2)
+//        ),
         modifier,
         horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
         verticalItemSpacing = 4.dp,
         state = lstate
     ) {
-        item("head",span = StaggeredGridItemSpan.FullLine) {
-            Text("这里到时候要添加NH与PIXIV的选择器", style = MaterialTheme.typography.headlineMedium)
+        item("head",span = StaggeredGridItemSpan.SingleLane) {
+            headItem()
         }
         if (content.isNotEmpty()) {
-            items(content, {it.id}) {
-                with(LocalSharedTransitionScope.current) {
-                    Box() {
-                        ItemInfoCardWithShared(
-                            it.thumb,
-                            "null",
-                            it.title,
-                            it.restriction,
-                            it.lang.toString().lowercase(),
-                            onclick = {
-                                GlobalData.nav.push(Routes.Root.Detail(it))
-                            },
-                            imgLabel = it.thumb
-                        )
+            if (content.size >= 30) {
+                item("popular",span = StaggeredGridItemSpan.FullLine) {
+                    Text("热门", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(content.toList().subList(0,5), {"popular${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it)
+                    }
+                }
+                item("lastest",span = StaggeredGridItemSpan.FullLine) {
+                    Text("最新", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(content.toList().subList(5,content.size), {"lasest${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it)
+                    }
+                }
+            } else {
+                items(content.toList(), { it.id }) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it)
                     }
                 }
             }
             item(if (isEnd) "bottom" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
-                Box(Modifier.fillMaxWidth(), Alignment.Center) {
-//                    Button({ss.launch { viewModel.requestNext() }}, enabled = !viewModel.loading) {
-//                        Text("加载更多")
-//                    }
-                    if (isEnd) {
-                        Text("没有更多了，页码${page}")
-                    } else {
-                        CircularProgressIndicator()
-                    }
-                }
+                loadItem()
             }
         }
     }
 }
 
 @Composable
+private fun LazyListContent(
+    modifier: Modifier,
+    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
+    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
+    content: SnapshotStateSet<SearchItemData>, page: Int, loadItem: @Composable () -> Unit,
+    headItem: @Composable () -> Unit
+) { //纯纯代码复用
+    val lstate = scrollState as? LazyListState ?: rememberLazyListState()
+    var found by remember {
+        mutableStateOf(false)
+    }
+    DisposableEffect(Unit) {
+        GlobalData.forListState = lstate
+        changeSc(lstate)
+        onDispose {
+            GlobalData.forListState = null
+        }
+    }
+    LaunchedEffect(lstate) { // 这都什么跟什么啊
+        snapshotFlow { lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"} }
+            .distinctUntilChanged()
+            .collect {
+                if (it && !loading && !isEnd) {
+                    found = true
+                }
+                else if (!loading) {
+                    found = false
+                }
+            }
+    }
+    LaunchedEffect(isEnd) {
+        if (!isEnd) {
+            found = false
+        }
+    }
+    LaunchedEffect(found) {
+        if (!loading && found) {
+            req()
+        }
+    }
+    LazyColumn(modifier, lstate, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        item("head") {
+            headItem()
+        }
+        if (content.isNotEmpty()) {
+            if (content.size >= 30) {
+                item("popular") {
+                    Text("热门", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(content.toList().subList(0,5), {"popular${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it, false)
+                    }
+                }
+                item("lastest") {
+                    Text("最新", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(content.toList().subList(5,content.size), {"lasest${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it, false)
+                    }
+                }
+            } else {
+                items(content.toList(), { it.id }) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it, false)
+                    }
+                }
+            }
+            item(if (isEnd) "bottom" else "nextLoading") {
+                loadItem()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChooseContent(
+    k: Boolean, modifier: Modifier,
+    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
+    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
+    content: SnapshotStateSet<SearchItemData>, page: Int, selection: HomeSelection, pxResult: PixivTestResult,
+    loadItem: @Composable () -> Unit,
+    headItem: @Composable () -> Unit
+) {
+    if (selection == HomeSelection.PIXIV) {
+        LazyColumn(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            item("head") {
+                headItem()
+            }
+            item("explanation") {
+                Text("P站插画/主页页面逻辑复杂，程序的屎山叠太高了，以后再做") // TODO: 完善Pixiv类型的主页。
+            }
+            if (!loading) {
+                item("INFOS") {
+                    Text("是否可以访问网页${pxResult.canRequestWebsite}")
+                    Text("账号是否可用${pxResult.isUserSigned}")
+                    Text("是否显示可能包含敏感内容的作品${pxResult.canReadSensitive}")
+                    Text("是否显示浏览限制作品（R-18）${pxResult.canReadR18}")
+                    Text("是否显示猎奇向作品（R-18G）${pxResult.canReadR18G}")
+                }
+            }
+        }
+    }
+    else if (k) {
+        StaggeredGridContent(
+            modifier, scrollState, changeSc, loading, isEnd, req, content, page, loadItem, headItem
+        )
+    } else {
+        LazyListContent(
+            modifier, scrollState, changeSc, loading, isEnd, req, content, page, loadItem, headItem
+        )
+    }
+}
+
+@Composable
 fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewModel { HomeViewModel() }) {
-    LaunchedEffect(Unit) {
+    val small = LocalWindowSize.current.width < SmallScreenDpLine
+    LaunchedEffect(viewModel.local) {
+        GlobalData.homeContentSelection = viewModel.local
         if (!viewModel.tempLeave) {
             viewModel.reload()
         } else {
             viewModel.tempLeave = false
         }
-    }
-    LaunchedEffect(viewModel.local) {
-        GlobalData.homeContentSelection = viewModel.local
     }
     DisposableEffect(Unit) {
         onDispose {
@@ -178,11 +337,67 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             }
         }) {pd ->
         Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
-            StaggeredGridContent(modifier, viewModel.scrollState, { viewModel.scrollState = it },
+            ChooseContent(
+                !small || ConfigUtil.forceGrid.state.value,modifier, viewModel.scrollState, { viewModel.scrollState = it },
                 viewModel.loading, viewModel.isEnd, { viewModel.requestNext() },
-                viewModel.content, viewModel.page)
+                viewModel.content, viewModel.page, viewModel.local,viewModel.pixivResult, {
+                    Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                        if (viewModel.error == null) {
+                            if (viewModel.isEnd) {
+                                Text("没有更多了，页码${viewModel.page}")
+                            } else {
+                                CircularProgressIndicator()
+                            }
+                        } else {
+                            viewModel.error?.let {
+                                CenterColumnInfo {
+                                    Text("错误：${it.message}")
+                                    Button({
+                                        ss.launch {
+                                            viewModel.reload()
+                                        }
+                                    }) {
+                                        Text("点我重载")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    SingleChoiceSegmentedButtonRow {
+                        HomeSelection.entries.forEachIndexed { index, selection ->
+                            SegmentedButton(
+                                viewModel.local == selection,
+                                {viewModel.local = selection},
+                                SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = 2
+                                ),
+                            ) {
+                                Text(selection.toString())
+                            }
+                        }
+
+                    }
+                }
+            )
             if (viewModel.content.isEmpty() && viewModel.loading) {
                 CenterCircular()
+            }
+            if (viewModel.content.isEmpty() && viewModel.error != null) {
+                viewModel.error?.let {
+                    CenterColumnInfo {
+                        Text("错误：${it.message}")
+                        Button({
+                            ss.launch {
+                                viewModel.reload()
+                            }
+                        }) {
+                            Text("点我重载")
+                        }
+                    }
+                }
             }
         }
     }

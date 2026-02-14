@@ -36,7 +36,6 @@ import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.empty_page
 import roambendom.composeapp.generated.resources.loading_jpg
-import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.round
 
@@ -123,6 +122,22 @@ fun DefaultErrorHandleImage(url: String, modifier: Modifier) {
 }
 
 @Composable
+private fun RowOrColumn(modifier: Modifier, or: Boolean = true,
+                        horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+                        verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
+                        content: @Composable () -> Unit) {
+    if (or) {
+        Column(modifier, horizontalAlignment = horizontalAlignment) {
+            content()
+        }
+    } else {
+        Row(modifier, verticalAlignment = verticalAlignment) {
+            content()
+        }
+    }
+}
+
+@Composable
 fun ItemInfoCardWithShared(
     url: String,
     page: String,
@@ -131,6 +146,7 @@ fun ItemInfoCardWithShared(
     extraText: String? = null,
     extraComposer: @Composable () -> Unit = {},
     onclick: () -> Unit = {},
+    toColumn: Boolean = true,
     imgLabel: String? = null
 ) {
     Surface(
@@ -138,12 +154,19 @@ fun ItemInfoCardWithShared(
         shadowElevation = 4.dp,
         modifier = Modifier.padding(5.dp, 0.dp)
     ) {
-        Column(
-            Modifier.clickable(onClick = onclick).padding(6.dp).fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                with(LocalSharedTransitionScope.current) {
+        with(LocalSharedTransitionScope.current) {
+            RowOrColumn(
+                Modifier.clickable(onClick = onclick).padding(6.dp).fillMaxSize()
+                    .sharedBounds(
+                        rememberSharedContentState("$title$url".hashCode().toString()),
+                        LocalAnimatedVisibilityScope.current,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()),
+                verticalAlignment = Alignment.Top,
+                or = toColumn
+            ) {
+                Box(modifier = if (toColumn) Modifier.fillMaxWidth() else Modifier.widthIn(32.dp, 128.dp)) {
                     var mod: Modifier = Modifier
                     if (imgLabel != null) {
                         mod = mod.sharedBounds(
@@ -155,35 +178,47 @@ fun ItemInfoCardWithShared(
                         )
                     }
                     DefaultErrorHandleImage(url, mod)
-                }
-                FlowColumn(
-                    Modifier.align(Alignment.TopEnd), verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemHorizontalAlignment = Alignment.End
-                ) {
-                    page.toIntOrNull()?.let {
-                        CardLabel("P${it}")
+                    FlowColumn(
+                        Modifier.align(Alignment.TopEnd), verticalArrangement = Arrangement.spacedBy(4.dp),
+                        itemHorizontalAlignment = Alignment.End
+                    ) {
+                        page.toIntOrNull()?.let {
+                            CardLabel("P${it}")
+                        }
                     }
                 }
-            }
-            Text(title, modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis)
-            if (restriction != null) {
-                Box(Modifier.fillMaxWidth(), Alignment.CenterStart) {
-                    Text(
-                        restriction.toString(),
-                        modifier = Modifier.background(restriction.getColor())
-                    )
+                Column(modifier = if (toColumn) Modifier else Modifier.padding(PaddingValues(start = 4.dp))) {
+                    Text(title, modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    if (restriction != null) {
+                        Box(Modifier.fillMaxWidth(), Alignment.CenterStart) {
+                            Text(
+                                restriction.toString(),
+                                modifier = Modifier.background(restriction.getColor())
+                                    .padding(2.dp, 0.dp)
+                            )
+                        }
+                    }
+                    extraText?.let {
+                        Text(
+                            it,
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 14.sp
+                        )
+                    }
+                    extraComposer()
                 }
             }
-            extraText?.let {
-                Text(
-                    it,
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 14.sp
-                )
-            }
-            extraComposer()
+        }
+    }
+}
+
+@Composable
+fun CenterColumnInfo(content: @Composable ColumnScope.() -> Unit) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Column(Modifier, Arrangement.Center,Alignment.CenterHorizontally) {
+            content()
         }
     }
 }
