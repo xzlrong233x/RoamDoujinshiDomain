@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.view.WindowCompat
+import com.funny.data_saver.core.DataSaverPreferences
 import com.xlrr.roambendom.utils.GlobalData
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +21,8 @@ class MainActivity : ComponentActivity() {
                 GlobalData.nav.defaultBack()
             }
             LaunchedEffect(true) {
-                GlobalData.init(cacheDir.path)
+                GlobalData.init(cacheDir.path,
+                    DataSaverPreferences(applicationContext, false))
             }
             App()
         }

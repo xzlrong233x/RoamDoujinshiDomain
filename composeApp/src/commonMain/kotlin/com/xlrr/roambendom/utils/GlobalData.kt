@@ -4,6 +4,8 @@ import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.funny.data_saver.core.DataSaverInterface
+import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.ui.HomeSelection
@@ -17,9 +19,13 @@ object GlobalData {
     var cacheDir = "image_cache".toPath()
         private set
 
-    fun init(cachePath: String = "") {
+    var dataSaver: DataSaverInterface? = null
+
+    fun init(cachePath: String = "", dataSaverArg: DataSaverInterface) {
         if (cachePath.isNotEmpty()) {
             cacheDir = cachePath.toPath()
         }
+        dataSaver = dataSaverArg
+        ConfigUtil.init(dataSaverArg)
     }
 }

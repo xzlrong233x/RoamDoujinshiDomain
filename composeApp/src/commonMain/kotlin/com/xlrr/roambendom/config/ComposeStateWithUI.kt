@@ -28,7 +28,7 @@ fun CalUI(config: StateWithUI<*>, enable: Boolean = true) {
 @Composable
 fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
     if (config.uiType !is UIType.SwitchUI) return
-    FlowRow(horizontalArrangement = Arrangement.SpaceAround,
+    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.Center,
         itemVerticalAlignment = Alignment.CenterVertically) {
         Text(config.uiType.label)
@@ -47,7 +47,7 @@ fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
 @Composable
 fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = true) {
     if (config.uiType !is UIType.SingleSegmentedButton) return
-    FlowRow(horizontalArrangement = Arrangement.SpaceAround,
+    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.Center,
         itemVerticalAlignment = Alignment.CenterVertically) {
         Text(config.uiType.label)
@@ -79,7 +79,7 @@ fun DropStringSelectUIComposer(config: StateWithUI<String>, enable: Boolean = fa
             exp = false
         }
     }
-    FlowRow(horizontalArrangement = Arrangement.SpaceAround,
+    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
         verticalArrangement = Arrangement.Center,
         itemVerticalAlignment = Alignment.CenterVertically) {
         Text(config.uiType.label)

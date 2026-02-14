@@ -31,6 +31,7 @@ import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.chevron_left_icon
 import roambendom.composeapp.generated.resources.chevron_right_icon
 import roambendom.composeapp.generated.resources.home_icon
+import roambendom.composeapp.generated.resources.settings_icon
 
 private data class NavItem(
     val label: String,
@@ -45,6 +46,12 @@ private val navItems: List<NavItem> = listOf(
         Res.drawable.home_icon,
         { it is Routes.Root.Home },
         { GlobalData.nav.navigateTo(Routes.Root.Home)}
+    ),
+    NavItem(
+        "设置",
+        Res.drawable.settings_icon,
+        { it is Routes.Root.Settings },
+        { GlobalData.nav.navigateTo(Routes.Root.Settings)}
     )
 )
 
@@ -276,6 +283,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
                 when (x) {
                     is Routes.Root.Home -> HomeScreen(modifier.padding(it))
                     is Routes.Root.Detail -> DetailScreen(x.searchItemData, modifier.padding(it))
+                    is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                 }
             }
         }
