@@ -1,13 +1,9 @@
 package com.xlrr.roambendom.network
 
 import com.fleeksoft.ksoup.nodes.Element
-import com.xlrr.roambendom.data.ArtworkInfo
-import com.xlrr.roambendom.data.CLanguage
-import com.xlrr.roambendom.data.CSources
-import com.xlrr.roambendom.data.SearchItemData
-import com.xlrr.roambendom.data.SearchResult
-import io.ktor.client.request.parameter
-import io.ktor.http.encodeURLQueryComponent
+import com.xlrr.roambendom.data.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlin.time.Instant
 
 private const val prefix: String = "https://nhentai.net"
@@ -57,6 +53,7 @@ object NHWebHelper {
         val doc = if (key.isNotEmpty()) NetHelper.getWebDocument(joinUrl("search")) {
             parameter("q", key.encodeURLQueryComponent())
             parameter("page", page)
+            defaultHeader()
         }
         else {
             NetHelper.getWebDocument(prefix) {
@@ -80,7 +77,9 @@ object NHWebHelper {
 
     suspend fun artwork(id: String): ArtworkInfo {
         val info = ArtworkInfo()
-        val doc = NetHelper.getWebDocument(joinUrl("g", id)) ?: return info
+        val doc = NetHelper.getWebDocument(joinUrl("g", id)) {
+            defaultHeader()
+        } ?: return info
         info.cover = dealWithUrl(doc.select("#cover > a > img").attr("data-src"))
         info.title = doc.select("#info > h1 > span").joinToString(" ") { it.text() }
         info.altitle = doc.select("#info > h2 > span").joinToString(" ") { it.text() }

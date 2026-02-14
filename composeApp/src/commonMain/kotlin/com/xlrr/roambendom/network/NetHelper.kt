@@ -4,15 +4,22 @@ import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Document
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import java.security.KeyStore
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
+
+fun HttpRequestBuilder.defaultHeader() {
+    header("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
+}
 
 object NetHelper {
     fun getTrustManagers(): Array<out TrustManager?>? {
@@ -24,6 +31,9 @@ object NetHelper {
     }
 
     private fun createClient(): HttpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json()
+        }
         engine {
             config {
                 val ssls = RBDSocketFactory(SSLSocketFactory.getDefault() as SSLSocketFactory)

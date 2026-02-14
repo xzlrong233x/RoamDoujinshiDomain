@@ -19,7 +19,7 @@ class RBDSocketFactory(val oriFactory: SSLSocketFactory) : SSLSocketFactory() {
         val socket = oriFactory.createSocket(s, host, port, autoClose) as? SSLSocket
         if (socket != null) {
             val sslParams = socket.sslParameters
-            if (host?.contains("pixiv.net") == true) {
+            if (host?.contains("pixiv.net") == true || host?.contains("pximg.net") == true) {
                 sslParams.serverNames = listOf()
             }
             socket.sslParameters = sslParams
