@@ -19,3 +19,4 @@ captures
 node_modules/
 composeApp/image_cache
 ChangeLog.md
+composeApp/config.properties
