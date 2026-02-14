@@ -2,6 +2,7 @@ package com.xlrr.roambendom.nav
 
 import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.data.search.SearchParameterModel
 
 sealed class Routes {
     sealed class Root : Routes() {
@@ -13,7 +14,7 @@ sealed class Routes {
             val searchItemData: SearchItemData
         ) : Root()
         data class Search(
-            val key: String
+            val searchModel: SearchParameterModel
         ) : Root()
         data object Settings : Root()
     }

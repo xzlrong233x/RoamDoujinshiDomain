@@ -6,7 +6,7 @@ import com.xlrr.roambendom.data.CRestriction.*
 enum class CRestriction {
     Normal,
     R18,
-    R18G
+    R18G;
 }
 
 fun CRestriction.getColor(): Color {
