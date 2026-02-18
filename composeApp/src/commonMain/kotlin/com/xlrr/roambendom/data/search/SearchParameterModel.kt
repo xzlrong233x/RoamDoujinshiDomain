@@ -1,8 +1,8 @@
 package com.xlrr.roambendom.data.search
 
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.*
 import com.xlrr.roambendom.data.SearchItemData
-import com.xlrr.roambendom.network.NHWebHelper
 
 class SearchParameterModel(
     var key: String,
@@ -16,6 +16,8 @@ class SearchParameterModel(
     var loading by mutableStateOf(false)
     var end by mutableStateOf(false)
     var error: Throwable? by mutableStateOf(null)
+
+    var scrollState : ScrollableState? = null
 
     val content = mutableStateSetOf<SearchItemData>()
 
@@ -36,7 +38,7 @@ class SearchParameterModel(
         page++
         loading = true
         try {
-            val result = NHWebHelper.search(key, page)
+            val result = configs.searchFunction(key, page)
             if (result.items.isNotEmpty()) {
                 content.addAll(result.items)
             } else end = true
