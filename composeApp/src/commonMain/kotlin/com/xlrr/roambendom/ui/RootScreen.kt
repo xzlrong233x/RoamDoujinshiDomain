@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
@@ -16,22 +17,27 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
+import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
+import io.ktor.util.reflect.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.chevron_left_icon
-import roambendom.composeapp.generated.resources.chevron_right_icon
-import roambendom.composeapp.generated.resources.home_icon
-import roambendom.composeapp.generated.resources.settings_icon
+import roambendom.composeapp.generated.resources.*
+import kotlin.math.abs
+import kotlin.reflect.KClass
 
 private data class NavItem(
     val label: String,
@@ -45,13 +51,13 @@ private val navItems: List<NavItem> = listOf(
         "首页",
         Res.drawable.home_icon,
         { it is Routes.Root.Home },
-        { GlobalData.nav.navigateTo(Routes.Root.Home)}
+        { GlobalData.nav.replace(Routes.Root.Home)}
     ),
     NavItem(
         "设置",
         Res.drawable.settings_icon,
         { it is Routes.Root.Settings },
-        { GlobalData.nav.navigateTo(Routes.Root.Settings)}
+        { GlobalData.nav.replace(Routes.Root.Settings)}
     )
 )
 
@@ -77,11 +83,114 @@ private class TopAppBarOffsetState(
             toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
             return Offset.Zero
         }
+
+        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+            if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) {
+                _toolbarOffset.floatValue = -minUpPx
+            } else {
+                _toolbarOffset.floatValue = -maxUpPx
+            }
+            return super.onPostFling(consumed, available)
+        }
     }
 }
 
+private val WhatShouldShowSearch: List<KClass<*>> = listOf(
+    Routes.Root.Home::class,
+    Routes.Root.Search::class
+)
+
 val SmallScreenDpLine = 480.dp
 val MediumScreenDpLine = 720.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RootSearchBar(
+    modifier: Modifier, query: String, onQueryChange: (String) -> Unit,expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit, onSearch: (String) -> Unit,
+    placeholder: String, leadingIcon: @Composable (() -> Unit)? = null,
+) {
+    val fM = LocalFocusManager.current
+    DockedSearchBar(
+        inputField = {
+            SearchBarDefaults.InputField(
+                query,
+                onQueryChange,
+                onSearch = {
+                    if (it.isNotEmpty()) {
+                        onSearch(it)
+                        fM.clearFocus()
+                    }
+                },
+                expanded = expanded,
+                onExpandedChange = onExpandedChange,
+                placeholder = {
+                    Text(placeholder)
+                },
+                leadingIcon = leadingIcon
+            )
+        },
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+        modifier = modifier
+    ) {
+
+    }
+}
+
+@Composable
+private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState, topBarState: TopAppBarOffsetState,
+                        should: Boolean,
+                        drawerCaller: @Composable () -> Unit,
+                        returnCaller: @Composable () -> Unit) {
+    val ss = rememberCoroutineScope()
+    Surface(Modifier.statusBarsPadding()
+        .fillMaxWidth().offset {
+            IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
+        },) {
+        Row(
+            Modifier.height(with(LocalDensity.current){h.toDp()})
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (GlobalData.nav.backStack.size > 1) {
+                returnCaller()
+            } else if (!should) {
+                drawerCaller()
+            }
+        }
+        if (should) {
+            Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
+                    {searchText.edit { replace(0, length, it) }},
+                    false, {}, {
+                        val cs = GlobalData.nav.backStack.last()
+                        if (cs is Routes.Root.Search) {
+                            cs.searchModel.key = it
+                            ss.launch {
+                                cs.searchModel.reload()
+                            }
+                        } else {
+                            GlobalData.nav.push(Routes.Root.Search(
+                                SearchParameterModel(it).config {
+                                    if (GlobalData.homeContentSelection != null) {
+                                        searchTarget.state.value =
+                                            if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                                    }
+                                }
+                            ))
+                        }
+                    }, "search...",
+                    if (smallMode) {
+                        {
+                            drawerCaller()
+                        }
+                    } else null
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -92,6 +201,15 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val curScreen = GlobalData.nav.backStack.last()
     val scope = rememberCoroutineScope()
+    val searchText = remember(curScreen) {
+        if (curScreen is Routes.Root.Search) {
+            TextFieldState(curScreen.searchModel.key)
+        } else {
+            GlobalData.rootSearchQuery
+        }
+    }
+
+    val shouldShowSearch = WhatShouldShowSearch.any { curScreen.instanceOf(it) }
 
     val maxUpPx = with(LocalDensity.current) { 56.dp.roundToPx().toFloat() }
     val minUpPx = 0f
@@ -190,7 +308,11 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             )
         ) { x ->
             val h: Float by animateFloatAsState(
-                if (smallMode) maxUpPx + topBarState.toolbarOffsetHeightPx else 0f
+                if (!shouldShowSearch && !smallMode) {
+                    0f
+                } else {
+                    maxUpPx + topBarState.toolbarOffsetHeightPx
+                }
             )
             Box(Modifier.padding(x).nestedScroll(topBarState.nestedScrollConnection)) {
                 Column {
@@ -240,27 +362,20 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                     }
                 }
 
-                Surface(Modifier.statusBarsPadding()
-                    .height(with(LocalDensity.current){h.toDp()}).fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Row(
-                        Modifier.height(with(LocalDensity.current){h.toDp()})
-                            .fillMaxWidth().offset {
-                                IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
-                            },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (GlobalData.nav.backStack.size > 1) {
-                            IconButton({ scope.launch { GlobalData.nav.defaultBack() } }) {
-                                Text("返")
-                            }
-                        } else {
-                            IconButton({ scope.launch { drawerState.open() } }) {
-                                Text("☰")
-                            }
+                RootHeadBar(smallMode, h, searchText, topBarState, shouldShowSearch,
+                    {
+                        IconButton(
+                            { scope.launch { drawerState.open() } },
+                            Modifier.semantics { role = Role.Button }) {
+                            Text("☰")
+                        }
+                    },
+                    {
+                        IconButton({ scope.launch { GlobalData.nav.defaultBack() } }) {
+                            Text("返")
                         }
                     }
-                }
+                )
 //                CtrlAnimatedVisibility(smallMode,
 //                    Modifier.fillMaxWidth(),
 //                    enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
@@ -284,6 +399,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
                     is Routes.Root.Home -> HomeScreen(modifier.padding(it))
                     is Routes.Root.Detail -> DetailScreen(x.searchItemData, modifier.padding(it))
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
+                    is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
                 }
             }
         }
