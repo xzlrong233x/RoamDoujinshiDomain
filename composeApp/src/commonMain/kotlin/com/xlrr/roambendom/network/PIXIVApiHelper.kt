@@ -1,9 +1,12 @@
 package com.xlrr.roambendom.network
 
+import coil3.network.NetworkHeaders
 import com.xlrr.roambendom.data.*
 import com.xlrr.roambendom.data.pixiv.NormalSealedData
 import com.xlrr.roambendom.data.pixiv.PixivSearchRestriction
 import com.xlrr.roambendom.data.pixiv.lowerStr
+import com.xlrr.roambendom.utils.getAsInt
+import com.xlrr.roambendom.utils.getAsString
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -18,10 +21,14 @@ object PIXIVApiHelper {
     fun HttpRequestBuilder.pixivNormalSetting() {
         defaultHeader()
         header("referer", "https://$mainPrefix")
-        cookie("yuid_b","") // TODO：见设置 吧
+        cookie("yuid_b","")
         cookie("PHPSESSID", "")
         cookie("device_token", "")
     }
+
+    val pixivCoilHeader = NetworkHeaders.Builder()
+        .set("Referer", "https://$mainPrefix")
+        .build()
 
     suspend inline fun <reified T> requestStandard(post: String, builder: HttpRequestBuilder.() -> Unit = {}) : NormalSealedData<T> {
         val url = post.split("/").filter { it.isNotEmpty() }
@@ -53,19 +60,25 @@ object PIXIVApiHelper {
         if (data.error) {
             return sr
         }
-        data.body.jsonObject["illustManga"]?.jsonObject?.get("data")?.jsonArray?.map {
-            change.add(
-                SearchItemData(
-                    it.jsonObject["id"]?.jsonPrimitive.toString(),
-                    it.jsonObject["title"]?.jsonPrimitive.toString(),
-                    it.jsonObject["pageCount"]?.jsonPrimitive?.intOrNull ?: 0,
-                    CLanguage.Unknown,
-                    it.jsonObject["url"]?.jsonPrimitive.toString(),
-                    CSources.PIXIV,
-                    CRestriction.entries[it.jsonObject["xRestrict"]?.jsonPrimitive?.intOrNull ?: 0],
-                    (it.jsonObject["aiType"]?.jsonPrimitive?.intOrNull ?: 0) > 1
-                )
-            )
+        val illustManga = data.body.jsonObject["illustManga"]?.jsonObject
+        illustManga?.let { x ->
+            x["data"]?.jsonArray?.map {
+                it.jsonObject.let { n ->
+                    change.add(
+                        SearchItemData(
+                            n.getAsString("id"),
+                            n.getAsString("title"),
+                            n.getAsInt("pageCount"),
+                            CLanguage.Unknown,
+                            n.getAsString("url"),
+                            CSources.PIXIV,
+                            CRestriction.entries[n.getAsInt("xRestrict")],
+                            n.getAsInt("aiType") > 1
+                        )
+                    )
+                }
+            }
+            sr.total = x.getAsInt("total")
         }
         sr.items = change
         return sr
