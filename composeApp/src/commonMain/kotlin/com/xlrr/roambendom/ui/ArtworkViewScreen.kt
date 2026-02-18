@@ -46,16 +46,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.AsyncImagePainter.Companion.DefaultTransform
 import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
-import coil3.size.Size
 import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
+import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
@@ -112,33 +113,13 @@ private fun LoadingImage(
         return
     }
     Box {
-        SubcomposeAsyncImage(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(data)
-                .size(Size.ORIGINAL)
-                .build(),
+        AsyncImage(
+            model = defaultImageRequest(data, LocalPlatformContext.current),
             filterQuality = FilterQuality.Medium,
             contentDescription = null,
-            loading = {
-                Image(
-                    painterResource(Res.drawable.loading_jpg),
-                    contentDescription = "Image in loading"
-                )
-            },
-            error = {
-                Box(contentAlignment = Alignment.TopCenter) {
-                    Image(painterResource(Res.drawable.empty_page), "empty page")
-                    Column(
-                        Modifier.background(Color.DarkGray),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("WHAT?")
-                        Text(it.result.throwable.message.toString())
-                    }
-                }
-            },
-            transform = transform,
-            contentScale = contentScale
+            placeholder = painterResource(Res.drawable.loading_jpg),
+            error = painterResource(Res.drawable.empty_page),
+            contentScale = contentScale,
         )
         successfulContent()
     }
@@ -298,7 +279,13 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         }
         preload.preload(artworkInfo.pageUrls, pager.currentPage)
     }
-    LaunchedEffect(artworkData.oneScreenOnePage.state.value) {
+    DisposableEffect(artworkData.pageDirection.state.value) {
+        GlobalData.hideStatusBar = artworkData.pageDirection.state.value == 1
+        onDispose {
+            GlobalData.hideStatusBar = false
+        }
+    }
+    LaunchedEffect(artworkData.oneScreenOnePage.state.value, LocalWindowSize.current) {
         if (artworkData.oneScreenOnePage.state.value) {
             cs = object : ContentScale {
                 override fun computeScaleFactor(
@@ -382,9 +369,9 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd)
                         .padding(0.dp,2.dp)
-                        .semantics { role = Role.Button }.apply {
-                            if (artworkData.pageDirection.state.value == 1) statusBarsPadding()
-                        },
+                        .run {
+                            if (artworkData.pageDirection.state.value == 1) statusBarsPadding() else this
+                        }.semantics { role = Role.Button },
                     color = Color(0f,0f,0f, 0.5f), contentColor = Color.White,
                     shape = RoundedCornerShape(6.dp),
                     onClick = {thumbExpand = !thumbExpand},
@@ -561,10 +548,7 @@ private class Preload(private val context: PlatformContext) {
         val imageLoader = SingletonImageLoader.get(context)
 
         for (x in cur + 1 until end) {
-            val req = ImageRequest.Builder(context)
-                .data(data[x])
-                .size(Size.ORIGINAL)
-                .build()
+            val req = defaultImageRequest(data[x], context)
 
             if (preloadRequests.contains(req)) {
                 continue

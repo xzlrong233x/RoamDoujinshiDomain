@@ -1,6 +1,7 @@
 package com.xlrr.roambendom
 
 import android.os.Bundle
+import android.view.WindowInsets
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -15,6 +16,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        val wic = window.decorView.windowInsetsController
 
         setContent {
             BackHandler {
@@ -25,6 +27,13 @@ class MainActivity : ComponentActivity() {
                     DataSaverPreferences(applicationContext, false))
             }
             App()
+            LaunchedEffect(GlobalData.hideStatusBar) {
+                if (GlobalData.hideStatusBar) {
+                    wic?.hide(WindowInsets.Type.statusBars())
+                } else {
+                    wic?.show(WindowInsets.Type.statusBars())
+                }
+            }
         }
     }
 }

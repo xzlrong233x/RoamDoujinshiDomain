@@ -1,16 +1,18 @@
 package com.xlrr.roambendom.network
 
+import coil3.PlatformContext
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
+import coil3.size.Size
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Document
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.client.*
+import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import java.security.KeyStore
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
@@ -19,6 +21,24 @@ import javax.net.ssl.X509TrustManager
 
 fun HttpRequestBuilder.defaultHeader() {
     header("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
+}
+
+fun defaultImageRequest(url: String, context: PlatformContext) : ImageRequest {
+    return Regex("https://[it]\\d.nhentai.net")
+        .replace(url, "").let {
+            ImageRequest.Builder(context)
+                .diskCacheKey(it)
+                .memoryCacheKey(it)
+                .data(url)
+                .size(Size.ORIGINAL)
+                .run {
+                    if (url.contains("pximg") || url.contains("pixiv")) {
+                        httpHeaders(PIXIVApiHelper.pixivCoilHeader)
+                    }
+                    else this
+                }
+                .build()
+        }
 }
 
 object NetHelper {

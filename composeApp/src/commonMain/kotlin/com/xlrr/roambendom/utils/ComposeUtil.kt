@@ -1,7 +1,6 @@
 package com.xlrr.roambendom.utils
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,14 +23,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
-import coil3.compose.SubcomposeAsyncImage
-import coil3.request.ImageRequest
-import coil3.size.Size
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
+import com.xlrr.roambendom.network.defaultImageRequest
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.empty_page
@@ -91,33 +89,13 @@ fun CardLabel(
 
 @Composable
 fun DefaultErrorHandleImage(url: String, modifier: Modifier) {
-    SubcomposeAsyncImage(
-        model = Regex("https://[it]\\d.nhentai.net")
-            .replace(url, "").let {
-                ImageRequest.Builder(LocalPlatformContext.current)
-                    .diskCacheKey(it)
-                    .memoryCacheKey(it)
-                    .data(url)
-                    .size(Size.ORIGINAL)
-                    .build()
-            },
+    AsyncImage(
+        model = defaultImageRequest(url, LocalPlatformContext.current),
         filterQuality = FilterQuality.Medium,
         contentDescription = null,
-        modifier = modifier.clip(RoundedCornerShape(12.dp)).fillMaxWidth(),
-        loading = { x ->
-            Image(
-                painterResource(Res.drawable.loading_jpg),
-                contentDescription = "Image in loading"
-            )
-        },
-        error = { x ->
-            println("request $url failed, msg: ${x.result.throwable.message}")
-            Image(
-                painterResource(Res.drawable.empty_page),
-                contentDescription = "Image in error"
-            )
-            Text(x.result.throwable.message.toString())
-        }
+        modifier = modifier.clip(RoundedCornerShape(12.dp)).widthIn(128.dp).fillMaxWidth(),
+        placeholder = painterResource(Res.drawable.loading_jpg),
+        error = painterResource(Res.drawable.empty_page)
     )
 }
 
@@ -167,7 +145,7 @@ fun ItemInfoCardWithShared(
                 or = toColumn
             ) {
                 Box(modifier = if (toColumn) Modifier.fillMaxWidth() else Modifier.widthIn(32.dp, 128.dp)) {
-                    var mod: Modifier = Modifier
+                    var mod: Modifier = if (toColumn) Modifier.fillMaxWidth() else Modifier
                     if (imgLabel != null) {
                         mod = mod.sharedBounds(
                             rememberSharedContentState(imgLabel),
