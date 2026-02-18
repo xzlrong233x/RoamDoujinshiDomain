@@ -2,6 +2,7 @@ package com.xlrr.roambendom.network
 
 import java.net.InetAddress
 import java.net.Socket
+import javax.net.ssl.SNIHostName
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
@@ -20,7 +21,8 @@ class RBDSocketFactory(val oriFactory: SSLSocketFactory) : SSLSocketFactory() {
         if (socket != null) {
             val sslParams = socket.sslParameters
             if (host?.contains("pixiv.net") == true || host?.contains("pximg.net") == true) {
-                sslParams.serverNames = listOf()
+                sslParams.serverNames = listOf(SNIHostName("i.do.not.want.sni"))
+            //部分手机在发现一个无sni请求时，似乎会通过某些手段获取ip的域名，并将其填回请求中再发送
             }
             socket.sslParameters = sslParams
         }
