@@ -19,10 +19,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.PixivTestResult
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
-import com.xlrr.roambendom.network.NHWebHelper
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -37,56 +38,40 @@ enum class HomeSelection {
 
 class HomeViewModel() : ViewModel() {
     var local: HomeSelection by mutableStateOf(HomeSelection.NH)
-    val content = mutableStateSetOf<SearchItemData>()
-    var page by mutableIntStateOf(0)
-    var isEnd by mutableStateOf(false)
     var error: Throwable? by mutableStateOf(null)
+    private var _loading by mutableStateOf(false)
     var loading by mutableStateOf(false)
-    var scrollState : ScrollableState? = null
     var tempLeave by mutableStateOf(false)  //这个变量主要是为了标记是否是暂时离开（即Home被压在栈下）
     var pixivResult: PixivTestResult = PixivTestResult()
+    val spm = SearchParameterModel("")
 
     suspend fun reload() {
-        error = null
-        clear()
-        requestNext()
+        if (local == HomeSelection.NH) {
+            spm.reload()
+        } else {
+            loading = true
+            pixivResult = PIXIVApiHelper.testPixivRequest()
+            loading = false
+        }
     }
 
     fun clear() {
         pixivResult = PixivTestResult()
-        content.clear()
-        page = 0
-    }
-
-    suspend fun requestNext() {
-        page += 1
-        loading = true
-        try {
-            if (local == HomeSelection.NH) {
-                val result = NHWebHelper.search("", page)
-                if (result.items.isNotEmpty()) {
-                    content.addAll(result.items)
-                } else isEnd = true
-            } else {
-                page -= 1
-                pixivResult = PIXIVApiHelper.testPixivRequest()
-            }
-        } catch (e: Exception) {
-            error = e
-        }
-        loading = false
+        spm.clear()
     }
 }
 
 @Composable
-private fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
+fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
     Box() {
         ItemInfoCardWithShared(
             it.thumb,
-            "null",
+            if (it.pageCount > 0) it.pageCount.toString() else "null",
             it.title,
             it.restriction,
-            it.lang.toString().lowercase(),
+            it.lang.let { x ->
+                if (x != CLanguage.Unknown) x.toString().lowercase() else null
+            },
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it))
             },
@@ -262,11 +247,8 @@ private fun LazyListContent(
 
 @Composable
 private fun ChooseContent(
-    k: Boolean, modifier: Modifier,
-    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
-    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
-    content: SnapshotStateSet<SearchItemData>, page: Int, selection: HomeSelection, pxResult: PixivTestResult,
-    loadItem: @Composable () -> Unit,
+    k: Boolean, modifier: Modifier, searchParameterModel: SearchParameterModel,
+    loading: Boolean, selection: HomeSelection, pxResult: PixivTestResult,
     headItem: @Composable () -> Unit
 ) {
     if (selection == HomeSelection.PIXIV) {
@@ -279,22 +261,57 @@ private fun ChooseContent(
             }
             if (!loading) {
                 item("INFOS") {
-                    Text("是否可以访问网页${pxResult.canRequestWebsite}")
-                    Text("账号是否可用${pxResult.isUserSigned}")
-                    Text("是否显示可能包含敏感内容的作品${pxResult.canReadSensitive}")
-                    Text("是否显示浏览限制作品（R-18）${pxResult.canReadR18}")
-                    Text("是否显示猎奇向作品（R-18G）${pxResult.canReadR18G}")
+                    Text("是否可以访问网页: ${pxResult.canRequestWebsite}")
+                    Text("账号是否可用: ${pxResult.isUserSigned}")
+                    Text("是否显示可能包含敏感内容的作品: ${pxResult.canReadSensitive}")
+                    Text("是否显示浏览限制作品（R-18）: ${pxResult.canReadR18}")
+                    Text("是否显示猎奇向作品（R-18G）: ${pxResult.canReadR18G}")
                 }
             }
         }
     }
-    else if (k) {
-        StaggeredGridContent(
-            modifier, scrollState, changeSc, loading, isEnd, req, content, page, loadItem, headItem
-        )
-    } else {
-        LazyListContent(
-            modifier, scrollState, changeSc, loading, isEnd, req, content, page, loadItem, headItem
+    else {
+        SearchContent(
+            modifier, searchParameterModel, StaggeredGridCells.Fixed(
+                ceil(LocalWindowSize.current.width.value / 216f)
+                    .coerceIn(1f, max(6f, LocalWindowSize.current.width.value / 216 - 2)).toInt()
+            ), k, headItem,
+            { spm ->
+                item("popular") {
+                    Text("热门", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(spm.content.toList().subList(0,5), {"popular${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it, false)
+                    }
+                }
+                item("lastest") {
+                    Text("最新", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(spm.content.toList().subList(5,spm.content.size), {"lasest${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it, false)
+                    }
+                }
+            },
+            {spm ->
+                item("popular",span = StaggeredGridItemSpan.FullLine) {
+                    Text("热门", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(spm.content.toList().subList(0,5), {"popular${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it)
+                    }
+                }
+                item("lastest",span = StaggeredGridItemSpan.FullLine) {
+                    Text("最新", style = MaterialTheme.typography.headlineSmall)
+                }
+                items(spm.content.toList().subList(5,spm.content.size), {"lasest${it.id}"}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowSearchItem(it)
+                    }
+                }
+            }
         )
     }
 }
@@ -338,32 +355,11 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         }) {pd ->
         Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
             ChooseContent(
-                !small || ConfigUtil.forceGrid.state.value,modifier, viewModel.scrollState, { viewModel.scrollState = it },
-                viewModel.loading, viewModel.isEnd, { viewModel.requestNext() },
-                viewModel.content, viewModel.page, viewModel.local,viewModel.pixivResult, {
-                    Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                        if (viewModel.error == null) {
-                            if (viewModel.isEnd) {
-                                Text("没有更多了，页码${viewModel.page}")
-                            } else {
-                                CircularProgressIndicator()
-                            }
-                        } else {
-                            viewModel.error?.let {
-                                CenterColumnInfo {
-                                    Text("错误：${it.message}")
-                                    Button({
-                                        ss.launch {
-                                            viewModel.reload()
-                                        }
-                                    }) {
-                                        Text("点我重载")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
+                small && !ConfigUtil.forceGrid.state.value, modifier.fillMaxWidth(),
+                viewModel.spm,
+                viewModel.loading || viewModel.spm.loading,
+                viewModel.local,
+                viewModel.pixivResult,
                 {
                     SingleChoiceSegmentedButtonRow {
                         HomeSelection.entries.forEachIndexed { index, selection ->
@@ -382,11 +378,11 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                     }
                 }
             )
-            if (viewModel.content.isEmpty() && viewModel.loading) {
+            if (viewModel.loading || viewModel.spm.loading) {
                 CenterCircular()
             }
-            if (viewModel.content.isEmpty() && viewModel.error != null) {
-                viewModel.error?.let {
+            if (viewModel.spm.content.isEmpty() && viewModel.spm.error != null) {
+                viewModel.spm.error?.let {
                     CenterColumnInfo {
                         Text("错误：${it.message}")
                         Button({
