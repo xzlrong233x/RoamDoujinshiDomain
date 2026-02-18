@@ -1,19 +1,11 @@
 package com.xlrr.roambendom
 
 import com.xlrr.roambendom.network.PIXIVApiHelper
-import io.ktor.client.request.parameter
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
-import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 class ComposeAppCommonTest {
     @Test
@@ -28,6 +20,17 @@ class ComposeAppCommonTest {
             parameter("lang","zh")
         }
         println(res)
+    }
+
+    @Test
+    fun pixivSearch() = runBlocking {
+        val sr = PIXIVApiHelper.search("悪堕ち")
+        assert(sr.total > 0)
+        assert(sr.items.size >= 58)
+        println("Total: ${sr.total}")
+        sr.items.forEach {
+            println(it)
+        }
     }
 
     @Test
