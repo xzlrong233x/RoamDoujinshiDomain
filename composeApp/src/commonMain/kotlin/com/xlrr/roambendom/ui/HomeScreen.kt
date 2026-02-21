@@ -70,7 +70,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             it.title,
             it.restriction,
             it.lang.let { x ->
-                if (x != CLanguage.Unknown) x.toString().lowercase() else null
+                if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it))
@@ -378,7 +378,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                     }
                 }
             )
-            if (viewModel.loading || viewModel.spm.loading) {
+            if (viewModel.loading || (viewModel.spm.loading && viewModel.spm.content.isEmpty())) {
                 CenterCircular()
             }
             if (viewModel.spm.content.isEmpty() && viewModel.spm.error != null) {

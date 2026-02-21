@@ -19,6 +19,15 @@ object RBDDns : Dns {
         InetAddress.getByName("109.202.100.218")
     )
 
+    val imgNHMap = mapOf(
+        "9" to listOf(InetAddress.getByName("109.202.100.226")),
+        "7" to listOf(InetAddress.getByName("185.23.214.98")),
+        "3" to listOf(InetAddress.getByName("213.152.165.53")),
+        "2" to listOf(InetAddress.getByName("213.152.165.54")),
+        "1" to listOf(InetAddress.getByName("77.247.178.1")),
+        "4" to listOf(InetAddress.getByName("109.202.100.218"))
+    )
+
     val mainPIXIV = listOf(
         InetAddress.getByName("210.140.139.154"),
         InetAddress.getByName("210.140.139.155"),
@@ -50,7 +59,9 @@ object RBDDns : Dns {
 
     override fun lookup(hostname: String): List<InetAddress> {
         if (Regex("[it]\\d.nhentai.net").matches(hostname)) {
-            return imgNH
+            return Regex("[it](\\d).nhentai.net").find(hostname)?.let {
+                imgNHMap[it.groups[1]?.value]
+            } ?: imgNH
         }
         else if (hostname.endsWith("nhentai.net")) {
             return mainNH

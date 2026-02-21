@@ -6,14 +6,14 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
-import com.xlrr.roambendom.data.SearchResult
-import com.xlrr.roambendom.network.NHWebHelper
 import com.xlrr.roambendom.network.NetHelper.getTrustManagers
 import com.xlrr.roambendom.network.RBDDns
 import com.xlrr.roambendom.network.RBDSocketFactory
@@ -65,7 +65,6 @@ fun setupCoil() {
                                         )
                                     }
                                 }.build()
-
                         }
                     )
                 )

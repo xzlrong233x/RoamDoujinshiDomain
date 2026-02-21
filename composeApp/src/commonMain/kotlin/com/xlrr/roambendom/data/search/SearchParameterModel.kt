@@ -3,6 +3,7 @@ package com.xlrr.roambendom.data.search
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.*
 import com.xlrr.roambendom.data.SearchItemData
+import kotlin.coroutines.cancellation.CancellationException
 
 class SearchParameterModel(
     var key: String,
@@ -43,7 +44,8 @@ class SearchParameterModel(
                 content.addAll(result.items)
             } else end = true
         } catch (e: Exception) {
-            error = e
+            if (e !is CancellationException)
+                error = e
         }
         loading = false
     }
