@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.utils
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -10,4 +11,8 @@ fun JsonObject.getAsString(k: String) : String {
 
 fun JsonObject.getAsInt(k: String, default: Int = 0) : Int {
     return this[k]?.jsonPrimitive?.intOrNull ?: default
+}
+
+fun JsonObject.getAsBoolean(k: String, default: Boolean = false) : Boolean {
+    return this[k]?.jsonPrimitive?.booleanOrNull ?: default
 }
