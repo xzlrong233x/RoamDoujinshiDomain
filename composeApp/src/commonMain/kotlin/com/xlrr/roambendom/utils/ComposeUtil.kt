@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -95,7 +96,8 @@ fun DefaultErrorHandleImage(url: String, modifier: Modifier) {
         contentDescription = null,
         modifier = modifier.clip(RoundedCornerShape(12.dp)).widthIn(128.dp).fillMaxWidth(),
         placeholder = painterResource(Res.drawable.loading_jpg),
-        error = painterResource(Res.drawable.empty_page)
+        error = painterResource(Res.drawable.empty_page),
+        contentScale = ContentScale.FillWidth
     )
 }
 
@@ -122,7 +124,7 @@ fun ItemInfoCardWithShared(
     title: String,
     restriction: CRestriction?,
     extraText: String? = null,
-    extraComposer: @Composable () -> Unit = {},
+    extraComposer: @Composable (ColumnScope.() -> Unit) = {},
     onclick: () -> Unit = {},
     toColumn: Boolean = true,
     imgLabel: String? = null

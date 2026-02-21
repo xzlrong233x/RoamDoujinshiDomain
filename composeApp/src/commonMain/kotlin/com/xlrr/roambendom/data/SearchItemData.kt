@@ -8,7 +8,8 @@ data class SearchItemData(
     var thumb: String,
     var source: CSources,
     var restriction: CRestriction = CRestriction.R18,
-    var ai: Boolean = false
+    var ai: Boolean = false,
+    var author: String = ""
 ) {
     override fun equals(other: Any?): Boolean {
         if (other is SearchItemData) {
@@ -19,12 +20,14 @@ data class SearchItemData(
 
     override fun hashCode(): Int {
         var result = pageCount
+        result = 31 * result + ai.hashCode()
         result = 31 * result + id.hashCode()
         result = 31 * result + title.hashCode()
         result = 31 * result + lang.hashCode()
         result = 31 * result + thumb.hashCode()
         result = 31 * result + source.hashCode()
         result = 31 * result + restriction.hashCode()
+        result = 31 * result + author.hashCode()
         return result
     }
 }

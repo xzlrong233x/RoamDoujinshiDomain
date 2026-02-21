@@ -28,12 +28,12 @@ fun MainContent() {
         },
         modifier = Modifier,
         transitionSpec = {
-            if (state is Routes.Artwork) {
-                slideInHorizontally(initialOffsetX = { fullW ->  fullW}).togetherWith(
-                    slideOutHorizontally(targetOffsetX = {w -> -w}) + fadeOut())
-            } else {
+            if (state is Routes.Root) {
                 slideInHorizontally(initialOffsetX = { fullW ->  -fullW}).togetherWith(
                     slideOutHorizontally(targetOffsetX = {w -> w}) + fadeOut())
+            } else {
+                slideInHorizontally(initialOffsetX = { fullW ->  fullW}).togetherWith(
+                    slideOutHorizontally(targetOffsetX = {w -> -w}) + fadeOut())
             }
         }
     ) {
