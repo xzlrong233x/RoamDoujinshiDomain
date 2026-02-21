@@ -397,7 +397,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         ) {
             Surface(Modifier.fillMaxWidth().align(Alignment.TopCenter),
                 color = MaterialTheme.colorScheme.surface.copy(0.35f)) {
-                Row(Modifier.fillMaxWidth().statusBarsPadding().height(56.dp)) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().height(58.dp)) {
                     IconButton({ GlobalData.nav.defaultBack()}) {
                         Text("返")
                     }
@@ -540,7 +540,7 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
     }
 }
 
-private class Preload(private val context: PlatformContext) {
+class Preload(private val context: PlatformContext) {
     private val preloadRequests = mutableSetOf<ImageRequest>()
 
     fun preload(data: List<String>, cur: Int, preCount: Int = 5) {
