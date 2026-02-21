@@ -119,8 +119,8 @@ fun RootSearchBar(
                 onSearch = {
                     if (it.isNotEmpty()) {
                         onSearch(it)
-                        fM.clearFocus()
                     }
+                    fM.clearFocus()
                 },
                 expanded = expanded,
                 onExpandedChange = onExpandedChange,
@@ -159,35 +159,39 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 drawerCaller()
             }
         }
-        if (should) {
-            Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
-                    {searchText.edit { replace(0, length, it) }},
-                    false, {}, {
-                        val cs = GlobalData.nav.backStack.last()
-                        if (cs is Routes.Root.Search) {
-                            cs.searchModel.key = it
-                            ss.launch {
-                                cs.searchModel.reload()
-                            }
-                        } else {
-                            GlobalData.nav.push(Routes.Root.Search(
-                                SearchParameterModel(it).config {
-                                    if (GlobalData.homeContentSelection != null) {
-                                        searchTarget.state.value =
-                                            if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
-                                    }
+    }
+
+    if (should) {
+        Box(Modifier.statusBarsPadding()
+            .fillMaxWidth().offset {
+                IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
+            }, Alignment.Center) {
+            RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
+                {searchText.edit { replace(0, length, it) }},
+                false, {}, {
+                    val cs = GlobalData.nav.backStack.last()
+                    if (cs is Routes.Root.Search) {
+                        cs.searchModel.key = it
+                        ss.launch {
+                            cs.searchModel.reload()
+                        }
+                    } else {
+                        GlobalData.nav.push(Routes.Root.Search(
+                            SearchParameterModel(it).config {
+                                if (GlobalData.homeContentSelection != null) {
+                                    searchTarget.state.value =
+                                        if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
                                 }
-                            ))
-                        }
-                    }, "search...",
-                    if (smallMode) {
-                        {
-                            drawerCaller()
-                        }
-                    } else null
-                )
-            }
+                            }
+                        ))
+                    }
+                }, "search...",
+                if (smallMode) {
+                    {
+                        drawerCaller()
+                    }
+                } else null
+            )
         }
     }
 }
@@ -211,7 +215,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 
     val shouldShowSearch = WhatShouldShowSearch.any { curScreen.instanceOf(it) }
 
-    val maxUpPx = with(LocalDensity.current) { 56.dp.roundToPx().toFloat() }
+    val maxUpPx = with(LocalDensity.current) { 58.dp.roundToPx().toFloat() }
     val minUpPx = 0f
     val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx) }
 
@@ -308,7 +312,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             )
         ) { x ->
             val h: Float by animateFloatAsState(
-                if (!shouldShowSearch && !smallMode) {
+                if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
                     0f
                 } else {
                     maxUpPx + topBarState.toolbarOffsetHeightPx
