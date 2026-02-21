@@ -97,6 +97,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
             // 确保列表不为空且不在加载中，且最后一个可见项接近末尾
             !searchParameterModel.loading && !searchParameterModel.end
                     && lastVisibleItem != null && lastVisibleItem.index >= totalItems - 1
+                    && lastVisibleItem.key == "nextLoading"
         }
     }
     LaunchedEffect(Unit) {
@@ -153,6 +154,7 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
             // 确保列表不为空且不在加载中，且最后一个可见项接近末尾
             !searchParameterModel.loading && !searchParameterModel.end
                     && lastVisibleItem != null && lastVisibleItem.index >= totalItems - 1
+                    && lastVisibleItem.key == "nextLoading"
         }
     }
     LaunchedEffect(Unit) {
