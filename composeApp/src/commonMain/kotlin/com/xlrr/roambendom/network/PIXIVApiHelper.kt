@@ -1,10 +1,13 @@
 package com.xlrr.roambendom.network
 
+import androidx.compose.ui.geometry.Size
 import coil3.network.NetworkHeaders
 import com.xlrr.roambendom.data.*
+import com.xlrr.roambendom.data.pixiv.ArtworkPageItem
 import com.xlrr.roambendom.data.pixiv.NormalSealedData
 import com.xlrr.roambendom.data.pixiv.PixivSearchRestriction
 import com.xlrr.roambendom.data.pixiv.lowerStr
+import com.xlrr.roambendom.utils.getAsBoolean
 import com.xlrr.roambendom.utils.getAsInt
 import com.xlrr.roambendom.utils.getAsString
 import io.ktor.client.call.*
@@ -12,7 +15,28 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
+import kotlinx.serialization.serializer
+import kotlin.time.Instant
 
+data class UrlWithSize(
+    val url: String,
+    val w: Int,
+    val h: Int
+) {
+    companion object {
+        val EMPTY = UrlWithSize("", 0, 0)
+
+        fun parse(str: String) : UrlWithSize {
+            return Regex("(.+?)\\[w(\\d+)h(\\d+)]").find(str)?.let {
+                UrlWithSize(
+                    it.groups[1]?.value.toString(),
+                    it.groups[2]?.value?.toIntOrNull() ?: 0,
+                    it.groups[3]?.value?.toIntOrNull() ?: 0,
+                )
+            } ?: EMPTY
+        }
+    }
+}
 
 object PIXIVApiHelper {
     val mainPrefix = "www.pixiv.net"
@@ -52,7 +76,7 @@ object PIXIVApiHelper {
         val data = requestStandard<JsonObject>("/ajax/search/artworks/${encoded}") {
             parameter("mode", mode.lowerStr())
             parameter("p", page)
-            parameter("word", encoded) //我不知道p站的api为什么会有这个参数
+            parameter("word", key) //我不知道p站的api为什么会有这个参数
             // TODO：实现更多参数
         }
         val sr = SearchResult(-1, listOf(), key, page)
@@ -64,6 +88,7 @@ object PIXIVApiHelper {
         illustManga?.let { x ->
             x["data"]?.jsonArray?.map {
                 it.jsonObject.let { n ->
+                    if (n.getAsBoolean("isAdContainer")) return@let
                     change.add(
                         SearchItemData(
                             n.getAsString("id"),
@@ -73,7 +98,8 @@ object PIXIVApiHelper {
                             n.getAsString("url"),
                             CSources.PIXIV,
                             CRestriction.entries[n.getAsInt("xRestrict")],
-                            n.getAsInt("aiType") > 1
+                            n.getAsInt("aiType") > 1,
+                            "${n.getAsString("userName")}(${n.getAsString("userId")})"
                         )
                     )
                 }
@@ -82,6 +108,45 @@ object PIXIVApiHelper {
         }
         sr.items = change
         return sr
+    }
+
+    suspend fun artworkPage(id: String) : List<ArtworkPageItem> {
+        val res = requestStandard<List<ArtworkPageItem>>("/ajax/illust/$id/pages")
+        if (res.error) {
+            return  listOf()
+        }
+        return res.realData(serializer())
+    }
+
+    suspend fun artwork(id: String) : ArtworkInfo {
+        val info = ArtworkInfo()
+        val bd = requestStandard<JsonObject>("/ajax/illust/$id") {
+            pixivNormalSetting()
+        }
+        if (bd.error) {
+            return info
+        }
+        val jo = bd.realData(JsonObject.serializer())
+        info.title = jo.getAsString("illustTitle")
+        info.tags = jo["tags"]?.jsonObject["tags"]?.jsonArray?.map { x ->
+            x.jsonObject.getAsString("tag")
+        } ?: listOf()
+        info.authors = listOf("${jo.getAsString("userName")}(${jo.getAsString("userId")})")
+        info.description = jo.getAsString("description")
+            .split("<\\s*br\\s*/\\s*>".toRegex()).joinToString("\n") {
+            NetHelper.handleHTMLString(it)
+        }
+        info.page = jo.getAsInt("pageCount")
+        info.likeCount = jo.getAsInt("bookmarkCount")
+        info.time = Instant.parse(jo.getAsString("uploadDate")).toEpochMilliseconds()
+        val page = artworkPage(id)
+        info.pageUrls = page.map {
+            "${it.urls.regular}[w${it.width}h${it.height}]"
+        }
+        info.thumbUrls = page.map {
+            it.urls.thumbMini
+        }
+        return info
     }
 
     suspend fun testPixivRequest(): PixivTestResult {

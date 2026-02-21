@@ -78,4 +78,9 @@ object NetHelper {
         }
         return Ksoup.parse(res.bodyAsText(), url)
     }
+
+
+    fun handleHTMLString(str: String) : String {
+        return Ksoup.parseBodyFragment("<p>$str</p>").body().child(0).text()
+    }
 }
