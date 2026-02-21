@@ -3,26 +3,29 @@ package com.xlrr.roambendom.ui
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.ArtworkInfo
@@ -32,12 +35,16 @@ import com.xlrr.roambendom.data.CSources.PIXIV
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.NHWebHelper
+import com.xlrr.roambendom.network.PIXIVApiHelper
+import com.xlrr.roambendom.network.UrlWithSize
+import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.love_btn_icon
-import roambendom.composeapp.generated.resources.loved_btn_icon
+import roambendom.composeapp.generated.resources.empty_page
+import roambendom.composeapp.generated.resources.loading_jpg
+import kotlin.math.floor
 
 class DetailViewModel() : ViewModel() {
     var content: ArtworkInfo? by mutableStateOf(null)
@@ -61,7 +68,7 @@ class DetailViewModel() : ViewModel() {
         try {
             content = when (source) {
                 NHENTAI -> NHWebHelper.artwork(id)
-                PIXIV -> error("in developing")
+                PIXIV -> PIXIVApiHelper.artwork(id)
             }
         } catch (e : Exception) {
             e.printStackTrace()
@@ -163,6 +170,118 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
 }
 
 @Composable
+fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
+    val state = rememberLazyListState()
+    val screenWidth = with(LocalDensity.current) {
+        LocalWindowSize.current.width.coerceIn(null, 1104.dp).toPx()
+    }
+    val ss = rememberCoroutineScope()
+    val screenHeight = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
+    with(LocalSharedTransitionScope.current) {
+        var showAllDes by remember { mutableStateOf(false) }
+        var moreBtn by remember { mutableStateOf(false) }
+        var showAllPage by remember { mutableStateOf(false) }
+        Box() {
+            if (!details.loading && details.content != null) {
+                Surface(
+                    Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
+                        .padding(12.dp, 0.dp).align(Alignment.TopCenter),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    LazyColumn(Modifier, state) {
+                        items(if (!showAllPage) 1 else details.content!!.page,
+                            {"ImgPage$it"}) {
+                            Box(Modifier.fillMaxWidth()) {
+                                UrlWithSize.parse(details.content!!.pageUrls[it]).let {uws ->
+                                    AsyncImage(
+                                        model = defaultImageRequest(
+                                            uws.url,
+                                            LocalPlatformContext.current
+                                        ),
+                                        filterQuality = FilterQuality.Medium,
+                                        contentDescription = null,
+                                        placeholder = painterResource(Res.drawable.loading_jpg),
+                                        error = painterResource(Res.drawable.empty_page),
+                                        modifier = Modifier.run {
+                                            val testH = uws.h * screenWidth / uws.w
+                                            if (testH < screenHeight) {
+                                                width(with(LocalDensity.current){screenWidth.toDp()})
+                                            } else {
+                                                height(with(LocalDensity.current){
+                                                    (floor(testH / screenHeight).coerceIn(1f, null) * screenHeight)
+                                                        .toDp()
+                                                })
+                                            }
+                                        }.align(Alignment.TopCenter)
+                                    )
+                                }
+
+                                if (!showAllPage && it == 0) {
+                                    Button(
+                                        {
+                                            showAllPage = true
+                                            ss.launch {
+                                                state.animateScrollToItem(0)
+                                            }
+                                        }, Modifier.align(Alignment.BottomCenter)) {
+                                        Text("查看全部")
+                                    }
+                                }
+                            }
+                        }
+                        item("Title") {
+                            SelectionContainer {
+                                Text(
+                                    searchItemData.title, Modifier.padding(6.dp, 0.dp),
+                                    style = typography.headlineMedium
+                                )
+                            }
+                        }
+                        item("Description") {
+                            Column(Modifier.fillMaxWidth().padding(8.dp, 3.dp)) {
+                                SelectionContainer {
+                                    Text(
+                                        details.content?.description.toString(),
+                                        style = typography.bodyMedium,
+                                        maxLines = if (showAllDes) Int.MAX_VALUE else 6, overflow = TextOverflow.Ellipsis,
+                                        onTextLayout = {
+                                            moreBtn = it.hasVisualOverflow
+                                        }
+                                    )
+                                }
+                                if (moreBtn) {
+                                    Text("展示更多", Modifier.align(Alignment.End).clickable {
+                                        showAllDes = true
+                                    }, color = Color(0f,0f,0f, 0.5f))
+                                }
+                            }
+                        }
+                        item("Tags") {
+                            FlowRow(Modifier.fillMaxWidth().padding(6.dp, 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                details.content!!.tags.forEach {
+                                    SelectionContainer {
+                                        if (it == "R18" || it == "R18G") {
+                                            Text(it, color = Color.Red)
+                                        } else {
+                                            Text("#$it")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        item("Author") {
+                            Text(searchItemData.author, Modifier.padding(6.dp,0.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
     LaunchedEffect(Unit) {
         details.reload(searchItemData.id, searchItemData.source)
@@ -172,7 +291,7 @@ fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, 
         Surface(modifier.fillMaxSize().padding(pd)) {
             when (searchItemData.source) {
                 NHENTAI -> NHDetail(searchItemData, details)
-                PIXIV -> TODO("in developing")
+                PIXIV -> PIXIVDetail(searchItemData, details)
             }
             if (details.loading) {
                 CenterCircular()
@@ -233,6 +352,30 @@ fun DetailBox(color: Color = MaterialTheme.colorScheme.surfaceContainerLow, cont
                 .padding(8.dp)
         ) {
             content()
+        }
+    }
+}
+
+@Composable
+@Preview
+fun DTTest() {
+    Surface(Modifier.fillMaxSize()) {
+        Box(Modifier) {
+            Surface(Modifier.widthIn(0.dp, 312.dp).padding(12.dp).align(Alignment.TopCenter), color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(12.dp)) {
+                LazyColumn(Modifier) {
+                    item {
+                        val s = UrlWithSize.parse("ht[w1h2]")
+                        Text(s.toString())
+                    }
+                    item {
+                        Text("12222")
+                    }
+                    item {
+                        Text("ffddddd")
+                    }
+                }
+            }
         }
     }
 }
