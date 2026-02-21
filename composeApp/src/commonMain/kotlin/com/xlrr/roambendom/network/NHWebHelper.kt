@@ -51,7 +51,7 @@ object NHWebHelper {
             )
         }
         val doc = if (key.isNotEmpty()) NetHelper.getWebDocument(joinUrl("search")) {
-            parameter("q", key.encodeURLQueryComponent())
+            parameter("q", key)
             parameter("page", page)
             defaultHeader()
         }
@@ -104,7 +104,8 @@ object NHWebHelper {
                 }
             }
         }
-
+        info.likeCount = doc.select("#info > div > a.btn.btn-primary.btn-disabled.tooltip > span > span")
+            .text().filter { it.isDigit() }.toIntOrNull() ?: 0
         info.time = Instant.parse(doc.select("time").attr("datetime")).toEpochMilliseconds()
         return info
     }
