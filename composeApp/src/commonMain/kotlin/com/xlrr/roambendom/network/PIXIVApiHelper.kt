@@ -2,8 +2,10 @@ package com.xlrr.roambendom.network
 
 import androidx.compose.ui.geometry.Size
 import coil3.network.NetworkHeaders
+import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.*
 import com.xlrr.roambendom.data.pixiv.ArtworkPageItem
+import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.pixiv.NormalSealedData
 import com.xlrr.roambendom.data.pixiv.PixivSearchRestriction
 import com.xlrr.roambendom.data.pixiv.lowerStr
@@ -42,12 +44,15 @@ object PIXIVApiHelper {
     val mainPrefix = "www.pixiv.net"
     val imgPrefix = "i.pximg.net"
 
-    fun HttpRequestBuilder.pixivNormalSetting() {
+    fun HttpRequestBuilder.pixivNormalSetting(useLang: Boolean = true) {
         defaultHeader()
         header("referer", "https://$mainPrefix")
         cookie("yuid_b","")
         cookie("PHPSESSID", "")
         cookie("device_token", "")
+        if (useLang) {
+            parameter("lang", ConfigUtil.pixivLanguage.state.value)
+        }
     }
 
     val pixivCoilHeader = NetworkHeaders.Builder()
@@ -120,6 +125,7 @@ object PIXIVApiHelper {
 
     suspend fun artwork(id: String) : ArtworkInfo {
         val info = ArtworkInfo()
+        info.source = CSources.PIXIV
         val bd = requestStandard<JsonObject>("/ajax/illust/$id") {
             pixivNormalSetting()
         }
@@ -147,6 +153,15 @@ object PIXIVApiHelper {
             it.urls.thumbMini
         }
         return info
+    }
+
+    suspend fun keywordSuggestion(keyword: String) : List<KeywordSuggestionItem> {
+        return NetHelper.client.get("https://$mainPrefix/rpc/cps.php") {
+            pixivNormalSetting()
+            parameter("keyword", keyword)
+        }.body<JsonObject>()["candidates"]?.let {
+             Json.decodeFromJsonElement(it)
+        } ?: listOf()
     }
 
     suspend fun testPixivRequest(): PixivTestResult {

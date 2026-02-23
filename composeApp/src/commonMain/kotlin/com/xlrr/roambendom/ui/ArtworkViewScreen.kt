@@ -56,6 +56,8 @@ import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
+import com.xlrr.roambendom.data.CSources
+import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
@@ -123,7 +125,6 @@ private fun LoadingImage(
         )
         successfulContent()
     }
-
 }
 
 @Composable
@@ -145,7 +146,9 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
                 if (it % 2 == pager.currentPage % 2) Alignment.CenterEnd else Alignment.CenterStart
             } else Alignment.Center
         ) {
-            LoadingImage(artworkInfo.pageUrls[it]) {
+            LoadingImage(artworkInfo.pageUrls[it].let { str ->
+                if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
+            }) {
                 pageIndex(it)
             }
         }
@@ -161,7 +164,9 @@ private fun ListShowPage(
         LazyColumn(modifier, lazyListState, horizontalAlignment = Alignment.CenterHorizontally) {
             items(artworkInfo.pageUrls.size) {
                 Box() {
-                    LoadingImage(artworkInfo.pageUrls[it], contentScale = cs)
+                    LoadingImage(artworkInfo.pageUrls[it].let { str ->
+                        if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
+                    }, contentScale = cs)
 //                    Text("L1", Modifier.align(Alignment.TopStart))
 //                    Text("L2", Modifier.align(Alignment.TopEnd))
 //                    Text("L3", Modifier.align(Alignment.BottomStart))
@@ -508,13 +513,13 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
                 }
             } else {
                 LazyVerticalGrid(
-                    GridCells.Adaptive(128.dp),
+                    GridCells.Adaptive(96.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxSize().padding(8.dp)) {
                     items(lis) {x ->
                         SubcomposeAsyncImage(
-                            model = x,
+                            model = defaultImageRequest(x, LocalPlatformContext.current),
                             contentDescription = null,
                             loading = {
                                 Image(

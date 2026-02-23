@@ -4,8 +4,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
@@ -26,12 +29,15 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
+import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
+import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
 import io.ktor.util.reflect.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -108,7 +114,7 @@ val MediumScreenDpLine = 720.dp
 fun RootSearchBar(
     modifier: Modifier, query: String, onQueryChange: (String) -> Unit,expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit, onSearch: (String) -> Unit,
-    placeholder: String, leadingIcon: @Composable (() -> Unit)? = null,
+    placeholder: String, leadingIcon: @Composable (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit
 ) {
     val fM = LocalFocusManager.current
     DockedSearchBar(
@@ -121,6 +127,7 @@ fun RootSearchBar(
                         onSearch(it)
                     }
                     fM.clearFocus()
+                    onExpandedChange(false)
                 },
                 expanded = expanded,
                 onExpandedChange = onExpandedChange,
@@ -132,18 +139,22 @@ fun RootSearchBar(
         },
         expanded = expanded,
         onExpandedChange = onExpandedChange,
-        modifier = modifier
-    ) {
-
-    }
+        modifier = modifier,
+        content = content
+    )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState, topBarState: TopAppBarOffsetState,
-                        should: Boolean,
+                        should: Boolean, curScreen: Any,
                         drawerCaller: @Composable () -> Unit,
                         returnCaller: @Composable () -> Unit) {
     val ss = rememberCoroutineScope()
+    val fM = LocalFocusManager.current
+    var suggestions by remember { mutableStateOf(listOf<KeywordSuggestionItem>()) }
+    var job: Job? by remember { mutableStateOf(null) }
+    var exp by remember { mutableStateOf(false) }
     Surface(Modifier.statusBarsPadding()
         .fillMaxWidth().offset {
             IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
@@ -166,32 +177,68 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             .fillMaxWidth().offset {
                 IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
             }, Alignment.Center) {
-            RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
-                {searchText.edit { replace(0, length, it) }},
-                false, {}, {
-                    val cs = GlobalData.nav.backStack.last()
-                    if (cs is Routes.Root.Search) {
-                        cs.searchModel.key = it
-                        ss.launch {
-                            cs.searchModel.reload()
-                        }
-                    } else {
-                        GlobalData.nav.push(Routes.Root.Search(
-                            SearchParameterModel(it).config {
-                                if (GlobalData.homeContentSelection != null) {
-                                    searchTarget.state.value =
-                                        if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
-                                }
-                            }
-                        ))
+            val search: (String) -> Unit = {
+                val cs = GlobalData.nav.backStack.last()
+                if (cs is Routes.Root.Search) {
+                    cs.searchModel.key = it
+                    ss.launch {
+                        cs.searchModel.reload()
                     }
-                }, "search...",
+                } else {
+                    GlobalData.nav.push(Routes.Root.Search(
+                        SearchParameterModel(it).config {
+                            if (GlobalData.homeContentSelection != null) {
+                                searchTarget.state.value =
+                                    if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                            }
+                        }
+                    ))
+                }
+            }
+            RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
+                {
+                    searchText.edit {
+                        replace(0, length, it)
+                    }
+                    if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
+                                && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
+                                && curScreen.searchModel.configs.searchTarget.state.value == 1)) {
+                        job?.cancel()
+                        job = ss.launch {
+                            suggestions = PIXIVApiHelper.keywordSuggestion(it)
+                        }
+                    }
+                },
+                exp, {exp = it},
+                search,
+                "search...",
                 if (smallMode) {
                     {
                         drawerCaller()
                     }
                 } else null
-            )
+            ) {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    suggestions.forEach {
+                        ListItem(
+                            {
+                                Text(it.tagName)
+                            }, Modifier.clickable {
+                                searchText.edit {
+                                    replace(0, length, it.tagName)
+                                }
+                                exp = false
+                                search(searchText.text.toString())
+                                suggestions = listOf()
+                            }, supportingContent = if (it.tagTranslation.isNotEmpty()) {
+                                {
+                                    Text(it.tagTranslation)
+                                }
+                            } else null
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -313,7 +360,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
         ) { x ->
             val h: Float by animateFloatAsState(
                 if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
-                    0f
+                    if (smallMode) maxUpPx else 0f
                 } else {
                     maxUpPx + topBarState.toolbarOffsetHeightPx
                 }
@@ -366,7 +413,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                     }
                 }
 
-                RootHeadBar(smallMode, h, searchText, topBarState, shouldShowSearch,
+                RootHeadBar(smallMode, h, searchText, topBarState, shouldShowSearch, curScreen,
                     {
                         IconButton(
                             { scope.launch { drawerState.open() } },
@@ -380,14 +427,6 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                         }
                     }
                 )
-//                CtrlAnimatedVisibility(smallMode,
-//                    Modifier.fillMaxWidth(),
-//                    enter = fadeIn() + expandIn(expandFrom = Alignment.TopCenter),
-//                    exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.TopCenter),
-//                    label = "TopBar"
-//                ) {
-//
-//                }
             }
         }
     }

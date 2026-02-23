@@ -11,9 +11,9 @@ sealed class UIType<T> {
         val label: String,
         val choiceList: List<String>
     ): UIType<Int>()
-    data class DropStringSelectUI(
+    data class DropStringSelectUI<T>(
         val label: String,
-        val choiceList: List<String>
-    ): UIType<String>()
+        val choiceList: List<T>
+    ): UIType<T>()
     class NoUI<T> : UIType<T>()
 }

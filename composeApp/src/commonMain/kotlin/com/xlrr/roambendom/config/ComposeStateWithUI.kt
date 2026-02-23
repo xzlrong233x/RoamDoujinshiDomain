@@ -1,26 +1,21 @@
 package com.xlrr.roambendom.config
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.painterResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.down_caret
 
 @Composable
 fun CalUI(config: StateWithUI<*>, enable: Boolean = true) {
     when (config.uiType) {
         is UIType.SwitchUI -> SwitchComposer(config as StateWithUI<Boolean>, enable)
         is UIType.SingleSegmentedButton -> SingleSegmentedButtonComposer(config as StateWithUI<Int>, enable)
-        is UIType.DropStringSelectUI -> DropStringSelectUIComposer(config as StateWithUI<String>, enable)
+        is UIType.DropStringSelectUI -> DropStringSelectUIComposer(config, enable)
         else -> {}
     }
 }
@@ -69,7 +64,7 @@ fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = tr
 }
 
 @Composable
-fun DropStringSelectUIComposer(config: StateWithUI<String>, enable: Boolean = false) {
+fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = false) {
     if (config.uiType !is UIType.DropStringSelectUI) {
         return
     }
@@ -84,7 +79,14 @@ fun DropStringSelectUIComposer(config: StateWithUI<String>, enable: Boolean = fa
         itemVerticalAlignment = Alignment.CenterVertically) {
         Text(config.uiType.label)
         Box() {
-            Text(config.state.value)
+            TextButton({exp = true}, enabled = enable) {
+                Text(config.state.value.toString())
+                Icon(
+                    painterResource(Res.drawable.down_caret),
+                    contentDescription = null,
+                    modifier = Modifier.offset(0.dp, 1.dp)
+                )
+            }
             DropdownMenu(
                 exp,
                 onDismissRequest = {
@@ -93,7 +95,7 @@ fun DropStringSelectUIComposer(config: StateWithUI<String>, enable: Boolean = fa
             ) {
                 config.uiType.choiceList.forEach {
                     DropdownMenuItem({
-                        Text(it)
+                        Text(it.toString())
                     }, {
                         config.state.value = it
                         exp = false

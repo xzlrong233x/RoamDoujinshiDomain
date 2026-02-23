@@ -19,6 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,9 +43,12 @@ import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.utils.*
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.book
 import roambendom.composeapp.generated.resources.empty_page
 import roambendom.composeapp.generated.resources.loading_jpg
 import kotlin.math.floor
@@ -78,6 +85,9 @@ class DetailViewModel() : ViewModel() {
     }
 }
 
+// 我使用SelectionContainer的时候，曾遇到过一个关于select range的报错，不过我难以复现。
+
+
 @Composable
 fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     with(LocalSharedTransitionScope.current) {
@@ -93,32 +103,34 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         ).width((LocalWindowSize.current.width.value * 0.382).dp.coerceIn(98.dp, 256.dp))
                     )
                     Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text(searchItemData.title, style = typography.titleLarge,
-                            maxLines = 3, overflow = TextOverflow.Ellipsis)
-                        CtrlAnimatedVisibility(
-                            details.isSuccessful(),
-                            enter = fadeIn(),
-                            exit = fadeOut(),
-                            label = "smallTitle"
-                        ) {
-                            details.content?.let {
-                                Column {
-                                    if (it.altitle.isNotBlank()) Text(
-                                        it.altitle,
-                                        color = Color(0.5f, 0.5f, 0.5f),
-                                        style = typography.titleSmall,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (it.page > 0) Text(
-                                        "页数：${it.page}",
-                                        style = typography.titleMedium
-                                    )
-                                    Text(
-                                        "语言：${it.language.toString().lowercase()}",
-                                        style = typography.titleMedium
-                                    )
+                    SelectionContainer {
+                        Column {
+                            Text(searchItemData.title, style = typography.titleLarge,
+                                maxLines = 3, overflow = TextOverflow.Ellipsis)
+                            CtrlAnimatedVisibility(
+                                details.isSuccessful(),
+                                enter = fadeIn(),
+                                exit = fadeOut(),
+                                label = "smallTitle"
+                            ) {
+                                details.content?.let {
+                                    Column {
+                                        if (it.altitle.isNotBlank()) Text(
+                                            it.altitle,
+                                            color = Color(0.5f, 0.5f, 0.5f),
+                                            style = typography.titleSmall,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (it.page > 0) Text(
+                                            "页数：${it.page}",
+                                            style = typography.titleMedium
+                                        )
+                                        Text(
+                                            "语言：${it.language.toString().lowercase()}",
+                                            style = typography.titleMedium
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -172,109 +184,175 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
 @Composable
 fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     val state = rememberLazyListState()
+    val context = LocalPlatformContext.current
+    val preload = remember { Preload(context) }
     val screenWidth = with(LocalDensity.current) {
         LocalWindowSize.current.width.coerceIn(null, 1104.dp).toPx()
     }
     val ss = rememberCoroutineScope()
     val screenHeight = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
+    val isThereImg by remember(state) {
+        derivedStateOf {
+            state.layoutInfo.visibleItemsInfo.any {
+                it.key.toString().contains("ImgPage")
+            }
+        }
+    }
+    var thumbExpand by remember { mutableStateOf(false) }
+    var page by remember { mutableIntStateOf(0) }
+    LaunchedEffect(state) {
+        snapshotFlow { state.visibleItems(50f).firstOrNull() }
+            .filter { it?.key.toString().contains("ImgPage") }
+            .distinctUntilChanged()
+            .collect {
+                page = ("\\d+".toRegex().find(it?.key.toString())?.value?.toInt() ?: 0)
+            }
+    }
+    LaunchedEffect(page) {
+        details.content?.let {
+            preload.preload(it.pageUrls, page)
+        }
+    }
+
     with(LocalSharedTransitionScope.current) {
         var showAllDes by remember { mutableStateOf(false) }
         var moreBtn by remember { mutableStateOf(false) }
         var showAllPage by remember { mutableStateOf(false) }
         Box() {
             if (!details.loading && details.content != null) {
-                Surface(
-                    Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
-                        .padding(12.dp, 0.dp).align(Alignment.TopCenter),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow
-                ) {
-                    LazyColumn(Modifier, state) {
-                        items(if (!showAllPage) 1 else details.content!!.page,
-                            {"ImgPage$it"}) {
-                            Box(Modifier.fillMaxWidth()) {
-                                UrlWithSize.parse(details.content!!.pageUrls[it]).let {uws ->
-                                    AsyncImage(
-                                        model = defaultImageRequest(
-                                            uws.url,
-                                            LocalPlatformContext.current
-                                        ),
-                                        filterQuality = FilterQuality.Medium,
-                                        contentDescription = null,
-                                        placeholder = painterResource(Res.drawable.loading_jpg),
-                                        error = painterResource(Res.drawable.empty_page),
-                                        modifier = Modifier.run {
-                                            val testH = uws.h * screenWidth / uws.w
-                                            if (testH < screenHeight) {
-                                                width(with(LocalDensity.current){screenWidth.toDp()})
-                                            } else {
-                                                height(with(LocalDensity.current){
-                                                    (floor(testH / screenHeight).coerceIn(1f, null) * screenHeight)
-                                                        .toDp()
-                                                })
-                                            }
-                                        }.align(Alignment.TopCenter)
-                                    )
-                                }
+                Box (Modifier.align(Alignment.TopCenter)) {
+                    Surface(
+                        Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
+                            .padding(12.dp, 0.dp).align(Alignment.TopCenter),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow
+                    ) {
+                        LazyColumn(Modifier, state) {
+                            items(
+                                if (!showAllPage) 1 else details.content!!.page,
+                                { "ImgPage$it" }) {
+                                Box(Modifier.fillMaxWidth()) {
+                                    UrlWithSize.parse(details.content!!.pageUrls[it]).let { uws ->
+                                        AsyncImage(
+                                            model = defaultImageRequest(
+                                                uws.url,
+                                                LocalPlatformContext.current
+                                            ),
+                                            filterQuality = FilterQuality.Medium,
+                                            contentDescription = null,
+                                            placeholder = painterResource(Res.drawable.loading_jpg),
+                                            error = painterResource(Res.drawable.empty_page),
+                                            modifier = Modifier.run {
+                                                val testH = uws.h * screenWidth / uws.w
+                                                if (testH < screenHeight) {
+                                                    width(with(LocalDensity.current) { screenWidth.toDp() })
+                                                } else {
+                                                    height(with(LocalDensity.current) {
+                                                        (floor(testH / screenHeight).coerceIn(1f, null) * screenHeight)
+                                                            .toDp()
+                                                    })
+                                                }
+                                            }.align(Alignment.TopCenter)
+                                        )
+                                    }
 
-                                if (!showAllPage && it == 0) {
-                                    Button(
-                                        {
-                                            showAllPage = true
-                                            ss.launch {
-                                                state.animateScrollToItem(0)
-                                            }
-                                        }, Modifier.align(Alignment.BottomCenter)) {
-                                        Text("查看全部")
+                                    if (!showAllPage && it == 0) {
+                                        Button(
+                                            {
+                                                showAllPage = true
+                                                ss.launch {
+                                                    state.animateScrollToItem(0)
+                                                }
+                                            }, Modifier.align(Alignment.BottomCenter)
+                                        ) {
+                                            Text("查看全部")
+                                        }
                                     }
                                 }
                             }
-                        }
-                        item("Title") {
-                            SelectionContainer {
-                                Text(
-                                    searchItemData.title, Modifier.padding(6.dp, 0.dp),
-                                    style = typography.headlineMedium
-                                )
+                            item {
+                                Row(Modifier.fillMaxWidth()) {
+                                    IconButton({
+                                        if (details.content == null) {
+                                            return@IconButton
+                                        }
+                                        GlobalData.nav.push(Routes.Artwork(details.content!!))
+                                    }) {
+                                        Icon(painterResource(Res.drawable.book),
+                                            "read in artwork view screen")
+                                    }
+                                }
                             }
-                        }
-                        item("Description") {
-                            Column(Modifier.fillMaxWidth().padding(8.dp, 3.dp)) {
+                            item("Title") {
                                 SelectionContainer {
                                     Text(
-                                        details.content?.description.toString(),
-                                        style = typography.bodyMedium,
-                                        maxLines = if (showAllDes) Int.MAX_VALUE else 6, overflow = TextOverflow.Ellipsis,
-                                        onTextLayout = {
-                                            moreBtn = it.hasVisualOverflow
-                                        }
+                                        searchItemData.title, Modifier.padding(6.dp, 0.dp),
+                                        style = typography.headlineMedium
                                     )
                                 }
-                                if (moreBtn) {
-                                    Text("展示更多", Modifier.align(Alignment.End).clickable {
-                                        showAllDes = true
-                                    }, color = Color(0f,0f,0f, 0.5f))
+                            }
+                            item("Description") {
+                                Column(Modifier.fillMaxWidth().padding(8.dp, 3.dp)) {
+                                    SelectionContainer {
+                                        Text(
+                                            details.content?.description.toString(),
+                                            style = typography.bodyMedium,
+                                            maxLines = if (showAllDes) Int.MAX_VALUE else 6,
+                                            overflow = TextOverflow.Ellipsis,
+                                            onTextLayout = {
+                                                moreBtn = it.hasVisualOverflow
+                                            }
+                                        )
+                                    }
+                                    if (moreBtn) {
+                                        Text("展示更多", Modifier.align(Alignment.End).clickable {
+                                            showAllDes = true
+                                        }, color = Color(0f, 0f, 0f, 0.5f))
+                                    }
                                 }
                             }
-                        }
-                        item("Tags") {
-                            FlowRow(Modifier.fillMaxWidth().padding(6.dp, 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                details.content!!.tags.forEach {
-                                    SelectionContainer {
-                                        if (it == "R18" || it == "R18G") {
-                                            Text(it, color = Color.Red)
-                                        } else {
-                                            Text("#$it")
+                            item("Tags") {
+                                SelectionContainer {
+                                    FlowRow(
+                                        Modifier.fillMaxWidth().padding(6.dp, 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        details.content!!.tags.forEach {
+                                            if (it == "R18" || it == "R18G") {
+                                                Text(it, color = Color.Red)
+                                            } else {
+                                                Text("#$it")
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        item("Author") {
-                            Text(searchItemData.author, Modifier.padding(6.dp,0.dp))
+                            item("Author") {
+                                Text(searchItemData.author, Modifier.padding(6.dp, 0.dp))
+                            }
                         }
                     }
+                    if (isThereImg) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.TopEnd)
+                                .padding(0.dp, 2.dp).semantics { role = Role.Button },
+                            color = Color(0f, 0f, 0f, 0.5f), contentColor = Color.White,
+                            shape = RoundedCornerShape(6.dp),
+                            onClick = { thumbExpand = !thumbExpand },
+                            enabled = details.content?.thumbUrls?.isNotEmpty() == true
+                        ) {
+                            Text(
+                                "${page + 1} / ${details.content?.page}",
+                                modifier = Modifier.padding(4.dp, 2.dp),
+                                fontWeight = FontWeight.Bold, style = typography.labelMedium
+                            )
+                        }
+                    }
+                }
+                if (thumbExpand) {
+                    ThumbDialog(details.content?.thumbUrls ?: listOf(), {
+                        ss.launch { state.animateScrollToItem(it) }
+                    }, {thumbExpand = false})
                 }
             }
         }
@@ -327,16 +405,18 @@ private fun MultiCardTagBox(head: String,list: List<String>) {
             Text(head,
                 style = typography.headlineMedium)
             Spacer(Modifier.height(12.dp))
-            FlowRow(Modifier.fillMaxWidth()) {
-                for (x in list) {
-                    CardLabel(
-                        x,
-                        shape = RoundedCornerShape(15),
-                        sufColor = Color(142, 142, 142, 255),
-                        fontColor = Color.Black,
-                        fontStyle = typography.bodyLarge,
-                        modifier = Modifier.padding(4.dp)
-                    )
+            SelectionContainer {
+                FlowRow(Modifier.fillMaxWidth()) {
+                    for (x in list) {
+                        CardLabel(
+                            x,
+                            shape = RoundedCornerShape(15),
+                            sufColor = Color(142, 142, 142, 255),
+                            fontColor = Color.Black,
+                            fontStyle = typography.bodyLarge,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                    }
                 }
             }
         }

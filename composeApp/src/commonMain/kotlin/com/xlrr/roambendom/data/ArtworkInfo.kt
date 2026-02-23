@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.data
 
 data class ArtworkInfo(
+    var source: CSources = CSources.NHENTAI,
     var title: String = "",
     var altitle: String = "",
     var tags: List<String> = listOf(),

@@ -185,13 +185,13 @@ fun SearchContent(modifier: Modifier,searchParameterModel: SearchParameterModel,
                   useList: Boolean = true,
                   header: (@Composable () -> Unit)? = null,
                   listMain: (LazyListScope.(SearchParameterModel) -> Unit) = {spm ->
-                      items(spm.content.toList(), {it.id}) {
+                      items(spm.content.distinct(), {it.id}) {
                           with(LocalSharedTransitionScope.current) {
                               ShowSearchItem(it, false)
                           }
                       }
                   }, gridMain: (LazyStaggeredGridScope.(SearchParameterModel) -> Unit) = {spm ->
-                      items(spm.content.toList(), {it.id}) {
+                      items(spm.content.distinct(), {it.id}) {
                           with(LocalSharedTransitionScope.current) {
                               ShowSearchItem(it, true)
                           }
@@ -217,7 +217,12 @@ fun SearchContent(modifier: Modifier,searchParameterModel: SearchParameterModel,
 @Composable
 fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel) {
     val ss = rememberCoroutineScope()
-    var showBtn by remember { mutableStateOf(false) }
+    val showBtn by remember(GlobalData.forListState) {
+        derivedStateOf {
+            GlobalData.forListState != null
+                    && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
+        }
+    }
     val mx = LocalWindowSize.current.width
 
     DisposableEffect(Unit) {

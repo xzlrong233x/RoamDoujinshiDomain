@@ -280,7 +280,7 @@ private fun ChooseContent(
                 item("popular") {
                     Text("热门", style = MaterialTheme.typography.headlineSmall)
                 }
-                items(spm.content.toList().subList(0,5), {"popular${it.id}"}) {
+                items(spm.content.distinct().subList(0,5), {"popular${it.id}"}) {
                     with(LocalSharedTransitionScope.current) {
                         ShowSearchItem(it, false)
                     }
@@ -288,7 +288,7 @@ private fun ChooseContent(
                 item("lastest") {
                     Text("最新", style = MaterialTheme.typography.headlineSmall)
                 }
-                items(spm.content.toList().subList(5,spm.content.size), {"lasest${it.id}"}) {
+                items(spm.content.distinct().subList(5,spm.content.size), {"lasest${it.id}"}) {
                     with(LocalSharedTransitionScope.current) {
                         ShowSearchItem(it, false)
                     }
@@ -298,7 +298,7 @@ private fun ChooseContent(
                 item("popular",span = StaggeredGridItemSpan.FullLine) {
                     Text("热门", style = MaterialTheme.typography.headlineSmall)
                 }
-                items(spm.content.toList().subList(0,5), {"popular${it.id}"}) {
+                items(spm.content.distinct().subList(0,5), {"popular${it.id}"}) {
                     with(LocalSharedTransitionScope.current) {
                         ShowSearchItem(it)
                     }
@@ -306,7 +306,7 @@ private fun ChooseContent(
                 item("lastest",span = StaggeredGridItemSpan.FullLine) {
                     Text("最新", style = MaterialTheme.typography.headlineSmall)
                 }
-                items(spm.content.toList().subList(5,spm.content.size), {"lasest${it.id}"}) {
+                items(spm.content.distinct().subList(5,spm.content.size), {"lasest${it.id}"}) {
                     with(LocalSharedTransitionScope.current) {
                         ShowSearchItem(it)
                     }
@@ -341,6 +341,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         derivedStateOf {
             GlobalData.forListState != null
                     && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
+                    && viewModel.local == HomeSelection.NH
         }
     }
     val ss = rememberCoroutineScope()
