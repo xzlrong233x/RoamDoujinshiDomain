@@ -210,7 +210,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     }
     LaunchedEffect(page) {
         details.content?.let {
-            preload.preload(it.pageUrls, page)
+            preload.preload(it.pageUrls.map { s -> UrlWithSize.parse(s).url }, page)
         }
     }
 
