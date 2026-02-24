@@ -108,6 +108,7 @@ private val WhatShouldShowSearch: List<KClass<*>> = listOf(
 
 val SmallScreenDpLine = 480.dp
 val MediumScreenDpLine = 720.dp
+val RootBarHeight = 58.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -262,7 +263,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 
     val shouldShowSearch = WhatShouldShowSearch.any { curScreen.instanceOf(it) }
 
-    val maxUpPx = with(LocalDensity.current) { 58.dp.roundToPx().toFloat() }
+    val maxUpPx = with(LocalDensity.current) { RootBarHeight.roundToPx().toFloat() }
     val minUpPx = 0f
     val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx) }
 
@@ -358,13 +359,23 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                 bottom = 0.dp
             )
         ) { x ->
-            val h: Float by animateFloatAsState(
-                if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
-                    if (smallMode) maxUpPx else 0f
-                } else {
-                    maxUpPx + topBarState.toolbarOffsetHeightPx
+            val h: Float by remember(shouldShowSearch, GlobalData.nav.backStack.size,
+                smallMode, topBarState.toolbarOffsetHeightPx) {
+                derivedStateOf {
+                    if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
+                        if (smallMode) maxUpPx else 0f
+                    } else {
+                        maxUpPx + topBarState.toolbarOffsetHeightPx
+                    }
                 }
-            )
+            }
+//            by animateFloatAsState(
+//                if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
+//                    if (smallMode) maxUpPx else 0f
+//                } else {
+//                    maxUpPx + topBarState.toolbarOffsetHeightPx
+//                }
+//            )
             Box(Modifier.padding(x).nestedScroll(topBarState.nestedScrollConnection)) {
                 Column {
                     Spacer(Modifier.background(Color(0,0,0,0))

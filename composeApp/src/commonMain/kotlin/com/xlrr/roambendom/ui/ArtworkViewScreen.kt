@@ -402,7 +402,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         ) {
             Surface(Modifier.fillMaxWidth().align(Alignment.TopCenter),
                 color = MaterialTheme.colorScheme.surface.copy(0.35f)) {
-                Row(Modifier.fillMaxWidth().statusBarsPadding().height(58.dp)) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().height(RootBarHeight)) {
                     IconButton({ GlobalData.nav.defaultBack()}) {
                         Text("返")
                     }
@@ -533,10 +533,11 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
                                     Text(it.result.throwable.message.toString())
                                 }
                             },
-                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable {
                                 changePage(lis.indexOf(x))
                                 dismiss()
-                            }
+                            },
+                            contentScale = ContentScale.FillWidth
                         )
                     }
                 }
