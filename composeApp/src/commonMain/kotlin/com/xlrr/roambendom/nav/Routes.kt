@@ -21,4 +21,5 @@ sealed class Routes {
     data class Artwork(
         val artworkInfo: ArtworkInfo
     ) : Routes()
+    data object TokenForm : Routes()
 }

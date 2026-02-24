@@ -31,5 +31,6 @@ object GlobalData {
         }
         dataSaver = dataSaverArg
         ConfigUtil.init(dataSaverArg)
+        PixivTokenUtil.reload()
     }
 }

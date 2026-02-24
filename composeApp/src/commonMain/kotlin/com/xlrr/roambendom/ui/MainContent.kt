@@ -40,6 +40,7 @@ fun MainContent() {
         when (it) {
             is Routes.Root -> RootScreen()
             is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo)
+            is Routes.TokenForm -> TokenFormScreen(Modifier)
             else -> Text("空空如也")
         }
     }

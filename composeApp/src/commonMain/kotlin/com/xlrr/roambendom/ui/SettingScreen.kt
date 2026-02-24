@@ -11,6 +11,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.nav.Routes
+import com.xlrr.roambendom.utils.GlobalData
 
 @Composable
 fun SettingScreen(modifier: Modifier) {
@@ -25,7 +27,7 @@ fun SettingScreen(modifier: Modifier) {
                 itemVerticalAlignment = Alignment.CenterVertically) {
                 Text("P站Token")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button({}) {
+                    Button({ GlobalData.nav.push(Routes.TokenForm)}) {
                         Text("点我填写")
                     }
                 }

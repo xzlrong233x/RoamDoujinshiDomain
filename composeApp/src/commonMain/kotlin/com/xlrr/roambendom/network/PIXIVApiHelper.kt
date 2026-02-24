@@ -1,14 +1,10 @@
 package com.xlrr.roambendom.network
 
-import androidx.compose.ui.geometry.Size
 import coil3.network.NetworkHeaders
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.*
-import com.xlrr.roambendom.data.pixiv.ArtworkPageItem
-import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
-import com.xlrr.roambendom.data.pixiv.NormalSealedData
-import com.xlrr.roambendom.data.pixiv.PixivSearchRestriction
-import com.xlrr.roambendom.data.pixiv.lowerStr
+import com.xlrr.roambendom.data.pixiv.*
+import com.xlrr.roambendom.utils.PixivTokenUtil
 import com.xlrr.roambendom.utils.getAsBoolean
 import com.xlrr.roambendom.utils.getAsInt
 import com.xlrr.roambendom.utils.getAsString
@@ -47,9 +43,9 @@ object PIXIVApiHelper {
     fun HttpRequestBuilder.pixivNormalSetting(useLang: Boolean = true) {
         defaultHeader()
         header("referer", "https://$mainPrefix")
-        cookie("yuid_b","")
-        cookie("PHPSESSID", "")
-        cookie("device_token", "")
+        cookie("yuid_b", PixivTokenUtil.map.getOrDefault("a", ""))
+        cookie("PHPSESSID", PixivTokenUtil.map.getOrDefault("b", ""))
+        cookie("device_token", PixivTokenUtil.map.getOrDefault("c", ""))
         if (useLang) {
             parameter("lang", ConfigUtil.pixivLanguage.state.value)
         }

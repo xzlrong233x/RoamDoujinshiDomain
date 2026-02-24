@@ -19,6 +19,5 @@ object ConfigUtil {
         forceGrid.state = mutableDataSaverStateOf(dataSaver, "force_grid", false)
         pixivLanguage.state = mutableDataSaverStateOf(dataSaver, "pixiv_language", "ja")
         pixivToken.state = mutableDataSaverStateOf(dataSaver, "pixiv_token", "")
-
     }
 }
