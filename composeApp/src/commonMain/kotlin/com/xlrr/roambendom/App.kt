@@ -14,6 +14,8 @@ import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.xlrr.roambendom.network.ImageNetInterceptor
+import com.xlrr.roambendom.network.ImageOkHttpInterceptor
 import com.xlrr.roambendom.network.NetHelper.getTrustManagers
 import com.xlrr.roambendom.network.RBDDns
 import com.xlrr.roambendom.network.RBDSocketFactory
@@ -64,10 +66,12 @@ fun setupCoil() {
                                             mgs[0] as X509TrustManager
                                         )
                                     }
+                                    addInterceptor(ImageOkHttpInterceptor(platformContext = context))
                                 }.build()
                         }
                     )
                 )
+                add(ImageNetInterceptor(context))
             }
             .diskCache {
                 DiskCache.Builder()

@@ -49,6 +49,7 @@ object PIXIVApiHelper {
         if (useLang) {
             parameter("lang", ConfigUtil.pixivLanguage.state.value)
         }
+        userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0")
     }
 
     val pixivCoilHeader = NetworkHeaders.Builder()

@@ -14,10 +14,14 @@ object ConfigUtil {
         listOf("zh","ja","en","kr")
     ))
     val pixivToken = StateWithUI(mutableStateOf(""), UIType.NoUI())
+    val useMultithread = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        "使用多线程加载图片"
+    ))
 
     fun init(dataSaver: DataSaverInterface) {
         forceGrid.state = mutableDataSaverStateOf(dataSaver, "force_grid", false)
         pixivLanguage.state = mutableDataSaverStateOf(dataSaver, "pixiv_language", "ja")
         pixivToken.state = mutableDataSaverStateOf(dataSaver, "pixiv_token", "")
+        useMultithread.state = mutableDataSaverStateOf(dataSaver, "use_multithread", false)
     }
 }
