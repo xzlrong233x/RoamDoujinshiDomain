@@ -72,6 +72,9 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             it.lang.let { x ->
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },
+            {
+                if (it.ai) Text("*有AI参与的作品")
+            },
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it))
             },
