@@ -223,7 +223,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                 Box (Modifier.align(Alignment.TopCenter)) {
                     Surface(
                         Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
-                            .padding(12.dp, 0.dp).align(Alignment.TopCenter),
+                            .padding(12.dp, 8.dp).align(Alignment.TopCenter),
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow
                     ) {
@@ -256,7 +256,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                         )
                                     }
 
-                                    if (!showAllPage && it == 0) {
+                                    if (!showAllPage && it == 0 && (details.content?.page ?: 0) > 1) {
                                         Button(
                                             {
                                                 showAllPage = true
@@ -276,7 +276,11 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                         if (details.content == null) {
                                             return@IconButton
                                         }
-                                        GlobalData.nav.push(Routes.Artwork(details.content!!))
+                                        GlobalData.nav.push(Routes.Artwork(details.content!!.apply {
+                                            pageUrls = pageUrls.map { s ->
+                                                UrlWithSize.parse(s).url
+                                            }
+                                        }))
                                     }) {
                                         Icon(painterResource(Res.drawable.book),
                                             "read in artwork view screen")
@@ -328,7 +332,9 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                 }
                             }
                             item("Author") {
-                                Text(searchItemData.author, Modifier.padding(6.dp, 0.dp))
+                                SelectionContainer {
+                                    Text(searchItemData.author, Modifier.padding(6.dp, 3.dp))
+                                }
                             }
                         }
                     }
