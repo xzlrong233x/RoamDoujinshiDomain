@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
                 GlobalData.nav.defaultBack()
             }
             LaunchedEffect(true) {
-                GlobalData.init(cacheDir.path,
+                GlobalData.init(cacheDir.path, dataDir.path,
                     DataSaverPreferences(applicationContext, false))
             }
             App()

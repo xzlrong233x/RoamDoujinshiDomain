@@ -19,15 +19,22 @@ object GlobalData {
     var rootSearchQuery: TextFieldState = TextFieldState()
 
     var hideStatusBar by mutableStateOf(false) // 是否不显示状态栏，对桌面端无效
+    var rootSearchBarExpanded by mutableStateOf(false) // 保留，说不定什么时候就用上了
 
     var cacheDir = "image_cache".toPath()
         private set
 
+    var dataDir = "data".toPath()
+        private set
+
     var dataSaver: DataSaverInterface? = null
 
-    fun init(cachePath: String = "", dataSaverArg: DataSaverInterface) {
+    fun init(cachePath: String = "",dataPath: String = "", dataSaverArg: DataSaverInterface) {
         if (cachePath.isNotEmpty()) {
             cacheDir = cachePath.toPath()
+        }
+        if (dataPath.isNotEmpty()) {
+            dataDir = dataPath.toPath()
         }
         dataSaver = dataSaverArg
         ConfigUtil.init(dataSaverArg)
