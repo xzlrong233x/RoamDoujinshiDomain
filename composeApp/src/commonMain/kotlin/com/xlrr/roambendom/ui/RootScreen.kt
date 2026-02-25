@@ -1,21 +1,32 @@
 package com.xlrr.roambendom.ui
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.SearchBarDefaults.InputFieldHeight
+import androidx.compose.material3.SearchBarDefaults.inputFieldColors
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -24,6 +35,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
@@ -110,32 +124,88 @@ val SmallScreenDpLine = 480.dp
 val MediumScreenDpLine = 720.dp
 val RootBarHeight = 58.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RootSearchBar(
     modifier: Modifier, query: String, onQueryChange: (String) -> Unit,expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit, onSearch: (String) -> Unit,
-    placeholder: String, leadingIcon: @Composable (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit
+    onExpandedChange: (Boolean) -> Unit, onSearch: (String) -> Unit, enabled: Boolean, freq: FocusRequester,
+    placeholder: String,
+    colors: TextFieldColors = inputFieldColors(),
+    leadingIcon: @Composable (() -> Unit)? = null, trailingIcon: @Composable (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val fM = LocalFocusManager.current
     DockedSearchBar(
         inputField = {
-            SearchBarDefaults.InputField(
-                query,
-                onQueryChange,
-                onSearch = {
-                    if (it.isNotEmpty()) {
-                        onSearch(it)
-                    }
-                    fM.clearFocus()
-                    onExpandedChange(false)
-                },
-                expanded = expanded,
-                onExpandedChange = onExpandedChange,
-                placeholder = {
-                    Text(placeholder)
-                },
-                leadingIcon = leadingIcon
+            val interactionSource = remember { MutableInteractionSource() }
+
+            val focused = interactionSource.collectIsFocusedAsState().value
+
+            val textColor =
+                LocalTextStyle.current.color.takeOrElse {
+                    colors.textColor(enabled, isError = false, focused = focused)
+                }
+
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier =
+                    modifier
+                        .sizeIn(
+                            minWidth = 360.dp,
+                            maxWidth = 720.dp,
+                            minHeight = InputFieldHeight,
+                        )
+                        .focusRequester(freq)
+                        .onFocusChanged { if (it.isFocused) onExpandedChange(true) },
+                enabled = enabled,
+                singleLine = true,
+                textStyle = LocalTextStyle.current.merge(TextStyle(color = textColor)),
+                cursorBrush = SolidColor(colors.cursorColor(isError = false)),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+                interactionSource = interactionSource,
+                decorationBox =
+                    @Composable { innerTextField ->
+                        TextFieldDefaults.DecorationBox(
+                            value = query,
+                            innerTextField = innerTextField,
+                            enabled = enabled,
+                            singleLine = true,
+                            visualTransformation = VisualTransformation.None,
+                            interactionSource = interactionSource,
+                            placeholder = { Text(placeholder) },
+                            leadingIcon =
+                                leadingIcon?.let { leading ->
+                                    { Box(Modifier.offset(x = 4.dp)) { leading() } }
+                                },
+                            trailingIcon =
+                                trailingIcon?.let { trailing ->
+                                    { Box(Modifier.offset(x = (-4).dp)) { trailing() } }
+                                },
+                            shape = CircleShape,
+                            colors = colors,
+                            contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(),
+                            container = {
+                                val containerColor =
+                                    animateColorAsState(
+                                        targetValue =
+                                            colors.containerColor(
+                                                enabled = enabled,
+                                                isError = false,
+                                                focused = focused,
+                                            ),
+                                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                                    )
+                                Box(
+                                    Modifier.drawWithCache {
+                                        val outline = CircleShape.createOutline(size, layoutDirection, this)
+                                        onDrawBehind { drawOutline(outline, color = containerColor.value) }
+                                    }
+                                )
+                            },
+                        )
+                    },
             )
         },
         expanded = expanded,
@@ -156,6 +226,8 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
     var suggestions by remember { mutableStateOf(listOf<KeywordSuggestionItem>()) }
     var job: Job? by remember { mutableStateOf(null) }
     var exp by remember { mutableStateOf(false) }
+    val freq = remember { FocusRequester() }
+    var searchSetting by remember { mutableStateOf(false) }
     Surface(Modifier.statusBarsPadding()
         .fillMaxWidth().offset {
             IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
@@ -169,6 +241,14 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 returnCaller()
             } else if (!should) {
                 drawerCaller()
+            }
+        }
+    }
+    LaunchedEffect(GlobalData.forListState?.isScrollInProgress) {
+        GlobalData.forListState?.let {
+            if (exp) {
+                exp = false
+                fM.clearFocus()
             }
         }
     }
@@ -210,12 +290,27 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         }
                     }
                 },
-                exp, {exp = it},
+                exp && suggestions.isNotEmpty(),
+                {exp = it},
                 search,
+                true,
+                freq,
                 "search...",
-                if (smallMode) {
+                 leadingIcon = if (smallMode) {
                     {
                         drawerCaller()
+                    }
+                } else null,
+                trailingIcon = if (curScreen is Routes.Root.Search) {
+                    {
+                        IconButton(
+                            {
+                                searchSetting = true
+                            }
+                        ) {
+                            Icon(painterResource(Res.drawable.sim_setting),
+                                "search bar setting")
+                        }
                     }
                 } else null
             ) {
@@ -241,6 +336,11 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 }
             }
         }
+    }
+    if (searchSetting && curScreen is Routes.Root.Search) {
+        SearchSettingDialog({
+            searchSetting = false
+        }, curScreen.searchModel)
     }
 }
 
@@ -369,15 +469,8 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                     }
                 }
             }
-//            by animateFloatAsState(
-//                if (!shouldShowSearch && GlobalData.nav.backStack.size == 1) {
-//                    if (smallMode) maxUpPx else 0f
-//                } else {
-//                    maxUpPx + topBarState.toolbarOffsetHeightPx
-//                }
-//            )
-            Box(Modifier.padding(x).nestedScroll(topBarState.nestedScrollConnection)) {
-                Column {
+            Box(Modifier.padding(x)) {
+                Column(Modifier.nestedScroll(topBarState.nestedScrollConnection)) {
                     Spacer(Modifier.background(Color(0,0,0,0))
                         .height(with(LocalDensity.current){h.toDp()}))
                     Row(Modifier.fillMaxSize()) {

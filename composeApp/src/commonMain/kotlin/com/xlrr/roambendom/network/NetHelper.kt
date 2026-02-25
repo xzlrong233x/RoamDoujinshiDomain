@@ -23,14 +23,16 @@ fun HttpRequestBuilder.defaultHeader() {
     header("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
 }
 
-fun defaultImageRequest(url: String, context: PlatformContext) : ImageRequest {
+fun defaultImageRequest(url: String, context: PlatformContext, originalSize: Boolean = true) : ImageRequest {
     return Regex("https://[it]\\d.nhentai.net")
         .replace(url, "").let {
             ImageRequest.Builder(context)
                 .diskCacheKey(it)
                 .memoryCacheKey(it)
                 .data(url)
-                .size(Size.ORIGINAL)
+                .run {
+                    if (originalSize) size(Size.ORIGINAL) else this
+                }
                 .run {
                     if (url.contains("pximg") || url.contains("pixiv")) {
                         httpHeaders(PIXIVApiHelper.pixivCoilHeader)
