@@ -51,11 +51,9 @@ class ImageOkHttpInterceptor(
             return chain.proceed(request)
         }
         val client = call.client
-        println("[$ls] start mul download")
 
         // 1. 获取文件总大小并检查服务器是否支持 Range
         val totalSize = getTotalSize(chain, request) ?: return chain.proceed(request)
-        println("[$ls] size: $totalSize")
 
         // 如果图片太小，不分块，直接返回普通请求
         if (totalSize < minSizeForChunk) {
@@ -64,7 +62,6 @@ class ImageOkHttpInterceptor(
 
         // 2. 创建分块请求
         val chunkSize = totalSize / chunkCount
-        println("[$ls] chunk size $chunkSize")
         val rangeRequests = (0 until chunkCount).map { index ->
             val start = index * chunkSize
             val end = if (index == chunkCount - 1) totalSize - 1 else (index + 1) * chunkSize - 1
@@ -77,7 +74,6 @@ class ImageOkHttpInterceptor(
         // 3. 使用固定线程池并发下载（限制最大并发数，避免创建过多线程）
         val executor = Executors.newFixedThreadPool(chunkCount.coerceAtMost(4))
         try {
-            println("[$ls] start executors")
             val maxRetries = 5
 
             val futures = rangeRequests.map { rangeRequest ->
@@ -92,17 +88,14 @@ class ImageOkHttpInterceptor(
                             if (!response.isSuccessful) {
                                 throw IOException("HTTP ${response.code}")
                             }
-                            println("[$ls(${response.request.header("Range")})] response got")
                             if (isCached(request.url.toString())) {
                                 retryCount = 114514
                                 throw ItemAlreadyCachedException("url: ${request.url}")
                             }
                             val body = response.body ?: throw IOException("Empty body")
                             val bytes = body.bytes()
-                            println("[$ls(${response.request.header("Range")})] bytes got")
                             return@submit bytes // 成功，返回字节数组
                         } catch (e: IOException) {
-                            println("[$ls(${response?.request?.header("Range")})] retry $retryCount")
                             lastException = e
                             retryCount++
                             if (retryCount < maxRetries) {
@@ -121,7 +114,6 @@ class ImageOkHttpInterceptor(
                 try {
                     val bytes = future.get()
                     chunks.add(bytes)
-                    println("[$ls] append chunk ${chunks.size}/$chunkCount")
                     if (isCached(request.url.toString())) {
                         throw ItemAlreadyCachedException("url: ${request.url}")
                     }
@@ -129,7 +121,6 @@ class ImageOkHttpInterceptor(
                     // 任何一个分块失败，取消所有未完成的任务
                     futures.forEach { it.cancel(true) }
                     if ((e is IOException && e.cause is ItemAlreadyCachedException) || e is ItemAlreadyCachedException) {
-                        println("[$ls] was in cache")
                         return Response.Builder()
                             .request(request)
                             .code(404)
@@ -159,7 +150,6 @@ class ImageOkHttpInterceptor(
                 .build()
         } catch (e: Exception) {
             e.printStackTrace()
-            println("[$ls] mul download error")
             return chain.proceed(request)
         } finally {
             executor.shutdownNow()

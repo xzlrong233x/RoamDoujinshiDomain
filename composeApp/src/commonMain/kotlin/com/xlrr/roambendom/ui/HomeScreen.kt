@@ -1,16 +1,14 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.staggeredgrid.*
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,10 +24,10 @@ import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.time.Instant
 
 enum class HomeSelection {
     NH,
@@ -74,6 +72,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             },
             {
                 if (it.ai) Text("*有AI参与的作品")
+                if (it.time > 0) Text(Instant.fromEpochMilliseconds(it.time).toString())
             },
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it))
@@ -81,170 +80,6 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             imgLabel = it.thumb,
             toColumn = orColumn
         )
-    }
-}
-
-@Composable
-private fun StaggeredGridContent(
-    modifier: Modifier,
-    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
-    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
-    content: SnapshotStateSet<SearchItemData>, page: Int, loadItem: @Composable () -> Unit,
-    headItem: @Composable () -> Unit
-) {
-    val lstate = scrollState as? LazyStaggeredGridState ?: rememberLazyStaggeredGridState()
-    val mx = LocalWindowSize.current.width
-    var found by remember {
-        mutableStateOf(false)
-    }
-    DisposableEffect(Unit) {
-        GlobalData.forListState = lstate
-        changeSc(lstate)
-        onDispose {
-            GlobalData.forListState = null
-        }
-    }
-    LaunchedEffect(lstate.layoutInfo.visibleItemsInfo) { // 这都什么跟什么啊
-        if (lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"}
-            && !loading && !isEnd) {
-            found = true
-        }
-        else if (!loading) {
-            found = false
-        }
-    }
-    LaunchedEffect(isEnd) {
-        if (!isEnd) {
-            found = false
-        }
-    }
-    LaunchedEffect(found) {
-        if (!loading && found) {
-            req()
-        }
-    }
-    LazyVerticalStaggeredGrid(
-        StaggeredGridCells.Fixed(
-            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-        ),
-//        MaxSize(
-//            216.dp,
-//            max(6, mx.value.toInt() / 216 - 2)
-//        ),
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-        verticalItemSpacing = 4.dp,
-        state = lstate
-    ) {
-        item("head",span = StaggeredGridItemSpan.SingleLane) {
-            headItem()
-        }
-        if (content.isNotEmpty()) {
-            if (content.size >= 30) {
-                item("popular",span = StaggeredGridItemSpan.FullLine) {
-                    Text("热门", style = MaterialTheme.typography.headlineSmall)
-                }
-                items(content.toList().subList(0,5), {"popular${it.id}"}) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it)
-                    }
-                }
-                item("lastest",span = StaggeredGridItemSpan.FullLine) {
-                    Text("最新", style = MaterialTheme.typography.headlineSmall)
-                }
-                items(content.toList().subList(5,content.size), {"lasest${it.id}"}) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it)
-                    }
-                }
-            } else {
-                items(content.toList(), { it.id }) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it)
-                    }
-                }
-            }
-            item(if (isEnd) "bottom" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
-                loadItem()
-            }
-        }
-    }
-}
-
-@Composable
-private fun LazyListContent(
-    modifier: Modifier,
-    scrollState: ScrollableState?, changeSc: (ScrollableState) -> Unit,
-    loading: Boolean, isEnd: Boolean, req: suspend () -> Unit,
-    content: SnapshotStateSet<SearchItemData>, page: Int, loadItem: @Composable () -> Unit,
-    headItem: @Composable () -> Unit
-) { //纯纯代码复用
-    val lstate = scrollState as? LazyListState ?: rememberLazyListState()
-    var found by remember {
-        mutableStateOf(false)
-    }
-    DisposableEffect(Unit) {
-        GlobalData.forListState = lstate
-        changeSc(lstate)
-        onDispose {
-            GlobalData.forListState = null
-        }
-    }
-    LaunchedEffect(lstate) { // 这都什么跟什么啊
-        snapshotFlow { lstate.layoutInfo.visibleItemsInfo.any {it.key == "nextLoading"} }
-            .distinctUntilChanged()
-            .collect {
-                if (it && !loading && !isEnd) {
-                    found = true
-                }
-                else if (!loading) {
-                    found = false
-                }
-            }
-    }
-    LaunchedEffect(isEnd) {
-        if (!isEnd) {
-            found = false
-        }
-    }
-    LaunchedEffect(found) {
-        if (!loading && found) {
-            req()
-        }
-    }
-    LazyColumn(modifier, lstate, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item("head") {
-            headItem()
-        }
-        if (content.isNotEmpty()) {
-            if (content.size >= 30) {
-                item("popular") {
-                    Text("热门", style = MaterialTheme.typography.headlineSmall)
-                }
-                items(content.toList().subList(0,5), {"popular${it.id}"}) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it, false)
-                    }
-                }
-                item("lastest") {
-                    Text("最新", style = MaterialTheme.typography.headlineSmall)
-                }
-                items(content.toList().subList(5,content.size), {"lasest${it.id}"}) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it, false)
-                    }
-                }
-            } else {
-                items(content.toList(), { it.id }) {
-                    with(LocalSharedTransitionScope.current) {
-                        ShowSearchItem(it, false)
-                    }
-                }
-            }
-            item(if (isEnd) "bottom" else "nextLoading") {
-                loadItem()
-            }
-        }
     }
 }
 
@@ -365,20 +200,21 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                 viewModel.local,
                 viewModel.pixivResult,
                 {
-                    SingleChoiceSegmentedButtonRow {
-                        HomeSelection.entries.forEachIndexed { index, selection ->
-                            SegmentedButton(
-                                viewModel.local == selection,
-                                {viewModel.local = selection},
-                                SegmentedButtonDefaults.itemShape(
-                                    index = index,
-                                    count = 2
-                                ),
-                            ) {
-                                Text(selection.toString())
+                    Box {
+                        SingleChoiceSegmentedButtonRow {
+                            HomeSelection.entries.forEachIndexed { index, selection ->
+                                SegmentedButton(
+                                    viewModel.local == selection,
+                                    { viewModel.local = selection },
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = 2
+                                    ),
+                                ) {
+                                    Text(selection.toString())
+                                }
                             }
                         }
-
                     }
                 }
             )

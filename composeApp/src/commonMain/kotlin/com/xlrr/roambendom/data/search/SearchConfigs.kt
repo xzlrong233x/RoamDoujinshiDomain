@@ -1,6 +1,9 @@
 package com.xlrr.roambendom.data.search
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.SearchResult
@@ -17,4 +20,6 @@ class SearchConfigs {
         if (searchTarget.state.value == 0) NHWebHelper.search(key, page) else
             PIXIVApiHelper.search(key, page)
     }
+
+    var clearList by mutableStateOf(false)
 }

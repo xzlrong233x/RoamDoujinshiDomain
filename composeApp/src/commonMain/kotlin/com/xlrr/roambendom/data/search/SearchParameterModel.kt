@@ -39,6 +39,7 @@ class SearchParameterModel(
         page++
         loading = true
         try {
+            if (configs.clearList) content.clear()
             val result = configs.searchFunction(key, page)
             if (result.items.isNotEmpty()) {
                 content.addAll(result.items)

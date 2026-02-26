@@ -1,39 +1,11 @@
 package com.xlrr.roambendom.ui
 
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
-import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.staggeredgrid.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -85,7 +57,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
                                    ShowSearchItem(it, true)
                                }
                            }
-                       }, load: @Composable ((SearchParameterModel, CoroutineScope) -> Unit) =
+                       }, load: @Composable ((SearchParameterModel, CoroutineScope) -> Unit)? =
                            {p1,p2 -> LoadingIndexer(p1,p2) },
                        ss: CoroutineScope = rememberCoroutineScope(), columns: StaggeredGridCells) {
     val shouldLoadMore = remember {
@@ -108,26 +80,29 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
             }
     }
 
-    LazyVerticalStaggeredGrid(
-        columns,
-//        MaxSize(
-//            216.dp,
-//            max(6, mx.value.toInt() / 216 - 2)
-//        ),
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-        verticalItemSpacing = 4.dp,
-        state = state
-    ) {
-        if (header != null) {
-            item("head",span = StaggeredGridItemSpan.SingleLane) {
-                header()
+    Box(Modifier.widthIn(0.dp, 1272.dp)) {
+        LazyVerticalStaggeredGrid(
+            columns,
+            modifier,
+            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+            verticalItemSpacing = 4.dp,
+            state = state
+        ) {
+            if (header != null) {
+                item("head", span = StaggeredGridItemSpan.FullLine) {
+                    header()
+                }
             }
-        }
-        if (searchParameterModel.content.isNotEmpty()) {
-            main(searchParameterModel)
-            item(if (searchParameterModel.end) "bottom" else "nextLoading",span = StaggeredGridItemSpan.FullLine) {
-                load(searchParameterModel, ss)
+            if (searchParameterModel.content.isNotEmpty()) {
+                main(searchParameterModel)
+                if (load != null) {
+                    item(
+                        if (searchParameterModel.end) "bottom" else "nextLoading",
+                        span = StaggeredGridItemSpan.FullLine
+                    ) {
+                        load(searchParameterModel, ss)
+                    }
+                }
             }
         }
     }
@@ -142,7 +117,7 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
                                    ShowSearchItem(it, false)
                                }
                            }
-                       }, load: @Composable ((SearchParameterModel, CoroutineScope) -> Unit) =
+                       }, load: @Composable ((SearchParameterModel, CoroutineScope) -> Unit)? =
                            {p1,p2 -> LoadingIndexer(p1,p2) },
                        ss: CoroutineScope = rememberCoroutineScope()) {
     val shouldLoadMore = remember {
@@ -173,8 +148,10 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
         }
         if (searchParameterModel.content.isNotEmpty()) {
             main(searchParameterModel)
-            item(if (searchParameterModel.end) "bottom" else "nextLoading") {
-                load(searchParameterModel,ss)
+            if (load != null){
+                item(if (searchParameterModel.end) "bottom" else "nextLoading") {
+                    load(searchParameterModel, ss)
+                }
             }
         }
     }
@@ -225,11 +202,6 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
     }
     val mx = LocalWindowSize.current.width
 
-    DisposableEffect(Unit) {
-        onDispose {
-            GlobalData.forListState = null
-        }
-    }
     LaunchedEffect(Unit) {
         if (searchParameterModel.content.isEmpty() && !searchParameterModel.end) {
             searchParameterModel.reload()
@@ -254,17 +226,23 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
             if (searchParameterModel.content.isEmpty() && searchParameterModel.loading) {
                 CenterCircular()
             }
-            if (searchParameterModel.content.isEmpty() && searchParameterModel.error != null) {
-                searchParameterModel.error?.let {
-                    CenterColumnInfo {
-                        Text("错误：${it.message}")
-                        Button({
-                            ss.launch {
-                                searchParameterModel.reload()
+            if (searchParameterModel.content.isEmpty()) {
+                if (searchParameterModel.error != null) {
+                    searchParameterModel.error?.let {
+                        CenterColumnInfo {
+                            Text("错误：${it.message}")
+                            Button({
+                                ss.launch {
+                                    searchParameterModel.reload()
+                                }
+                            }) {
+                                Text("点我重载")
                             }
-                        }) {
-                            Text("点我重载")
                         }
+                    }
+                } else if (!searchParameterModel.loading) {
+                    Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        Text("空空如也")
                     }
                 }
             }
