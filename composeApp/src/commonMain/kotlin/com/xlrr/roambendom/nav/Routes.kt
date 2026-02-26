@@ -13,9 +13,15 @@ sealed class Routes {
         data class Detail(
             val searchItemData: SearchItemData
         ) : Root()
-        data class Search(
-            val searchModel: SearchParameterModel
+        open class SearchLike(
+            val searchModel: SearchParameterModel,
+            val canChangeSettings: Boolean
         ) : Root()
+        class Search(
+            searchModel: SearchParameterModel
+        ) : SearchLike(searchModel, true)
+        class History(searchParameterModel: SearchParameterModel)
+            : SearchLike(searchParameterModel, false)
         data object Settings : Root()
     }
     data class Artwork(

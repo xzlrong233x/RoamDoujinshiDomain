@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -18,7 +19,6 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
+import com.xlrr.roambendom.data.SearchResult
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
@@ -74,10 +75,30 @@ private val navItems: List<NavItem> = listOf(
         { GlobalData.nav.replace(Routes.Root.Home)}
     ),
     NavItem(
+        "历史",
+        Res.drawable.settings_icon,
+        { it is Routes.Root.History },
+        { GlobalData.nav.replace(Routes.Root.History(
+            SearchParameterModel("").config {
+                searchFunction = {k, p ->
+                    val l = GlobalData.historyData.search(k)
+                    val ln = ((p-1) * 30).coerceIn(null, l.size)
+                    val rn = (p * 30).coerceIn(null, l.size)
+                    SearchResult(
+                        l.size,
+                        l.subList(ln, rn),
+                        k,
+                        p
+                    )
+                }
+            }
+        ))}
+    ),
+    NavItem(
         "设置",
         Res.drawable.settings_icon,
         { it is Routes.Root.Settings },
-        { GlobalData.nav.replace(Routes.Root.Settings)}
+        { GlobalData.nav.push(Routes.Root.Settings)}
     )
 )
 
@@ -98,9 +119,11 @@ private class TopAppBarOffsetState(
         }
     val nestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            val delta = available.y
-            val newOffset = toolbarOffsetHeightPx + delta
-            toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
+            if (!WhatShouldFixBar.any { GlobalData.nav.backStack.last().instanceOf(it) }) {
+                val delta = available.y
+                val newOffset = toolbarOffsetHeightPx + delta
+                toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
+            }
             return Offset.Zero
         }
 
@@ -117,7 +140,12 @@ private class TopAppBarOffsetState(
 
 private val WhatShouldShowSearch: List<KClass<*>> = listOf(
     Routes.Root.Home::class,
-    Routes.Root.Search::class
+    Routes.Root.Search::class,
+    Routes.Root.History::class
+)
+
+private val WhatShouldFixBar: List<KClass<*>> = listOf(
+    Routes.Root.History::class
 )
 
 val SmallScreenDpLine = 480.dp
@@ -260,7 +288,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             }, Alignment.Center) {
             val search: (String) -> Unit = {
                 val cs = GlobalData.nav.backStack.last()
-                if (cs is Routes.Root.Search) {
+                if (cs is Routes.Root.SearchLike) {
                     cs.searchModel.key = it
                     ss.launch {
                         cs.searchModel.reload()
@@ -301,7 +329,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         drawerCaller()
                     }
                 } else null,
-                trailingIcon = if (curScreen is Routes.Root.Search) {
+                trailingIcon = if (curScreen is Routes.Root.SearchLike && curScreen.canChangeSettings) {
                     {
                         IconButton(
                             {
@@ -337,7 +365,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             }
         }
     }
-    if (searchSetting && curScreen is Routes.Root.Search) {
+    if (searchSetting && curScreen is Routes.Root.SearchLike) {
         SearchSettingDialog({
             searchSetting = false
         }, curScreen.searchModel)
@@ -354,7 +382,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     val curScreen = GlobalData.nav.backStack.last()
     val scope = rememberCoroutineScope()
     val searchText = remember(curScreen) {
-        if (curScreen is Routes.Root.Search) {
+        if (curScreen is Routes.Root.SearchLike) {
             TextFieldState(curScreen.searchModel.key)
         } else {
             GlobalData.rootSearchQuery
@@ -411,7 +439,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
         modifier = Modifier.fillMaxSize(),
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(Modifier.fillMaxWidth(0.8f)) {
                 Column {
                     Spacer(Modifier.height(12.dp))
                     Text("导航", modifier = Modifier.padding(16.dp),
@@ -540,13 +568,19 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 fun RootScreen(modifier: Modifier = Modifier) {
     val last = GlobalData.nav.backStack.last()
     AdaptiveScaffold {
-        AnimatedContent(last) {x ->
+        AnimatedContent(
+            last,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(230)))
+                    .togetherWith(fadeOut(animationSpec = tween(300)))
+            }) {x ->
             CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
                 when (x) {
                     is Routes.Root.Home -> HomeScreen(modifier.padding(it))
                     is Routes.Root.Detail -> DetailScreen(x.searchItemData, modifier.padding(it))
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                     is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
+                    is Routes.Root.History -> HistoryScreen(Modifier.padding(it), x.searchModel)
                 }
             }
         }

@@ -20,6 +20,7 @@ object GlobalData {
 
     var hideStatusBar by mutableStateOf(false) // 是否不显示状态栏，对桌面端无效
     var rootSearchBarExpanded by mutableStateOf(false) // 保留，说不定什么时候就用上了
+    val historyData = HistoryDataStorage()
 
     var cacheDir = "image_cache".toPath()
         private set
@@ -36,6 +37,7 @@ object GlobalData {
         if (dataPath.isNotEmpty()) {
             dataDir = dataPath.toPath()
         }
+        historyData.init(dataDir.toString())
         dataSaver = dataSaverArg
         ConfigUtil.init(dataSaverArg)
         PixivTokenUtil.reload()

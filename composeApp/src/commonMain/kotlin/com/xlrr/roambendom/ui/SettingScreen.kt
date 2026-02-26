@@ -22,6 +22,7 @@ fun SettingScreen(modifier: Modifier) {
             Text("设置", style = MaterialTheme.typography.headlineMedium)
             CalUI(ConfigUtil.forceGrid)
             CalUI(ConfigUtil.useMultithread)
+            CalUI(ConfigUtil.disableHistoryRecord)
             Spacer(Modifier.height(16.dp))
             CalUI(ConfigUtil.pixivLanguage)
             FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,

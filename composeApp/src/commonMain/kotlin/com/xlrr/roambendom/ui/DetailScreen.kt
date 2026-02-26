@@ -148,9 +148,10 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                             if (details.content == null) {
                                 return@Button
                             }
+                            GlobalData.historyData.addItem(searchItemData, true)
                             GlobalData.nav.push(Routes.Artwork(details.content!!))
                         }, shape = RoundedCornerShape(20),
-                            modifier = Modifier.width(128.dp).height(36.dp),
+                            modifier = Modifier.padding(top = 12.dp).width(128.dp).height(36.dp),
                             enabled = details.isSuccessful()) {
                             Text("阅读")
                         }
@@ -311,6 +312,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                     if (moreBtn) {
                                         Text("展示更多", Modifier.align(Alignment.End).clickable {
                                             showAllDes = true
+                                            GlobalData.historyData.addItem(searchItemData, true)
                                         }, color = Color(0f, 0f, 0f, 0.5f))
                                     }
                                 }
@@ -368,6 +370,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
 @Composable
 fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
     LaunchedEffect(Unit) {
+        GlobalData.historyData.addItem(searchItemData)
         details.reload(searchItemData.id, searchItemData.source)
     }
     val co = rememberCoroutineScope()

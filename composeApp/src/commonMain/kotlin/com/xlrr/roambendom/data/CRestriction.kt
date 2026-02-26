@@ -2,7 +2,9 @@ package com.xlrr.roambendom.data
 
 import androidx.compose.ui.graphics.Color
 import com.xlrr.roambendom.data.CRestriction.*
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class CRestriction {
     Normal,
     R18,

@@ -17,11 +17,15 @@ object ConfigUtil {
     val useMultithread = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         "使用多线程加载图片"
     ))
+    val disableHistoryRecord = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        "禁用历史记录"
+    ))
 
     fun init(dataSaver: DataSaverInterface) {
         forceGrid.state = mutableDataSaverStateOf(dataSaver, "force_grid", false)
         pixivLanguage.state = mutableDataSaverStateOf(dataSaver, "pixiv_language", "ja")
         pixivToken.state = mutableDataSaverStateOf(dataSaver, "pixiv_token", "")
         useMultithread.state = mutableDataSaverStateOf(dataSaver, "use_multithread", false)
+        disableHistoryRecord.state = mutableDataSaverStateOf(dataSaver, "disable_history_record", false)
     }
 }

@@ -101,7 +101,8 @@ object PIXIVApiHelper {
                             CSources.PIXIV,
                             CRestriction.entries[n.getAsInt("xRestrict")],
                             n.getAsInt("aiType") > 1,
-                            "${n.getAsString("userName")}(${n.getAsString("userId")})"
+                            "${n.getAsString("userName")}(${n.getAsString("userId")})",
+                            Instant.parse(n.getAsString("updateDate")).toEpochMilliseconds()
                         )
                     )
                 }
