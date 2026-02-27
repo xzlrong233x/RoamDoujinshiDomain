@@ -77,7 +77,7 @@ private val navItems: List<NavItem> = listOf(
     ),
     NavItem(
         "历史",
-        Res.drawable.settings_icon,
+        Res.drawable.history_icon,
         { it is Routes.Root.History },
         { GlobalData.nav.replace(Routes.Root.History(
             SearchParameterModel("").config {
@@ -304,6 +304,8 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         }
                     ))
                 }
+
+                fM.clearFocus()
             }
             RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
                 {
