@@ -94,6 +94,10 @@ class ArtworkViewModel : ViewModel() {
         "一屏一页"
     ))
 
+    val hidePageIndexer = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        "禁用指示器"
+    ))
+
     fun ifToLeft() : Boolean {
         return pageDirection.state.value == 0 && turnPageMode.state.value == 1
     }
@@ -122,6 +126,7 @@ private fun LoadingImage(
             placeholder = painterResource(Res.drawable.loading_jpg),
             error = painterResource(Res.drawable.empty_page),
             contentScale = contentScale,
+            modifier = Modifier.fillMaxWidth()
         )
         successfulContent()
     }
@@ -297,14 +302,12 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                     srcSize: androidx.compose.ui.geometry.Size,
                     dstSize: androidx.compose.ui.geometry.Size
                 ): ScaleFactor {
-                    var con = 0f
-                    //println("sw: $screenWidth, sh: $screenHeight, ssw: ${srcSize.width}, ssh: ${srcSize.height}")
                     val ws = screenWidth / srcSize.width
                     val hs = screenHeight / srcSize.height
                     val bigH = srcSize.height * ws
-                    var rd = floor(bigH / screenHeight)
+                    val rd = floor(bigH / screenHeight)
                     if (rd < 1) {
-                        rd = 1f
+                        return ScaleFactor(ws, ws)
                     }
                     return ScaleFactor(hs * rd, hs * rd)
                 }
@@ -370,6 +373,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                 hide
                 && (artworkData.pageDirection.state.value == 1
                         || it == pager.currentPage + if (artworkData.shouldTwice()) 1 else 0)
+                && !artworkData.hidePageIndexer.state.value
                 ) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd)
@@ -480,6 +484,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                                         it.pageDirection.state.value == 0 && artworkInfo.pageUrls.size > 1
                                     )
                                     CalUI(it.oneScreenOnePage, it.pageDirection.state.value == 1)
+                                    CalUI(it.hidePageIndexer)
                                 }
                             }
                         }
