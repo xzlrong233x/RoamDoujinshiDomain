@@ -20,12 +20,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.CRestriction
@@ -202,6 +204,9 @@ fun CenterColumnInfo(content: @Composable ColumnScope.() -> Unit) {
         }
     }
 }
+
+@Composable
+expect fun Coil3SaveImageButton(imgRequest: ImageRequest, icon: Painter)
 
 class MaxSize(private val size: Dp, private val maxCount: Int, private val perDecrease: Dp = 0.dp) : StaggeredGridCells {
     override fun Density.calculateCrossAxisCellSizes(
