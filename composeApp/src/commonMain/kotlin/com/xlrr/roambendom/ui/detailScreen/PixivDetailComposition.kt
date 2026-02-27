@@ -1,8 +1,6 @@
 package com.xlrr.roambendom.ui.detailScreen
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -11,51 +9,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -67,17 +34,15 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import com.xlrr.roambendom.LocalSharedTransitionScope
+import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.ui.Preload
 import com.xlrr.roambendom.ui.ThumbDialog
-import com.xlrr.roambendom.utils.Coil3SaveImageButton
-import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.LocalWindowSize
-import com.xlrr.roambendom.utils.visibleItems
+import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -85,12 +50,7 @@ import net.engawapg.lib.zoomable.ZoomState
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import org.jetbrains.compose.resources.painterResource
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.book
-import roambendom.composeapp.generated.resources.delete_icon
-import roambendom.composeapp.generated.resources.empty_page
-import roambendom.composeapp.generated.resources.img_download_icon
-import roambendom.composeapp.generated.resources.loading_jpg
+import roambendom.composeapp.generated.resources.*
 import kotlin.math.floor
 
 @Composable
@@ -308,19 +268,46 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                     Modifier.fillMaxWidth().padding(6.dp, 4.dp),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    details.content!!.tags.forEach {
-                                        if (it == "R18" || it == "R18G") {
-                                            Text(it, color = Color.Red)
-                                        } else {
-                                            Text("#$it")
+                                    details.content?.let { ct ->
+                                        if (ct.restriction != CRestriction.Normal) {
+                                            Text(ct.restriction.toString(), fontWeight = FontWeight.Bold,
+                                                color = ct.restriction.getColor())
+                                        }
+                                        if (ct.ai) {
+                                            Text("AI生成", fontWeight = FontWeight.Bold)
+                                        }
+                                        ct.tags.forEach {
+                                            if (!it.contains("R-18G*".toRegex())) Text("#$it")
                                         }
                                     }
                                 }
                             }
                         }
+                        item("LikeCount") {
+                            SelectionContainer {
+                                Text(
+                                    "收藏数：${details.content!!.likeCount}",
+                                    Modifier.padding(6.dp, 2.dp)
+                                )
+                            }
+                        }
+                        item("Time") {
+                            SelectionContainer {
+                                Text(
+                                    TimeUtil.formatTime(details.content!!.time),
+                                    Modifier.padding(6.dp, 0.dp)
+                                )
+                            }
+                        }
                         item("Author") {
                             SelectionContainer {
-                                Text(searchItemData.author, Modifier.padding(6.dp, 3.dp))
+                                details.content?.let {
+                                    Text(
+                                        "${it.authors.first()} (${it.authors.last()})",
+                                        Modifier.padding(6.dp, 6.dp)
+                                    )
+                                }
+
                             }
                         }
                     }

@@ -111,6 +111,16 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                             "语言：${it.language.toString().lowercase()}",
                                             style = typography.titleMedium
                                         )
+                                        Text(
+                                            "喜好数量：${it.likeCount.toString().lowercase()}",
+                                            style = typography.titleMedium
+                                        )
+                                        if (it.time > 0) {
+                                            Text(
+                                                TimeUtil.formatTime(it.time),
+                                                style = typography.titleMedium
+                                            )
+                                        }
                                     }
                                 }
                             }

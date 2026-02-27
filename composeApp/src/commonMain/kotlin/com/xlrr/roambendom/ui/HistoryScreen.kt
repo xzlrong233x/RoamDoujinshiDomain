@@ -1,29 +1,12 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.animation.animateBounds
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.xlrr.roambendom.LocalSharedTransitionScope
@@ -32,20 +15,13 @@ import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
-import com.xlrr.roambendom.utils.CenterCircular
-import com.xlrr.roambendom.utils.CenterColumnInfo
-import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.ItemInfoCardWithShared
-import com.xlrr.roambendom.utils.LocalWindowSize
+import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.delete_icon
 import kotlin.math.ceil
 import kotlin.math.max
-import kotlin.text.ifEmpty
-import kotlin.time.Instant
 
 @Composable
 private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
@@ -61,7 +37,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
             },
             {
                 if (it.ai) Text("*有AI参与的作品")
-                if (it.time > 0) Text(Instant.fromEpochMilliseconds(it.time).toString())
+                if (it.time > 0) Text(TimeUtil.formatTime(it.time))
                 IconButton({
                     remove(it.uid())
                 }, Modifier.align(Alignment.End)) {

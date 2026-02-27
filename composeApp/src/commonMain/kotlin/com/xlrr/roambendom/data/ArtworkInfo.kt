@@ -2,6 +2,7 @@ package com.xlrr.roambendom.data
 
 data class ArtworkInfo(
     var source: CSources = CSources.NHENTAI,
+    var restriction: CRestriction = CRestriction.R18,
     var title: String = "",
     var altitle: String = "",
     var tags: List<String> = listOf(),
@@ -15,5 +16,6 @@ data class ArtworkInfo(
     var pageUrls: List<String> = listOf(),
     var thumbUrls: List<String> = listOf(),
     var likeCount: Int = 0,
-    var time: Long = 0
+    var time: Long = 0,
+    var ai: Boolean = false
 )

@@ -135,7 +135,7 @@ object PIXIVApiHelper {
         info.tags = jo["tags"]?.jsonObject["tags"]?.jsonArray?.map { x ->
             x.jsonObject.getAsString("tag")
         } ?: listOf()
-        info.authors = listOf("${jo.getAsString("userName")}(${jo.getAsString("userId")})")
+        info.authors = listOf(jo.getAsString("userName"),jo.getAsString("userId"))
         info.description = jo.getAsString("description")
             .split("<\\s*br\\s*/\\s*>".toRegex()).joinToString("\n") {
             NetHelper.handleHTMLString(it)
@@ -143,6 +143,8 @@ object PIXIVApiHelper {
         info.page = jo.getAsInt("pageCount")
         info.likeCount = jo.getAsInt("bookmarkCount")
         info.time = Instant.parse(jo.getAsString("uploadDate")).toEpochMilliseconds()
+        info.ai = jo.getAsInt("aiType") > 1
+        info.restriction = CRestriction.entries[jo.getAsInt("xRestrict")]
         val page = artworkPage(id)
         info.pageUrls = page.map {
             "${it.urls.regular}[w${it.width}h${it.height}]"

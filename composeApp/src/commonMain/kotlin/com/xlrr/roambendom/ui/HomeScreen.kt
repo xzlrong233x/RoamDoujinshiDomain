@@ -27,7 +27,6 @@ import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.max
-import kotlin.time.Instant
 
 enum class HomeSelection {
     NH,
@@ -72,7 +71,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             },
             {
                 if (it.ai) Text("*有AI参与的作品")
-                if (it.time > 0) Text(Instant.fromEpochMilliseconds(it.time).toString())
+                if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it))
