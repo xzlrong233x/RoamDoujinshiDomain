@@ -48,6 +48,7 @@ import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
+import com.xlrr.roambendom.ui.detailScreen.DetailScreen
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
@@ -439,7 +440,8 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
         modifier = Modifier.fillMaxSize(),
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(Modifier.fillMaxWidth(0.8f)) {
+            ModalDrawerSheet(if (smallMode) Modifier.fillMaxWidth(0.8f) else Modifier) {
+                // 这里如果只填Modifier.fillMaxWidth(0.8f)的话，会在桌面端上出现最大化时弹出导航的问题
                 Column {
                     Spacer(Modifier.height(12.dp))
                     Text("导航", modifier = Modifier.padding(16.dp),
