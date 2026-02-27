@@ -4,8 +4,11 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -35,7 +38,9 @@ val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope> { err
 @Composable
 fun App() {
     setupCoil()
-    MaterialTheme {
+    MaterialTheme(
+        colorScheme = if (!isSystemInDarkTheme()) lightColorScheme() else darkColorScheme()
+    ) {
         WindowSizeBox(Modifier.fillMaxWidth()) {
             SharedTransitionLayout {
                 CompositionLocalProvider(LocalSharedTransitionScope provides this) {
