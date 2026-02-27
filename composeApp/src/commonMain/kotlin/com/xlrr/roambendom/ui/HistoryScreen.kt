@@ -88,7 +88,6 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
     }
     val mx = LocalWindowSize.current.width
     val removeList = remember { mutableListOf<String>() }
-    println("compose $removeList")
 
     LaunchedEffect(Unit) {
         if (searchParameterModel.content.isEmpty() && !searchParameterModel.end) {

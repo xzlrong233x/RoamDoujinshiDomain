@@ -12,7 +12,6 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.internal.closeQuietly
 import okhttp3.internal.connection.RealCall
-import okio.Path.Companion.toPath
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import kotlin.random.Random
@@ -56,9 +55,9 @@ class ImageOkHttpInterceptor(
         val totalSize = getTotalSize(chain, request) ?: return chain.proceed(request)
 
         // 如果图片太小，不分块，直接返回普通请求
-        if (totalSize < minSizeForChunk) {
-            return chain.proceed(request)
-        }
+//        if (totalSize < minSizeForChunk) {
+//            return chain.proceed(request)
+//        }
 
         // 2. 创建分块请求
         val chunkSize = totalSize / chunkCount
@@ -160,7 +159,8 @@ class ImageOkHttpInterceptor(
         val url = request.url.toString().lowercase()
         return (url.endsWith(".jpg") || url.endsWith(".jpeg") ||
                 url.endsWith(".png") || url.endsWith(".webp") ||
-                url.endsWith(".gif") || url.endsWith(".bmp")) && url.contains("master1200")
+                url.endsWith(".gif") || url.endsWith(".bmp"))
+                && (url.contains("master1200") || url.contains("i\\d.nhentai.net".toRegex()))
                 && ConfigUtil.useMultithread.state.value
     }
 
