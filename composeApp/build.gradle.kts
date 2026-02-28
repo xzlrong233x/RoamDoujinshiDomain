@@ -72,9 +72,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        create("release") {
+            storeFile = File(projectDir.path + "/keystore/androidkey.jks")
+            storePassword = "114514"
+            keyAlias = "key114"
+            keyPassword = "1919810"
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
         }
     }
     compileOptions {
