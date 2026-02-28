@@ -56,91 +56,44 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
 @Composable
 fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel) {
     val ss = rememberCoroutineScope()
-    val showBtn by remember(GlobalData.forListState) {
-        derivedStateOf {
-            GlobalData.forListState != null
-                    && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
-        }
-    }
     val mx = LocalWindowSize.current.width
-    val removeList = remember { mutableListOf<String>() }
-
-    LaunchedEffect(Unit) {
-        if (searchParameterModel.content.isEmpty() && !searchParameterModel.end) {
-            searchParameterModel.reload()
-        }
-    }
-
-    Scaffold(
-        modifier.fillMaxSize(),
-        floatingActionButton = {
-            if (showBtn) { //TODO: 先占位，以后再改
-                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-100000f) } }) {
-                    Text("UP")
-                }
-            }
-        }) {pd ->
-        Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
-            SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
-                ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-            ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value,
-                header = {
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("历史", style = MaterialTheme.typography.headlineMedium)
-                        Button({
-                            GlobalData.historyData.removeAll()
-                            ss.launch {
-                                searchParameterModel.reload()
-                            }
-                        }) {
-                            Text("清除所有记录")
+    StandardSearchLikeWithUp(searchParameterModel, modifier) {
+        SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
+            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
+        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value,
+            header = {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Text("历史", style = MaterialTheme.typography.headlineMedium)
+                    Button({
+                        GlobalData.historyData.removeAll()
+                        ss.launch {
+                            searchParameterModel.reload()
                         }
-                    }
-                },
-                listMain = {spm ->
-                    items(spm.content.distinct(), {it.uid()}) {
-                        with(LocalSharedTransitionScope.current) {
-                            ShowHistoryItem(it, Modifier.animateItem(),{ s ->
-                                spm.content.remove(it)
-                                GlobalData.historyData.remove(s)
-                            }, false)
-                        }
-                    }
-                },
-                gridMain = {spm ->
-                    items(spm.content.distinct(), {it.uid()}) {
-                        with(LocalSharedTransitionScope.current) {
-                            ShowHistoryItem(it, Modifier.animateItem(),{s ->
-                                spm.content.remove(it)
-                                GlobalData.historyData.remove(s)
-                            }, true)
-                        }
-                    }
-                },
-                ss = ss)
-            if (searchParameterModel.content.isEmpty() && searchParameterModel.loading) {
-                CenterCircular()
-            }
-            if (searchParameterModel.content.isEmpty()) {
-                if (searchParameterModel.error != null) {
-                    searchParameterModel.error?.let {
-                        CenterColumnInfo {
-                            Text("错误：${it.message}")
-                            Button({
-                                ss.launch {
-                                    searchParameterModel.reload()
-                                }
-                            }) {
-                                Text("点我重载")
-                            }
-                        }
-                    }
-                } else if (!searchParameterModel.loading) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("空空如也")
+                    }) {
+                        Text("清除所有记录")
                     }
                 }
-            }
-        }
+            },
+            listMain = {spm ->
+                items(spm.content.distinct(), {it.uid()}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowHistoryItem(it, Modifier.animateItem(),{ s ->
+                            spm.content.remove(it)
+                            GlobalData.historyData.remove(s)
+                        }, false)
+                    }
+                }
+            },
+            gridMain = {spm ->
+                items(spm.content.distinct(), {it.uid()}) {
+                    with(LocalSharedTransitionScope.current) {
+                        ShowHistoryItem(it, Modifier.animateItem(),{s ->
+                            spm.content.remove(it)
+                            GlobalData.historyData.remove(s)
+                        }, true)
+                    }
+                }
+            },
+            ss = ss)
     }
 }

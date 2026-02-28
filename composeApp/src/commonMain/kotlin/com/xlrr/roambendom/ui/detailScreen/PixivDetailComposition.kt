@@ -7,8 +7,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,7 +21,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.input.key.*
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -189,13 +186,9 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                                     .toDp()
                                             })
                                         }
-                                    }.pointerInput(Unit) {
-                                        awaitEachGesture {
-                                            val p = awaitFirstDown()
-                                            if (urlWithSize == null) {
-                                                urlWithSize = uws
-                                                p.consume()
-                                            }
+                                    }.clickable {
+                                        if (urlWithSize == null) {
+                                            urlWithSize = uws
                                         }
                                     })
                                 }

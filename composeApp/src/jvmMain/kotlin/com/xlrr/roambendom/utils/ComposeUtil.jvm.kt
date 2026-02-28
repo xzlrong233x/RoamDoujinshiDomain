@@ -4,13 +4,10 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
@@ -18,16 +15,11 @@ import coil3.request.ImageRequest
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.io.files.SystemFileSystem
-import okio.buffer
-import okio.sink
 import org.jetbrains.skiko.toBufferedImage
 import java.awt.FileDialog
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import javax.swing.JFileChooser
-import javax.swing.filechooser.FileNameExtensionFilter
 
 @Composable
 actual fun Coil3SaveImageButton(

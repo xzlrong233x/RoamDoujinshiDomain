@@ -29,7 +29,7 @@ actual fun Coil3SaveImageButton(
             context,
             imgRequest.data.toString().split("/").last()
         )
-        val msg = if (success) "保存成功" else "保存失败"
+        val msg = if (success) "已保存到相册" else "保存失败"
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)

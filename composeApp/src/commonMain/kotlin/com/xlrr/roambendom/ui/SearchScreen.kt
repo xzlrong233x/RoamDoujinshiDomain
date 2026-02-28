@@ -1,6 +1,6 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
@@ -192,7 +192,8 @@ fun SearchContent(modifier: Modifier,searchParameterModel: SearchParameterModel,
 }
 
 @Composable
-fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel) {
+fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
+                         modifier: Modifier, content: @Composable BoxScope.() -> Unit) {
     val ss = rememberCoroutineScope()
     val showBtn by remember(GlobalData.forListState) {
         derivedStateOf {
@@ -200,7 +201,6 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
                     && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
         }
     }
-    val mx = LocalWindowSize.current.width
 
     LaunchedEffect(Unit) {
         if (searchParameterModel.content.isEmpty() && !searchParameterModel.end) {
@@ -212,17 +212,13 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
         modifier.fillMaxSize(),
         floatingActionButton = {
             if (showBtn) { //TODO: 先占位，以后再改
-                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-100000f) } }) {
+                FloatingActionButton({ ss.launch { GlobalData.forListState?.animateScrollBy(-100000f) } }) {
                     Text("UP")
                 }
             }
         }) {pd ->
         Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
-            SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
-                ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-            ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value
-                    && searchParameterModel.configs.searchTarget.state.value == 0,
-                ss = ss)
+            content()
             if (searchParameterModel.content.isEmpty() && searchParameterModel.loading) {
                 CenterCircular()
             }
@@ -247,5 +243,18 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel) {
+    val ss = rememberCoroutineScope()
+    val mx = LocalWindowSize.current.width
+    StandardSearchLikeWithUp(searchParameterModel, modifier) {
+        SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
+            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
+        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value
+                && searchParameterModel.configs.searchTarget.state.value == 0,
+            ss = ss)
     }
 }

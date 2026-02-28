@@ -9,7 +9,7 @@ import com.xlrr.roambendom.utils.GlobalData
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "RoamBenDom",
+        title = "Roam Doujinshi Domain",
     ) {
         LaunchedEffect(true) {
             GlobalData.init(dataSaverArg = DataSaverProperties("config.properties"))

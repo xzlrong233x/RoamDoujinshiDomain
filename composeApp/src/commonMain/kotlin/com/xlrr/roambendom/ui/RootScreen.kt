@@ -3,6 +3,7 @@ package com.xlrr.roambendom.ui
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
@@ -293,6 +294,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                     cs.searchModel.key = it
                     ss.launch {
                         cs.searchModel.reload()
+                        GlobalData.forListState?.scrollBy(-10000f)
                     }
                 } else {
                     GlobalData.nav.push(Routes.Root.Search(
@@ -304,7 +306,6 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         }
                     ))
                 }
-
                 fM.clearFocus()
             }
             RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),

@@ -80,7 +80,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
         Text(config.uiType.label)
         Box() {
             TextButton({exp = true}, enabled = enable) {
-                Text(config.state.value.toString())
+                Text(config.uiType.strFunc(config.state.value))
                 Icon(
                     painterResource(Res.drawable.down_caret),
                     contentDescription = null,
@@ -95,7 +95,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
             ) {
                 config.uiType.choiceList.forEach {
                     DropdownMenuItem({
-                        Text(it.toString())
+                        Text(config.uiType.strFunc(it))
                     }, {
                         config.state.value = it
                         exp = false
