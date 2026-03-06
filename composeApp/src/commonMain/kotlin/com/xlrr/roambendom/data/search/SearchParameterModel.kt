@@ -15,6 +15,7 @@ class SearchParameterModel(
     }
 
     var loading by mutableStateOf(false)
+    var refreshing by mutableStateOf(false)
     var end by mutableStateOf(false)
     var error: Throwable? by mutableStateOf(null)
 
@@ -25,7 +26,7 @@ class SearchParameterModel(
     var page by mutableIntStateOf(0)
 
     suspend fun reload() {
-        error = null
+        reset()
         clear()
         request()
     }
@@ -35,12 +36,28 @@ class SearchParameterModel(
         page = 0
     }
 
-    suspend fun request() {
+    fun reset() {
+        error = null
+        end = false
+    }
+
+    suspend fun refresh() { //纯他妈叠石山
+        page = 0
+        reset()
+        refreshing = true
+        request(true)
+        refreshing = false
+    }
+
+    suspend fun request(clearAfterGet: Boolean = false) {
         page++
         loading = true
         try {
             if (configs.clearList) content.clear()
             val result = configs.searchFunction(key, page)
+            if (clearAfterGet) {
+                content.clear()
+            }
             if (result.items.isNotEmpty()) {
                 content.addAll(result.items)
             } else end = true

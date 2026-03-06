@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -191,7 +192,12 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                 }
             }
         }) {pd ->
-        Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
+        PullToRefreshBox(
+            viewModel.spm.loading && viewModel.spm.refreshing,
+            {ss.launch { viewModel.spm.refresh() }},
+            Modifier.fillMaxSize().padding(pd),
+            contentAlignment = Alignment.TopCenter
+        ) {
             ChooseContent(
                 small && !ConfigUtil.forceGrid.state.value, modifier.fillMaxWidth(),
                 viewModel.spm,

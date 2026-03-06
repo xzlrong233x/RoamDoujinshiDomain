@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -217,7 +218,12 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
                 }
             }
         }) {pd ->
-        Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
+        PullToRefreshBox(
+            searchParameterModel.loading && searchParameterModel.refreshing,
+            {ss.launch { searchParameterModel.refresh() }},
+            Modifier.fillMaxSize().padding(pd),
+            contentAlignment =  Alignment.TopCenter
+        ) {
             content()
             if (searchParameterModel.content.isEmpty() && searchParameterModel.loading) {
                 CenterCircular()
@@ -243,6 +249,9 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
                 }
             }
         }
+//        Box(Modifier.fillMaxSize().padding(pd), Alignment.TopCenter) {
+//
+//        }
     }
 }
 
