@@ -276,7 +276,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
     }
     LaunchedEffect(GlobalData.forListState?.isScrollInProgress) {
         GlobalData.forListState?.let {
-            if (exp) {
+            if (exp && GlobalData.forListState?.isScrollInProgress == true) {
                 exp = false
                 fM.clearFocus()
             }
@@ -290,7 +290,11 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             }, Alignment.Center) {
             val search: (String) -> Unit = {
                 val cs = GlobalData.nav.backStack.last()
-                if (cs is Routes.Root.SearchLike) {
+                val res = "([np])(\\d+)".toRegex().find(it)
+                if (res != null && res.groupValues.size == 3) {
+                    // TODO: 跳转
+                }
+                else if (cs is Routes.Root.SearchLike) {
                     cs.searchModel.key = it
                     ss.launch {
                         cs.searchModel.reload()
