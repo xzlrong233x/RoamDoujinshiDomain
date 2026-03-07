@@ -1,9 +1,14 @@
 package com.xlrr.roambendom.utils
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
@@ -34,4 +39,25 @@ actual fun Coil3SaveImageButton(
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)
     }
+}
+
+@Composable
+actual fun CtrlPullToRefreshBox(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier,
+    state: PullToRefreshState,
+    contentAlignment: Alignment,
+    indicator: @Composable (BoxScope.() -> Unit),
+    content: @Composable (BoxScope.() -> Unit)
+) {
+    PullToRefreshBox(
+        isRefreshing,
+        onRefresh,
+        modifier,
+        state,
+        contentAlignment,
+        indicator,
+        content
+    )
 }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,10 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.search.SearchParameterModel
-import com.xlrr.roambendom.utils.CenterCircular
-import com.xlrr.roambendom.utils.CenterColumnInfo
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.LocalWindowSize
+import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -218,7 +214,7 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
                 }
             }
         }) {pd ->
-        PullToRefreshBox(
+        CtrlPullToRefreshBox(
             searchParameterModel.loading && searchParameterModel.refreshing,
             {ss.launch { searchParameterModel.refresh() }},
             Modifier.fillMaxSize().padding(pd),
