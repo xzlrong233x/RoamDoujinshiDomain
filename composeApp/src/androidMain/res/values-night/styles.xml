@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AdaptiveTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorForeground">@android:color/white</item>
+        <item name="android:colorForegroundInverse">@android:color/black</item>
+        <item name="android:colorBackground">#ff303030</item>
+        <item name="android:colorBackgroundFloating">#ff424242</item>
+        <item name="android:colorBackgroundCacheHint">#ff303030</item>
+        <item name="android:colorError">#ff7043</item>
+    </style>
+</resources>

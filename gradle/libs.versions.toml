@@ -12,6 +12,7 @@ androidx-testExt = "1.3.0"
 composeHotReload = "1.0.0"
 androidx-security = "1.1.0"
 composeMultiplatform = "1.10.1"
+coreSplashscreen = "1.2.0"
 junit = "4.13.2"
 kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
@@ -29,6 +30,7 @@ ksoup = "0.2.5"
 dataSaverCore = "1.2.3"
 
 [libraries]
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 data-saver-core = { module = "io.github.funnysaltyfish:data-saver-core", version.ref = "dataSaverCore" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
