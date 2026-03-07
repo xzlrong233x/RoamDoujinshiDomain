@@ -54,7 +54,9 @@ import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
 import io.ktor.util.reflect.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -106,14 +108,17 @@ private val navItems: List<NavItem> = listOf(
 
 private class TopAppBarOffsetState(
     val maxUpPx: Float,
-    val minUpPx: Float
+    val minUpPx: Float,
+    val coroutineScope: CoroutineScope
 ) {
     private val _toolbarOffset = mutableFloatStateOf(0f)
+    var lockBar: Boolean = false
+    private var _job: Job? = null
     var toolbarOffsetHeightPx: Float
         get() {
-//            if (GlobalData.nav.backStack.last() is Routes.Root.Detail) {
-//                return 0f
-//            } 本来换成类储存是为了在某些情况下锁定顶边栏，但我现在还没想好在那些情况下锁定。
+            if (lockBar) {
+                return 0f
+            }
             return _toolbarOffset.floatValue
         }
         set(value) {
@@ -121,7 +126,8 @@ private class TopAppBarOffsetState(
         }
     val nestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            if (!WhatShouldFixBar.any { GlobalData.nav.backStack.last().instanceOf(it) }) {
+            _job?.cancel()
+            if (!WhatShouldFixBar.any { GlobalData.nav.backStack.last().instanceOf(it) } || lockBar) {
                 val delta = available.y
                 val newOffset = toolbarOffsetHeightPx + delta
                 toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
@@ -130,13 +136,25 @@ private class TopAppBarOffsetState(
         }
 
         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) {
-                _toolbarOffset.floatValue = -minUpPx
-            } else {
-                _toolbarOffset.floatValue = -maxUpPx
-            }
+            val b = if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) 1 else -1
+            val d = maxUpPx - minUpPx
+            _job = coroutineScope.launch {
+                while (true) {
+                    val newV = _toolbarOffset.floatValue + d / (ANIMATION_DURATION / ANIMATION_DELAY) * b
+                    toolbarOffsetHeightPx = newV.coerceIn(-maxUpPx,-minUpPx)
+                    if (abs(newV) !in minUpPx..maxUpPx) {
+                        break
+                    }
+                    delay(ANIMATION_DELAY)
+                }
+            } // 我不认为有那么好
             return super.onPostFling(consumed, available)
         }
+    }
+
+    companion object {
+        const val ANIMATION_DURATION = 280L
+        const val ANIMATION_DELAY = 10L
     }
 }
 
@@ -401,7 +419,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 
     val maxUpPx = with(LocalDensity.current) { RootBarHeight.roundToPx().toFloat() }
     val minUpPx = 0f
-    val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx) }
+    val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx, scope) }
 
     val toggleNav = {
         if (smallMode)
