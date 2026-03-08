@@ -170,7 +170,8 @@ private val WhatShouldShowSearch: List<KClass<*>> = listOf(
 )
 
 private val WhatShouldFixBar: List<KClass<*>> = listOf(
-    Routes.Root.History::class
+    Routes.Root.History::class,
+    Routes.Root.Settings::class
 )
 
 val SmallScreenDpLine = 480.dp
