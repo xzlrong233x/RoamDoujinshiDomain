@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.xlrr.roambendom.utils.CenterFlowRow
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.down_caret
@@ -23,9 +24,7 @@ fun CalUI(config: StateWithUI<*>, enable: Boolean = true) {
 @Composable
 fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
     if (config.uiType !is UIType.SwitchUI) return
-    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.CenterVertically) {
+    CenterFlowRow(Modifier.fillMaxWidth()) {
         Text(config.uiType.label)
         Spacer(Modifier.width(16.dp))
         Switch(
@@ -42,9 +41,7 @@ fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
 @Composable
 fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = true) {
     if (config.uiType !is UIType.SingleSegmentedButton) return
-    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.CenterVertically) {
+    CenterFlowRow(Modifier.fillMaxWidth()) {
         Text(config.uiType.label)
         SingleChoiceSegmentedButtonRow() {
             config.uiType.choiceList.forEachIndexed { ind, str ->
@@ -74,9 +71,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
             exp = false
         }
     }
-    FlowRow(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween,
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.CenterVertically) {
+    CenterFlowRow(Modifier.fillMaxWidth()) {
         Text(config.uiType.label)
         Box() {
             TextButton({exp = true}, enabled = enable) {

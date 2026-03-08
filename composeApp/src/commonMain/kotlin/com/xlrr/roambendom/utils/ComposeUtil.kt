@@ -56,6 +56,13 @@ fun WindowSizeBox(modifier: Modifier,content: @Composable () -> Unit) {
 }
 
 @Composable
+fun CenterFlowRow(modifier: Modifier, content: @Composable FlowRowScope.() -> Unit) {
+    FlowRow(modifier,horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.Center,
+        itemVerticalAlignment = Alignment.CenterVertically, content = content)
+}
+
+@Composable
 fun CtrlAnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,

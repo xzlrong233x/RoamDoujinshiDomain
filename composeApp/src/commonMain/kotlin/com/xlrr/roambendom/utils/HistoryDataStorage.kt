@@ -8,6 +8,7 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readString
 import kotlinx.io.writeString
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
@@ -16,7 +17,9 @@ class HistoryDataStorage {
     @Serializable
     data class HistoryContent(
         var list: ArrayList<SearchItemData> = arrayListOf(),
-        var read: HashMap<String, Int> = hashMapOf()
+        var read: HashMap<String, Int> = hashMapOf(),
+        @SerialName("search_tokens")
+        var searchTokens: ArrayList<String> = arrayListOf(),
     )
     private var content = HistoryContent()
     private var _init = false
@@ -56,6 +59,11 @@ class HistoryDataStorage {
         save()
     }
 
+    fun clearSearchToken() {
+        content.searchTokens.clear()
+        save()
+    }
+
     fun search(key: String): List<SearchItemData> {
         return content.list.filter {
             it.title.contains(key)
@@ -78,6 +86,18 @@ class HistoryDataStorage {
             content.read[item.uid()] = 1 + (content.read[item.uid()] ?: 0)
         }
         save()
+    }
+
+    fun addSearchToken(st: String) : Boolean {
+        if (st.isBlank()) return false
+        content.searchTokens.removeIf { it == st }
+        val r = content.searchTokens.add(st)
+        save()
+        return r
+    }
+
+    fun requestTokens(s: String) : List<String> {
+        return content.searchTokens.filter { it.contains(s) }.reversed()
     }
 
     fun save() {

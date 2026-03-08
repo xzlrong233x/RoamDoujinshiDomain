@@ -28,6 +28,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -205,7 +210,13 @@ fun RootSearchBar(
                             minHeight = InputFieldHeight,
                         )
                         .focusRequester(freq)
-                        .onFocusChanged { if (it.isFocused) onExpandedChange(true) },
+                        .onFocusChanged { if (it.isFocused) onExpandedChange(true) }
+                        .onKeyEvent {
+                            if (it.type == KeyEventType.KeyUp && it.key == Key.Escape) {
+                                fM.clearFocus()
+                            }
+                            false
+                        },
                 enabled = enabled,
                 singleLine = true,
                 textStyle = LocalTextStyle.current.merge(TextStyle(color = textColor)),
@@ -300,6 +311,9 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             }
         }
     }
+    LaunchedEffect(GlobalData.nav.backStack.last()) {
+        exp = false
+    }
 
     if (should) {
         Box(Modifier.statusBarsPadding()
@@ -318,15 +332,25 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         cs.searchModel.reload()
                         GlobalData.forListState?.scrollBy(-10000f)
                     }
+
+                    if (curScreen is Routes.Root.Search
+                        && curScreen.searchModel.configs.searchTarget.state.value == 0) {
+                        GlobalData.historyData.addSearchToken(it)
+                    }
                 } else {
-                    GlobalData.nav.push(Routes.Root.Search(
-                        SearchParameterModel(it).config {
-                            if (GlobalData.homeContentSelection != null) {
-                                searchTarget.state.value =
-                                    if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                    if (GlobalData.homeContentSelection == HomeSelection.NH) {
+                        GlobalData.historyData.addSearchToken(it)
+                    }
+                    GlobalData.nav.push(
+                        Routes.Root.Search(
+                            SearchParameterModel(it).config {
+                                if (GlobalData.homeContentSelection != null) {
+                                    searchTarget.state.value =
+                                        if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                                }
                             }
-                        }
-                    ))
+                        )
+                    )
                 }
                 fM.clearFocus()
             }
@@ -343,10 +367,23 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             suggestions = PIXIVApiHelper.keywordSuggestion(it)
                         }
                     }
+                    else if ((GlobalData.homeContentSelection == HomeSelection.NH
+                                && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
+                                && curScreen.searchModel.configs.searchTarget.state.value == 0)) {
+                        job?.cancel()
+                        job = ss.launch {
+                            suggestions = GlobalData.historyData.requestTokens(it).map { x->
+                                KeywordSuggestionItem("1", x, "", "prefix")
+                            }
+                        }
+                    }
                 },
                 exp && suggestions.isNotEmpty(),
                 {exp = it},
-                search,
+                {
+                    if (it.isNotEmpty()) search(it)
+                    else fM.clearFocus()
+                },
                 true,
                 freq,
                 "search...",
