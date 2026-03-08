@@ -53,6 +53,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import com.xlrr.roambendom.config.CalUI
+import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
@@ -354,7 +355,22 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                     flag = false,
                     shouldTrans = true
                 )
+                Key.VolumeUp -> if (ConfigUtil.enableVolumeTurn.state.value) {
+                    turnPage(
+                        flag = true,
+                        shouldTrans = true
+                    )
+                }
+                Key.VolumeDown -> if (ConfigUtil.enableVolumeTurn.state.value) {
+                    turnPage(
+                        flag = false,
+                        shouldTrans = true
+                    )
+                }
             }
+        }
+        if ((keyEvent.key == Key.VolumeDown || keyEvent.key == Key.VolumeUp) && ConfigUtil.enableVolumeTurn.state.value) {
+            return@onPreviewKeyEvent true
         }
         false
     }, contentAlignment = Alignment.Center) {
@@ -485,6 +501,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                                     )
                                     CalUI(it.oneScreenOnePage, it.pageDirection.state.value == 1)
                                     CalUI(it.hidePageIndexer)
+                                    Spacer(Modifier.height(6.dp))
+                                    CalUI(ConfigUtil.enableVolumeTurn)
                                 }
                             }
                         }

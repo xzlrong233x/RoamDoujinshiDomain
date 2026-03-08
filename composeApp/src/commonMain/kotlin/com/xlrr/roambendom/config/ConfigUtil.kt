@@ -20,6 +20,9 @@ object ConfigUtil {
     val disableHistoryRecord = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         "禁用历史记录"
     ))
+    val enableVolumeTurn = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        "启用音量键翻页"
+    ))
 
     fun init(dataSaver: DataSaverInterface) {
         forceGrid.state = mutableDataSaverStateOf(dataSaver, "force_grid", false)
@@ -27,5 +30,6 @@ object ConfigUtil {
         pixivToken.state = mutableDataSaverStateOf(dataSaver, "pixiv_token", "")
         useMultithread.state = mutableDataSaverStateOf(dataSaver, "use_multithread", false)
         disableHistoryRecord.state = mutableDataSaverStateOf(dataSaver, "disable_history_record", false)
+        enableVolumeTurn.state = mutableDataSaverStateOf(dataSaver, "enable_volume_turn", false)
     }
 }

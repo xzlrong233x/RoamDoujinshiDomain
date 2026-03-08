@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import com.xlrr.roambendom.LocalSharedTransitionScope
+import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.getColor
@@ -66,6 +67,7 @@ fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState)
                 Modifier.fillMaxSize().onPreviewKeyEvent {
                     if (it.key == Key.Escape && it.type == KeyEventType.KeyUp) {
                         onDismiss()
+                        return@onPreviewKeyEvent true
                     }
                     false
                 }
@@ -140,6 +142,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     var page by remember { mutableIntStateOf(0) }
     var urlWithSize: UrlWithSize? by remember { mutableStateOf(null) }
     val zoom = rememberZoomState()
+    val fcq = remember { FocusRequester() }
 
     LaunchedEffect(state) {
         snapshotFlow { state.visibleItems(50f).firstOrNull() }
@@ -160,7 +163,30 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     var showAllPage by remember { mutableStateOf(false) }
     Box() {
         if (!details.loading && details.content != null) {
-            Box(Modifier.align(Alignment.TopCenter)) {
+            Box(Modifier.align(Alignment.TopCenter).focusRequester(fcq).focusable()
+                .onPreviewKeyEvent {
+                    if (ConfigUtil.enableVolumeTurn.state.value) {
+                        if (it.type == KeyEventType.KeyUp) {
+                            var dt = 0
+                            if (it.key == Key.VolumeDown) {
+                                dt = 1
+                            } else if (it.key == Key.VolumeUp) {
+                                dt = -1
+                            }
+                            val n = (page + dt).coerceIn(0, details.content?.page)
+                            if (n != page && showAllPage) {
+                                ss.launch {
+                                    state.animateScrollToItem(n)
+                                }
+                                return@onPreviewKeyEvent true
+                            }
+                        }
+                        else if ((it.key == Key.VolumeDown || it.key == Key.VolumeUp)) {
+                            return@onPreviewKeyEvent true
+                        }
+                    }
+                    false
+                }) {
                 Surface(
                     Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
                         .padding(12.dp, 8.dp).align(Alignment.TopCenter),
@@ -328,6 +354,11 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                 }, { thumbExpand = false })
             }
             ImageDialog(urlWithSize, { urlWithSize = null }, zoom)
+            SideEffect {
+                if (urlWithSize == null) {
+                    fcq.requestFocus()
+                }
+            }
         }
     }
 }
