@@ -198,7 +198,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             contentAlignment = Alignment.TopCenter
         ) {
             ChooseContent(
-                small && !ConfigUtil.forceGrid.state.value, modifier.fillMaxWidth(),
+                small && !ConfigUtil.forceGrid.value, modifier.fillMaxWidth(),
                 viewModel.spm,
                 viewModel.loading || viewModel.spm.loading,
                 viewModel.local,

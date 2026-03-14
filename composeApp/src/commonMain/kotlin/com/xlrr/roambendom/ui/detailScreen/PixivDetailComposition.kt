@@ -165,7 +165,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
         if (!details.loading && details.content != null) {
             Box(Modifier.align(Alignment.TopCenter).focusRequester(fcq).focusable()
                 .onPreviewKeyEvent {
-                    if (ConfigUtil.enableVolumeTurn.state.value) {
+                    if (ConfigUtil.enableVolumeTurn.value) {
                         if (it.type == KeyEventType.KeyUp) {
                             var dt = 0
                             if (it.key == Key.VolumeDown) {

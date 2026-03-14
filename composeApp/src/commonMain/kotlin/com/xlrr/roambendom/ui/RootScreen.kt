@@ -329,13 +329,14 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 }
                 else if (cs is Routes.Root.SearchLike) {
                     cs.searchModel.key = it
+                    cs.searchModel.configs.align()
                     ss.launch {
                         cs.searchModel.reload()
                         GlobalData.forListState?.scrollBy(-10000f)
                     }
 
                     if (curScreen is Routes.Root.Search
-                        && curScreen.searchModel.configs.searchTarget.state.value == 0) {
+                        && curScreen.searchModel.configs.searchTarget.value == 0) {
                         GlobalData.historyData.addSearchToken(it)
                     }
                 } else {
@@ -346,8 +347,9 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         Routes.Root.Search(
                             SearchParameterModel(it).config {
                                 if (GlobalData.homeContentSelection != null) {
-                                    searchTarget.state.value =
-                                        if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                                    val t = if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                                    searchTarget.value = t
+                                    curSearchTarget = t
                                 }
                             }
                         )
@@ -362,7 +364,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                     }
                     if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
                                 && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                                && curScreen.searchModel.configs.searchTarget.state.value == 1)) {
+                                && curScreen.searchModel.configs.searchTarget.value == 1)) {
                         job?.cancel()
                         job = ss.launch {
                             suggestions = PIXIVApiHelper.keywordSuggestion(it)
@@ -370,7 +372,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                     }
                     else if ((GlobalData.homeContentSelection == HomeSelection.NH
                                 && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                                && curScreen.searchModel.configs.searchTarget.state.value == 0)) {
+                                && curScreen.searchModel.configs.searchTarget.value == 0)) {
                         job?.cancel()
                         job = ss.launch {
                             suggestions = GlobalData.historyData.requestTokens(it).map { x->

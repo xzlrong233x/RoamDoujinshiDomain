@@ -47,7 +47,7 @@ object PIXIVApiHelper {
         cookie("PHPSESSID", PixivTokenUtil.map.getOrDefault("b", ""))
         cookie("device_token", PixivTokenUtil.map.getOrDefault("c", ""))
         if (useLang) {
-            parameter("lang", ConfigUtil.pixivLanguage.state.value)
+            parameter("lang", ConfigUtil.pixivLanguage.value)
         }
         userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0")
     }

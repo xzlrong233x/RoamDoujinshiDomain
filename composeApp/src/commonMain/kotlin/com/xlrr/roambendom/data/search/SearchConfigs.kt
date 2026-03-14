@@ -18,14 +18,20 @@ class SearchConfigs {
         "搜索目标", listOf("NH","PIXIV")
     ))
 
+    var curSearchTarget by mutableIntStateOf(0)
+
+    fun align() {
+        curSearchTarget = searchTarget.value
+    }
+
     val pixivSearchRestriction = StateWithUI(
         mutableStateOf(PixivSearchRestriction.All), UIType.DropStringSelectUI(
             "搜索模式", PixivSearchRestriction.entries.toList()
         ) { it.lowerStr() })
 
     var searchFunction : suspend (key: String, page: Int) -> SearchResult = {key, page ->
-        if (searchTarget.state.value == 0) NHWebHelper.search(key, page) else
-            PIXIVApiHelper.search(key, page, pixivSearchRestriction.state.value)
+        if (searchTarget.value == 0) NHWebHelper.search(key, page) else
+            PIXIVApiHelper.search(key, page, pixivSearchRestriction.value)
     }
 
     var clearList by mutableStateOf(false)

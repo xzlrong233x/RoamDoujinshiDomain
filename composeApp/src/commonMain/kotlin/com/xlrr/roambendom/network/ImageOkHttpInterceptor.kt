@@ -161,7 +161,7 @@ class ImageOkHttpInterceptor(
                 url.endsWith(".png") || url.endsWith(".webp") ||
                 url.endsWith(".gif") || url.endsWith(".bmp"))
                 && (url.contains("master1200") || url.contains("i\\d.nhentai.net".toRegex()))
-                && ConfigUtil.useMultithread.state.value
+                && ConfigUtil.useMultithread.value
     }
 
     // 通过 HEAD 请求获取文件总大小，同时验证服务器是否支持 Range

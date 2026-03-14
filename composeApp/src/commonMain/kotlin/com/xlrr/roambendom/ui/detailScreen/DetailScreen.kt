@@ -76,17 +76,21 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally) {
             DetailBox() {
                 Row(Modifier.fillMaxWidth()) {
-                    DefaultErrorHandleImage(
-                        searchItemData.thumb,
-                        Modifier.sharedBounds(
-                            rememberSharedContentState(searchItemData.thumb),
-                            LocalAnimatedVisibilityScope.current
-                        ).width((LocalWindowSize.current.width.value * 0.382).dp.coerceIn(98.dp, 256.dp))
-                    )
+                    val url = searchItemData.thumb.ifEmpty { details.content?.thumbUrls?.first() }
+                    if (url != null && url.isNotEmpty()) {
+                        DefaultErrorHandleImage(
+                            url,
+                            Modifier.sharedBounds(
+                                rememberSharedContentState(url),
+                                LocalAnimatedVisibilityScope.current
+                            ).width((LocalWindowSize.current.width.value * 0.382).dp.coerceIn(98.dp, 256.dp))
+                        )
+                    }
                     Spacer(Modifier.width(8.dp))
                     SelectionContainer {
                         Column {
-                            Text(searchItemData.title, style = typography.titleLarge,
+                            Text(searchItemData.title.ifEmpty { details.content?.title ?: "" },
+                                style = typography.titleLarge,
                                 maxLines = 3, overflow = TextOverflow.Ellipsis)
                             CtrlAnimatedVisibility(
                                 details.isSuccessful(),

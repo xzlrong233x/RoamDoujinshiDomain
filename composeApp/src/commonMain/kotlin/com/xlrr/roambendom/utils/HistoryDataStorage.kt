@@ -75,7 +75,7 @@ class HistoryDataStorage {
     }
 
     fun addItem(searchItemData: SearchItemData,toRead: Boolean = false) {
-        if (ConfigUtil.disableHistoryRecord.state.value) {
+        if (ConfigUtil.disableHistoryRecord.value) {
             return
         }
         val item = searchItemData.copy()

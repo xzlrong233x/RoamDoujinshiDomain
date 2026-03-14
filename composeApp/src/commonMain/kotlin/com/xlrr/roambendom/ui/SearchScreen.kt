@@ -258,8 +258,8 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
     StandardSearchLikeWithUp(searchParameterModel, modifier) {
         SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
             ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value
-                && searchParameterModel.configs.searchTarget.state.value == 0,
+        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value
+                && searchParameterModel.configs.curSearchTarget == 0,
             ss = ss)
     }
 }

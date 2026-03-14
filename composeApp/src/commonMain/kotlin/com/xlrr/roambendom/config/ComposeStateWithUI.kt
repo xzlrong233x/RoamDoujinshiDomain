@@ -28,9 +28,9 @@ fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
         Text(config.uiType.label)
         Spacer(Modifier.width(16.dp))
         Switch(
-            config.state.value,
+            config.value,
             {
-                config.state.value = it
+                config.value = it
                 config.uiType.onValueChange(it)
             },
             enabled = enable
@@ -50,8 +50,8 @@ fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = tr
                         index = ind,
                         count = config.uiType.choiceList.size
                     ),
-                    onClick = { config.state.value = ind },
-                    selected = config.state.value == ind,
+                    onClick = { config.value = ind },
+                    selected = config.value == ind,
                     label = { Text(str) },
                     enabled = enable
                 )
@@ -75,7 +75,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
         Text(config.uiType.label)
         Box() {
             TextButton({exp = true}, enabled = enable) {
-                Text(config.uiType.strFunc(config.state.value))
+                Text(config.uiType.strFunc(config.value))
                 Icon(
                     painterResource(Res.drawable.down_caret),
                     contentDescription = null,
@@ -92,7 +92,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
                     DropdownMenuItem({
                         Text(config.uiType.strFunc(it))
                     }, {
-                        config.state.value = it
+                        config.value = it
                         exp = false
                     })
                 }

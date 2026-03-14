@@ -100,11 +100,11 @@ class ArtworkViewModel : ViewModel() {
     ))
 
     fun ifToLeft() : Boolean {
-        return pageDirection.state.value == 0 && turnPageMode.state.value == 1
+        return pageDirection.value == 0 && turnPageMode.value == 1
     }
 
     fun shouldTwice(): Boolean {
-        return twicePage.state.value && pageDirection.state.value == 0
+        return twicePage.value && pageDirection.value == 0
     }
 }
 
@@ -248,7 +248,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     }
     var cs by remember { mutableStateOf(ContentScale.Fit) }
     val toPage : (Int) -> Unit = {x->
-        if (artworkData.pageDirection.state.value == 0) {
+        if (artworkData.pageDirection.value == 0) {
             pager.requestScrollToPage(x)
         }
         else {
@@ -260,8 +260,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     fun turnPage(flag: Boolean, shouldTrans: Boolean, df: Boolean = true) {
         val delta = if (artworkData.shouldTwice()) 2 else 1
         var nex = if (flag) -delta else delta
-        if (artworkData.pageDirection.state.value == 0) {
-            nex = if (artworkData.turnPageMode.state.value == 0) nex else -nex
+        if (artworkData.pageDirection.value == 0) {
+            nex = if (artworkData.turnPageMode.value == 0) nex else -nex
             val pg = pager.currentPage + nex
             toPage(pg.coerceIn(0, pager.pageCount-1))
         }
@@ -277,27 +277,27 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         snapshotFlow { listState.firstVisibleItemIndex }
         .distinctUntilChanged()
         .collect {
-            if (artworkData.pageDirection.state.value == 1) {
+            if (artworkData.pageDirection.value == 1) {
                 pager.requestScrollToPage(it)
             }
         }
 
     }
     LaunchedEffect(pager.currentPage) {
-        if (artworkData.pageDirection.state.value == 0) {
+        if (artworkData.pageDirection.value == 0) {
             listState.requestScrollToItem(pager.currentPage)
             zzm.reset()
         }
         preload.preload(artworkInfo.pageUrls, pager.currentPage)
     }
-    DisposableEffect(artworkData.pageDirection.state.value) {
-        GlobalData.hideStatusBar = artworkData.pageDirection.state.value == 1
+    DisposableEffect(artworkData.pageDirection.value) {
+        GlobalData.hideStatusBar = artworkData.pageDirection.value == 1
         onDispose {
             GlobalData.hideStatusBar = false
         }
     }
-    LaunchedEffect(artworkData.oneScreenOnePage.state.value, LocalWindowSize.current) {
-        if (artworkData.oneScreenOnePage.state.value) {
+    LaunchedEffect(artworkData.oneScreenOnePage.value, LocalWindowSize.current) {
+        if (artworkData.oneScreenOnePage.value) {
             cs = object : ContentScale {
                 override fun computeScaleFactor(
                     srcSize: androidx.compose.ui.geometry.Size,
@@ -319,8 +319,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     }
 
     val onTop: (Offset) -> Unit = { of ->
-        val t = if (artworkData.pageDirection.state.value == 0) of.x else of.y
-        val ck = if (artworkData.pageDirection.state.value == 0) screenWidth else screenHeight
+        val t = if (artworkData.pageDirection.value == 0) of.x else of.y
+        val ck = if (artworkData.pageDirection.value == 0) screenWidth else screenHeight
         if (t <= ck * 0.33f) {
             turnPage(true, true)
         } else if (t <= ck * 0.67f) {
@@ -330,7 +330,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         }
     }
 
-    val toMod = if (artworkData.pageDirection.state.value == 0)
+    val toMod = if (artworkData.pageDirection.value == 0)
         Modifier.zoomable(zzm, enableOneFingerZoom = ifZoomed,onTap = onTop)
                 else
         Modifier.zoomableWithScroll(zzm, enableOneFingerZoom = ifZoomed, onTap = onTop)
@@ -339,29 +339,29 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         .onPreviewKeyEvent { keyEvent ->
         if (keyEvent.type == KeyEventType.KeyUp) {
             when (keyEvent.key) {
-                Key.DirectionLeft -> if (artworkData.pageDirection.state.value == 0) turnPage(
+                Key.DirectionLeft -> if (artworkData.pageDirection.value == 0) turnPage(
                     flag = true,
                     shouldTrans = true
                 )
-                Key.DirectionRight -> if (artworkData.pageDirection.state.value == 0) turnPage(
+                Key.DirectionRight -> if (artworkData.pageDirection.value == 0) turnPage(
                     flag = false,
                     shouldTrans = true
                 )
-                Key.DirectionUp -> if (artworkData.pageDirection.state.value == 1) turnPage(
+                Key.DirectionUp -> if (artworkData.pageDirection.value == 1) turnPage(
                     flag = true,
                     shouldTrans = true
                 )
-                Key.DirectionDown -> if (artworkData.pageDirection.state.value == 1) turnPage(
+                Key.DirectionDown -> if (artworkData.pageDirection.value == 1) turnPage(
                     flag = false,
                     shouldTrans = true
                 )
-                Key.VolumeUp -> if (ConfigUtil.enableVolumeTurn.state.value) {
+                Key.VolumeUp -> if (ConfigUtil.enableVolumeTurn.value) {
                     turnPage(
                         flag = true,
                         shouldTrans = true
                     )
                 }
-                Key.VolumeDown -> if (ConfigUtil.enableVolumeTurn.state.value) {
+                Key.VolumeDown -> if (ConfigUtil.enableVolumeTurn.value) {
                     turnPage(
                         flag = false,
                         shouldTrans = true
@@ -369,7 +369,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                 }
             }
         }
-        if ((keyEvent.key == Key.VolumeDown || keyEvent.key == Key.VolumeUp) && ConfigUtil.enableVolumeTurn.state.value) {
+        if ((keyEvent.key == Key.VolumeDown || keyEvent.key == Key.VolumeUp) && ConfigUtil.enableVolumeTurn.value) {
             return@onPreviewKeyEvent true
         }
         false
@@ -387,15 +387,15 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         ) {
             if (
                 hide
-                && (artworkData.pageDirection.state.value == 1
+                && (artworkData.pageDirection.value == 1
                         || it == pager.currentPage + if (artworkData.shouldTwice()) 1 else 0)
-                && !artworkData.hidePageIndexer.state.value
+                && !artworkData.hidePageIndexer.value
                 ) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd)
                         .padding(0.dp,2.dp)
                         .run {
-                            if (artworkData.pageDirection.state.value == 1) statusBarsPadding() else this
+                            if (artworkData.pageDirection.value == 1) statusBarsPadding() else this
                         }.semantics { role = Role.Button },
                     color = Color(0f,0f,0f, 0.5f), contentColor = Color.White,
                     shape = RoundedCornerShape(6.dp),
@@ -494,12 +494,12 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                                 modifier = Modifier.padding(8.dp)) {
                                 artworkData.let {
                                     CalUI(it.pageDirection)
-                                    CalUI(it.turnPageMode, it.pageDirection.state.value == 0)
+                                    CalUI(it.turnPageMode, it.pageDirection.value == 0)
                                     CalUI(
                                         it.twicePage,
-                                        it.pageDirection.state.value == 0 && artworkInfo.pageUrls.size > 1
+                                        it.pageDirection.value == 0 && artworkInfo.pageUrls.size > 1
                                     )
-                                    CalUI(it.oneScreenOnePage, it.pageDirection.state.value == 1)
+                                    CalUI(it.oneScreenOnePage, it.pageDirection.value == 1)
                                     CalUI(it.hidePageIndexer)
                                     Spacer(Modifier.height(6.dp))
                                     CalUI(ConfigUtil.enableVolumeTurn)

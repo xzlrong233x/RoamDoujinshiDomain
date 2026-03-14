@@ -60,7 +60,7 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
     StandardSearchLikeWithUp(searchParameterModel, modifier) {
         SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
             ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.state.value,
+        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value,
             header = {
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                     Text("历史", style = MaterialTheme.typography.headlineMedium)
