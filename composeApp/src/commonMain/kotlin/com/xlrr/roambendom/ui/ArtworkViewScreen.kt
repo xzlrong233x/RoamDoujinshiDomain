@@ -238,6 +238,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     var ssexp by remember { mutableStateOf(false) }
     var thumbExpand by remember { mutableStateOf(false) }
     var hide by remember { mutableStateOf(false) }
+    var lockHide by remember { mutableStateOf(true) }
 
     val pager = rememberPagerState { artworkInfo.page }
     val listState = rememberLazyListState()
@@ -257,7 +258,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
             }
         }
     }
-    fun turnPage(flag: Boolean, shouldTrans: Boolean, df: Boolean = true) {
+    fun turnPage(flag: Boolean, shouldTrans: Boolean) {
         val delta = if (artworkData.shouldTwice()) 2 else 1
         var nex = if (flag) -delta else delta
         if (artworkData.pageDirection.value == 0) {
@@ -268,9 +269,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         else {
             toPage((pager.currentPage + nex).coerceIn(0, pager.pageCount-1))
         }
-        if (shouldTrans) {
-            hide = df
-        }
+        lockHide = !shouldTrans
     }
 
     LaunchedEffect(listState) {
@@ -288,6 +287,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
             listState.requestScrollToItem(pager.currentPage)
             zzm.reset()
         }
+        if (!lockHide) hide = true
+        else lockHide = false
         preload.preload(artworkInfo.pageUrls, pager.currentPage)
     }
     DisposableEffect(artworkData.pageDirection.value) {
