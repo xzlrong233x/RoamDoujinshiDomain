@@ -1,8 +1,10 @@
 package com.xlrr.roambendom.config
 
-import androidx.compose.runtime.Composable
-
-sealed class UIType<T> {
+sealed class UIType<T>(
+    enablePlatform: UIEnablePlatform = UIEnablePlatform.ALL
+) {
+    var enabledPlatform = enablePlatform
+        private set
     data class SwitchUI(
         val label: String,
         val onValueChange: (Boolean) -> Unit = {new -> }
@@ -17,4 +19,8 @@ sealed class UIType<T> {
         val strFunc: (T) -> String = {it.toString()}
     ): UIType<T>()
     class NoUI<T> : UIType<T>()
+    fun setPlatform(platform: UIEnablePlatform): UIType<T> {
+        this.enabledPlatform = platform
+        return this
+    }
 }

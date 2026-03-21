@@ -259,7 +259,7 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
         SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
             ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
         ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value
-                && searchParameterModel.configs.curSearchTarget == 0,
+                && searchParameterModel.configs.searchTarget.realValue == 0,
             ss = ss)
     }
 }

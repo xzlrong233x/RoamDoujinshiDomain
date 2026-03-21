@@ -329,14 +329,14 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 }
                 else if (cs is Routes.Root.SearchLike) {
                     cs.searchModel.key = it
-                    cs.searchModel.configs.align()
+                    cs.searchModel.configs.applyChange()
                     ss.launch {
                         cs.searchModel.reload()
                         GlobalData.forListState?.scrollBy(-10000f)
                     }
 
                     if (curScreen is Routes.Root.Search
-                        && curScreen.searchModel.configs.searchTarget.value == 0) {
+                        && curScreen.searchModel.configs.searchTarget.realValue == 0) {
                         GlobalData.historyData.addSearchToken(it)
                     }
                 } else {
@@ -348,8 +348,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             SearchParameterModel(it).config {
                                 if (GlobalData.homeContentSelection != null) {
                                     val t = if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
-                                    searchTarget.value = t
-                                    curSearchTarget = t
+                                    searchTarget.setAll(t)
                                 }
                             }
                         )

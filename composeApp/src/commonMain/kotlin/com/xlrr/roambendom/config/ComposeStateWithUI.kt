@@ -3,7 +3,6 @@ package com.xlrr.roambendom.config
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.utils.CenterFlowRow
@@ -11,8 +10,12 @@ import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.down_caret
 
+val LocalPlatformForUI = compositionLocalOf { UIEnablePlatform.ALL }
+
 @Composable
 fun CalUI(config: StateWithUI<*>, enable: Boolean = true) {
+    if (config.uiType.enabledPlatform != UIEnablePlatform.ALL
+        && config.uiType.enabledPlatform != LocalPlatformForUI.current) return
     when (config.uiType) {
         is UIType.SwitchUI -> SwitchComposer(config as StateWithUI<Boolean>, enable)
         is UIType.SingleSegmentedButton -> SingleSegmentedButtonComposer(config as StateWithUI<Int>, enable)

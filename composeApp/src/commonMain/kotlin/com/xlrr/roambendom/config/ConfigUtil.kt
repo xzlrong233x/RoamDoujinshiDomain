@@ -22,7 +22,7 @@ object ConfigUtil {
     ))
     val enableVolumeTurn = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         "启用音量键翻页"
-    ))
+    ).setPlatform(UIEnablePlatform.ANDROID))
 
     fun init(dataSaver: DataSaverInterface) {
         forceGrid.state = mutableDataSaverStateOf(dataSaver, "force_grid", false)
