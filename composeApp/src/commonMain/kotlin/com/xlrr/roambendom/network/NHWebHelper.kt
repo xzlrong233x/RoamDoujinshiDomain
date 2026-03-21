@@ -16,11 +16,11 @@ private fun unzipNHItem(ele: Element) : SearchItemData {
     val title = a.childElementsList().last().text()
     return SearchItemData(
         id,
+        CSources.NHENTAI,
         title,
         -1,
         lang,
         dealWithUrl(thumb),
-        CSources.NHENTAI
     )
 }
 

@@ -94,11 +94,11 @@ object PIXIVApiHelper {
                     change.add(
                         SearchItemData(
                             n.getAsString("id"),
+                            CSources.PIXIV,
                             n.getAsString("title"),
                             n.getAsInt("pageCount"),
                             CLanguage.Unknown,
                             n.getAsString("url"),
-                            CSources.PIXIV,
                             CRestriction.entries[n.getAsInt("xRestrict")],
                             n.getAsInt("aiType") > 1,
                             "${n.getAsString("userName")}(${n.getAsString("userId")})",

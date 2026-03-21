@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
+import com.xlrr.roambendom.data.CSources
+import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
@@ -325,7 +327,17 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 val cs = GlobalData.nav.backStack.last()
                 val res = "([np])(\\d+)".toRegex().find(it)
                 if (res != null && res.groupValues.size == 3) {
-                    // TODO: 跳转
+                    val s = when(res.groupValues[1]) {
+                        "n" -> CSources.NHENTAI
+                        "p" -> CSources.PIXIV
+                        else -> null
+                    }
+                    if (s != null && res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }) {
+                        GlobalData.nav.push(Routes.Root.Detail(
+                            SearchItemData(res.groupValues.last(), s)
+                        ))
+
+                    }
                 }
                 else if (cs is Routes.Root.SearchLike) {
                     cs.searchModel.key = it

@@ -5,11 +5,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SearchItemData(
     var id: String,
-    var title: String,
-    var pageCount: Int = -1,
-    var lang: CLanguage,
-    var thumb: String,
     var source: CSources,
+    var title: String = "",
+    var pageCount: Int = -1,
+    var lang: CLanguage = CLanguage.Unknown,
+    var thumb: String = "",
     var restriction: CRestriction = CRestriction.R18,
     var ai: Boolean = false,
     var author: String = "",
@@ -34,6 +34,29 @@ data class SearchItemData(
         result = 31 * result + author.hashCode()
         result = 31 * result + time.hashCode()
         return result
+    }
+
+    fun isDefective(): Boolean {
+        return title.isEmpty() || thumb.isEmpty()
+    }
+
+    fun fillSelf(art: ArtworkInfo): SearchItemData {
+        val cp = this.copy()
+        cp.title = art.title
+        cp.thumb = art.thumbUrls.firstOrNull() ?: ""
+        cp.pageCount = art.page
+        cp.lang = art.language
+        cp.author = art.authors.firstOrNull() ?: ""
+        cp.restriction = art.restriction
+        cp.ai = art.ai
+        return cp
+    }
+
+    fun fillSelfIfDefective(art: ArtworkInfo): SearchItemData {
+        if (isDefective()) {
+            return fillSelf(art)
+        }
+        return copy()
     }
 
     fun uid() : String {

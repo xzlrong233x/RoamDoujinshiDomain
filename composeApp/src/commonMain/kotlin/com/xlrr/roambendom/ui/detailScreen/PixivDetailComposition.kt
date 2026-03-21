@@ -163,6 +163,11 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     var showAllPage by remember { mutableStateOf(false) }
     Box() {
         if (!details.loading && details.content != null) {
+            LaunchedEffect(Unit) {
+                details.content?.let {
+                    GlobalData.historyData.addItem(searchItemData.fillSelfIfDefective(it), true)
+                }
+            }
             Box(Modifier.align(Alignment.TopCenter).focusRequester(fcq).focusable()
                 .onPreviewKeyEvent {
                     if (ConfigUtil.enableVolumeTurn.value) {
@@ -276,7 +281,6 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                 if (moreBtn) {
                                     Text("展示更多", Modifier.align(Alignment.End).clickable {
                                         showAllDes = true
-                                        GlobalData.historyData.addItem(searchItemData, true)
                                     }, color = Color(0f, 0f, 0f, 0.5f))
                                 }
                             }

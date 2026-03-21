@@ -143,7 +143,10 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                             if (details.content == null) {
                                 return@Button
                             }
-                            GlobalData.historyData.addItem(searchItemData, true)
+                            GlobalData.historyData.addItem(
+                                searchItemData.fillSelf(details.content!!),
+                                true
+                            )
                             GlobalData.nav.push(Routes.Artwork(details.content!!))
                         }, shape = RoundedCornerShape(20),
                             modifier = Modifier.padding(top = 12.dp).width(128.dp).height(36.dp),
@@ -180,7 +183,7 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
 @Composable
 fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
     LaunchedEffect(Unit) {
-        GlobalData.historyData.addItem(searchItemData)
+        if (!searchItemData.isDefective()) GlobalData.historyData.addItem(searchItemData)
         details.reload(searchItemData.id, searchItemData.source)
     }
     val co = rememberCoroutineScope()
