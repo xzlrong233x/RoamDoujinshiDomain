@@ -22,7 +22,8 @@ class GifImage(
     private var invalidateTick by mutableIntStateOf(0) // 太伟大了，COMPOSE
 
     private var startTimestamp = Clock.System.now()
-    private var isRunning = true
+    var isRunning = true
+        private set
     private var loop = 0
 
     override fun draw(canvas: Canvas) {

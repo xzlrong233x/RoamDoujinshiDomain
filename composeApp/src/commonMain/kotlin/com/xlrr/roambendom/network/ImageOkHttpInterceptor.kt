@@ -17,8 +17,8 @@ import java.util.concurrent.Executors
 import kotlin.random.Random
 
 class ImageOkHttpInterceptor(
-    private val chunkCount: Int = Runtime.getRuntime().availableProcessors(),
-    private val minSizeForChunk: Long = 1024 * 512,
+    private val chunkCount: Int = 16,
+    private val minSizeForChunk: Long = 1024 * 64,
     private val timeoutSeconds: Long = 30,
     private val platformContext: PlatformContext
 ): Interceptor {
@@ -55,9 +55,6 @@ class ImageOkHttpInterceptor(
         val totalSize = getTotalSize(chain, request) ?: return chain.proceed(request)
 
         // 如果图片太小，不分块，直接返回普通请求
-//        if (totalSize < minSizeForChunk) {
-//            return chain.proceed(request)
-//        }
 
         // 2. 创建分块请求
         val chunkSize = totalSize / chunkCount
@@ -71,7 +68,7 @@ class ImageOkHttpInterceptor(
         }
 
         // 3. 使用固定线程池并发下载（限制最大并发数，避免创建过多线程）
-        val executor = Executors.newFixedThreadPool(chunkCount.coerceAtMost(4))
+        val executor = Executors.newFixedThreadPool(chunkCount.coerceAtMost(6))
         try {
             val maxRetries = 5
 
@@ -98,7 +95,7 @@ class ImageOkHttpInterceptor(
                             lastException = e
                             retryCount++
                             if (retryCount < maxRetries) {
-                                Thread.sleep(Random.nextLong(700,1500))
+                                Thread.sleep(Random.nextLong(700,1500) * retryCount)
                             }
                         } finally {
                             response?.closeQuietly()
