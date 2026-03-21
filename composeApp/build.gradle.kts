@@ -24,8 +24,11 @@ kotlin {
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.coil.gif)
         }
         commonMain.dependencies {
+            implementation(libs.gifkt)
+            implementation(libs.gifkt.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)

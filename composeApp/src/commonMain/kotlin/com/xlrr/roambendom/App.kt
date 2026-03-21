@@ -58,6 +58,7 @@ fun setupCoil() {
         ImageLoader.Builder(context)
             .components {
                 addPlatformFileSupport()
+                addGifLoader()
                 add(
                     OkHttpNetworkFetcherFactory(
                         callFactory = {

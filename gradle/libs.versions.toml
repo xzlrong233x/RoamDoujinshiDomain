@@ -11,8 +11,9 @@ androidx-lifecycle = "2.9.6"
 androidx-testExt = "1.3.0"
 composeHotReload = "1.0.0"
 androidx-security = "1.1.0"
-composeMultiplatform = "1.10.1"
+composeMultiplatform = "1.10.2"
 coreSplashscreen = "1.2.0"
+gifkt = "0.3.3"
 junit = "4.13.2"
 kotlin = "2.3.10"
 kotlinx-coroutines = "1.10.2"
@@ -31,7 +32,10 @@ dataSaverCore = "1.2.3"
 
 [libraries]
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
 data-saver-core = { module = "io.github.funnysaltyfish:data-saver-core", version.ref = "dataSaverCore" }
+gifkt = { module = "com.shakster:gifkt", version.ref = "gifkt" }
+gifkt-compose = { module = "com.shakster:gifkt-compose", version.ref = "gifkt" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
