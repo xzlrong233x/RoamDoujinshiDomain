@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -30,12 +31,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.nav.Routes
+import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.ui.Preload
@@ -121,6 +126,76 @@ private fun SharedImage(uws: UrlWithSize, modifier: Modifier) {
     }
 }
 
+private fun LazyListScope.imagesOrAnimatedImage(
+    info: ArtworkInfo,
+    screenWidth: Float,
+    screenHeight: Float,
+    showAllPage: Boolean,
+    click: (UrlWithSize) -> Unit,
+    boxItem: @Composable (Int) -> Unit
+) {
+    if (info.ugoiraMetadata == null) {
+        items(
+            if (!showAllPage) 1 else info.page,
+            { "ImgPage$it" }) {
+            Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                UrlWithSize.parse(info.pageUrls[it]).let { uws ->
+                    SharedImage(uws, Modifier.run {
+                        val testH = uws.h * screenWidth / uws.w
+                        if (testH < screenHeight) {
+                            width(with(LocalDensity.current) { screenWidth.toDp() })
+                        } else {
+                            height(with(LocalDensity.current) {
+                                (floor(testH / screenHeight).coerceIn(
+                                    1f,
+                                    null
+                                ) * screenHeight)
+                                    .toDp()
+                            })
+                        }
+                    }.clickable {
+                        click(uws)
+                    })
+                }
+
+                boxItem(it)
+            }
+        }
+    } else {
+        item {
+            info.ugoiraMetadata?.let {
+                Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                    AsyncImage(
+                        ImageRequest.Builder(LocalPlatformContext.current)
+                            .data(it.src)
+                            .httpHeaders(PIXIVApiHelper.pixivCoilHeader)
+                            .also { be ->
+                                be.extras[framesKey] = it.frames
+                            }
+                            .build(),
+                        filterQuality = FilterQuality.Medium,
+                        contentDescription = null,
+                        placeholder = painterResource(Res.drawable.loading_jpg),
+                        error = painterResource(Res.drawable.empty_page),
+                        modifier = Modifier.run {
+                            if (screenWidth >= screenHeight) {
+                                height(with(LocalDensity.current) {screenHeight.dp})
+                            } else {
+                                width(with(LocalDensity.current) {screenWidth.dp})
+                            }
+                        }.clickable {
+                            click(UrlWithSize(
+                                it.src,
+                                0,0, it.originalSrc
+                            ))
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     val state = rememberLazyListState()
@@ -199,42 +274,27 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
                     LazyColumn(Modifier, state) {
-                        items(
-                            if (!showAllPage) 1 else details.content!!.page,
-                            { "ImgPage$it" }) {
-                            Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                                UrlWithSize.parse(details.content!!.pageUrls[it]).let { uws ->
-                                    SharedImage(uws, Modifier.run {
-                                        val testH = uws.h * screenWidth / uws.w
-                                        if (testH < screenHeight) {
-                                            width(with(LocalDensity.current) { screenWidth.toDp() })
-                                        } else {
-                                            height(with(LocalDensity.current) {
-                                                (floor(testH / screenHeight).coerceIn(
-                                                    1f,
-                                                    null
-                                                ) * screenHeight)
-                                                    .toDp()
-                                            })
-                                        }
-                                    }.clickable {
-                                        if (urlWithSize == null) {
-                                            urlWithSize = uws
-                                        }
-                                    })
+                        imagesOrAnimatedImage(
+                            details.content!!,
+                            screenWidth,
+                            screenHeight,
+                            showAllPage,
+                            {
+                                if (urlWithSize == null) {
+                                    urlWithSize = it
                                 }
-
-                                if (!showAllPage && it == 0 && (details.content?.page ?: 0) > 1) {
-                                    Button(
-                                        {
-                                            showAllPage = true
-                                            ss.launch {
-                                                state.animateScrollToItem(0)
-                                            }
-                                        }, Modifier.align(Alignment.BottomCenter)
-                                    ) {
-                                        Text("查看全部")
-                                    }
+                            }
+                        ) {
+                            if (!showAllPage && it == 0 && (details.content?.page ?: 0) > 1) {
+                                Button(
+                                    {
+                                        showAllPage = true
+                                        ss.launch {
+                                            state.animateScrollToItem(0)
+                                        }
+                                    }, Modifier.align(Alignment.BottomCenter)
+                                ) {
+                                    Text("查看全部")
                                 }
                             }
                         }
@@ -244,12 +304,12 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                     if (details.content == null) {
                                         return@IconButton
                                     }
-                                    GlobalData.nav.push(Routes.Artwork(details.content!!.apply {
+                                    GlobalData.nav.push(Routes.Artwork(details.content!!.copy().apply {
                                         pageUrls = pageUrls.map { s ->
                                             UrlWithSize.parse(s).url
                                         }
                                     }))
-                                }) {
+                                }, enabled = details.content?.ugoiraMetadata == null) {
                                     Icon(
                                         painterResource(Res.drawable.book),
                                         "read in artwork view screen"
@@ -260,7 +320,8 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         item("Title") {
                             SelectionContainer {
                                 Text(
-                                    searchItemData.title, Modifier.padding(6.dp, 0.dp),
+                                    searchItemData.title.ifEmpty { details.content?.title.toString() },
+                                    Modifier.padding(6.dp, 0.dp),
                                     style = MaterialTheme.typography.headlineMedium
                                 )
                             }
@@ -335,7 +396,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         }
                     }
                 }
-                if (isThereImg) {
+                if (isThereImg && showAllPage) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopEnd)
                             .padding(0.dp, 2.dp).semantics { role = Role.Button },

@@ -152,10 +152,14 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
                 if (it % 2 == pager.currentPage % 2) Alignment.CenterEnd else Alignment.CenterStart
             } else Alignment.Center
         ) {
-            LoadingImage(artworkInfo.pageUrls[it].let { str ->
-                if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
-            }) {
-                pageIndex(it)
+            if (artworkInfo.ugoiraMetadata == null) {
+                LoadingImage(artworkInfo.pageUrls[it].let { str ->
+                    if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
+                }) {
+                    pageIndex(it)
+                }
+            } else {
+                artworkInfo.ugoiraMetadata?.let {u -> LoadingImage(u.src) }
             }
         }
     }
@@ -170,9 +174,13 @@ private fun ListShowPage(
         LazyColumn(modifier, lazyListState, horizontalAlignment = Alignment.CenterHorizontally) {
             items(artworkInfo.pageUrls.size) {
                 Box() {
-                    LoadingImage(artworkInfo.pageUrls[it].let { str ->
-                        if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
-                    }, contentScale = cs)
+                    if (artworkInfo.ugoiraMetadata == null) {
+                        LoadingImage(artworkInfo.pageUrls[it].let { str ->
+                            if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
+                        }, contentScale = cs)
+                    } else {
+                        artworkInfo.ugoiraMetadata?.let {u -> LoadingImage(u.src) }
+                    }
 //                    Text("L1", Modifier.align(Alignment.TopStart))
 //                    Text("L2", Modifier.align(Alignment.TopEnd))
 //                    Text("L3", Modifier.align(Alignment.BottomStart))

@@ -19,17 +19,19 @@ import kotlin.time.Instant
 data class UrlWithSize(
     val url: String,
     val w: Int,
-    val h: Int
+    val h: Int,
+    val oriUrl: String
 ) {
     companion object {
-        val EMPTY = UrlWithSize("", 0, 0)
+        val EMPTY = UrlWithSize("", 0, 0, "")
 
         fun parse(str: String) : UrlWithSize {
-            return Regex("(.+?)\\[w(\\d+)h(\\d+)]").find(str)?.let {
+            return Regex("(.+?)\\[w(\\d+)h(\\d+)]\\{(.+?)}").find(str)?.let {
                 UrlWithSize(
                     it.groups[1]?.value.toString(),
                     it.groups[2]?.value?.toIntOrNull() ?: 0,
                     it.groups[3]?.value?.toIntOrNull() ?: 0,
+                    it.groups[4]?.value.toString()
                 )
             } ?: EMPTY
         }
@@ -116,9 +118,14 @@ object PIXIVApiHelper {
     suspend fun artworkPage(id: String) : List<ArtworkPageItem> {
         val res = requestStandard<List<ArtworkPageItem>>("/ajax/illust/$id/pages")
         if (res.error) {
-            return  listOf()
+            return listOf()
         }
         return res.realData(serializer())
+    }
+
+    suspend fun ugoiraData(id: String) : UgoiraMetadata? {
+        val r = requestStandard<UgoiraMetadata>("/ajax/illust/$id/ugoira_meta")
+        return if (r.error) null else r.realData(serializer())
     }
 
     suspend fun artwork(id: String) : ArtworkInfo {
@@ -145,12 +152,20 @@ object PIXIVApiHelper {
         info.time = Instant.parse(jo.getAsString("uploadDate")).toEpochMilliseconds()
         info.ai = jo.getAsInt("aiType") > 1
         info.restriction = CRestriction.entries[jo.getAsInt("xRestrict")]
-        val page = artworkPage(id)
-        info.pageUrls = page.map {
-            "${it.urls.regular}[w${it.width}h${it.height}]"
-        }
-        info.thumbUrls = page.map {
-            it.urls.thumbMini
+        val meta = ugoiraData(id)
+        if (meta == null) {
+            val page = artworkPage(id)
+            info.pageUrls = page.map {
+                "${it.urls.regular}[w${it.width}h${it.height}]{${it.urls.original}}"
+            }
+            info.thumbUrls = page.map {
+                it.urls.thumbMini
+            }
+        } else {
+            info.ugoiraMetadata = meta
+            info.thumbUrls = listOf(
+                jo["urls"]?.jsonObject?.getAsString("thumb") ?: ""
+            )
         }
         return info
     }

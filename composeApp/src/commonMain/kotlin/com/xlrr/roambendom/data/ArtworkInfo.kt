@@ -1,5 +1,7 @@
 package com.xlrr.roambendom.data
 
+import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
+
 data class ArtworkInfo(
     var source: CSources = CSources.NHENTAI,
     var restriction: CRestriction = CRestriction.R18,
@@ -17,5 +19,6 @@ data class ArtworkInfo(
     var thumbUrls: List<String> = listOf(),
     var likeCount: Int = 0,
     var time: Long = 0,
-    var ai: Boolean = false
+    var ai: Boolean = false,
+    var ugoiraMetadata: UgoiraMetadata? = null
 )

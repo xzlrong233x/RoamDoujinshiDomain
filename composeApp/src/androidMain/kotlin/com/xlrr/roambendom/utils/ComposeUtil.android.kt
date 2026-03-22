@@ -1,5 +1,6 @@
 package com.xlrr.roambendom.utils
 
+import android.graphics.drawable.AnimationDrawable
 import android.widget.Toast
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.Icon
@@ -7,16 +8,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.BitmapImage
+import coil3.DrawableImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.toBitmap
+import kotlinx.coroutines.launch
 
 @Composable
 actual fun Coil3SaveImageButton(
@@ -27,15 +32,34 @@ actual fun Coil3SaveImageButton(
     val state = imgState.state.collectAsStateWithLifecycle()
     val suc = state.value
     val context = LocalContext.current
+    val c = rememberCoroutineScope()
     IconButton({
-        if (suc !is AsyncImagePainter.State.Success) return@IconButton
-        val success = saveBitmap(
-            suc.result.image.toBitmap(),
-            context,
-            imgRequest.data.toString().split("/").last()
-        )
-        val msg = if (success) "已保存到相册" else "保存失败"
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        c.launch {
+            if (suc !is AsyncImagePainter.State.Success) return@launch
+            val fileName = imgRequest.data.toString().split("/").last().split(".").first()
+            val success = when(suc.result.image) {
+                is BitmapImage -> {
+                    saveBitmap(
+                        suc.result.image.toBitmap(),
+                        context,
+                        "$fileName.png"
+                    )
+                }
+                is DrawableImage -> {
+                    when (val d = (suc.result.image as DrawableImage).drawable) {
+                        is AnimationDrawable -> saveAnimatedDrawable(
+                            d,
+                            context,
+                            "$fileName.gif"
+                        )
+                        else -> false
+                    }
+                }
+                else -> false
+            }
+            val msg = if (success) "已保存到相册" else "保存失败"
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)
     }

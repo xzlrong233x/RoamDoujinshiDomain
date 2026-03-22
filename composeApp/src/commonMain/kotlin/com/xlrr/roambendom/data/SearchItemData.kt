@@ -43,7 +43,7 @@ data class SearchItemData(
     fun fillSelf(art: ArtworkInfo): SearchItemData {
         val cp = this.copy()
         cp.title = art.title
-        cp.thumb = art.thumbUrls.firstOrNull() ?: ""
+        cp.thumb = cp.thumb.ifEmpty { art.thumbUrls.firstOrNull() ?: "" }
         cp.pageCount = art.page
         cp.lang = art.language
         cp.author = art.authors.firstOrNull() ?: ""
