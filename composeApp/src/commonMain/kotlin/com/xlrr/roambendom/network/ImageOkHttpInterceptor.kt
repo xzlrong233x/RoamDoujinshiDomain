@@ -4,8 +4,10 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.memory.MemoryCache
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.progressive.SharedPainterManager
 import kotlinx.io.IOException
 import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
@@ -45,22 +47,43 @@ class ImageOkHttpInterceptor(
             return chain.proceed(newRequest)
         }
 
+        val painter = SharedPainterManager.map[request.url.toString()]
         // 仅对符合条件的图片请求启用分块（可根据需求自定义）
-        if (!shouldUseMultithreadDownload(request) || call !is RealCall) {
+        if (!shouldUseMultithreadDownload(request) || call !is RealCall || (painter != null && !painter.focus())) {
+            if (painter != null && ConfigUtil.useMultithread.value) {
+                return failedRespond(request, "there has been a painter focus on its multithread download", 943)
+            } // 这部分代码主要是为了让coil不发送过多请求，但似乎会导致一些问题，或许我应该让它直接报错
             return chain.proceed(request)
         }
         val client = call.client
 
         // 1. 获取文件总大小并检查服务器是否支持 Range
-        val totalSize = getTotalSize(chain, request) ?: return chain.proceed(request)
+        val totalSize = getTotalSize(client, request)
+        if (totalSize == null) {
+            painter?.release()
+            return chain.proceed(request)
+        }
+        painter?.setFileSize(totalSize)
 
         // 如果图片太小，不分块，直接返回普通请求
 
         // 2. 创建分块请求
-        val chunkSize = totalSize / chunkCount
+        val al = painter?.fileSize() ?: 0
+        val rest = totalSize - al
+        if (rest <= 0 && painter != null) {
+            return Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("OK")
+                .body(painter.bytes().toResponseBody(request.body?.contentType()))
+                .addHeader("Content-Length", al.toString())
+                .build()
+        }
+        val chunkSize = rest / chunkCount
         val rangeRequests = (0 until chunkCount).map { index ->
-            val start = index * chunkSize
-            val end = if (index == chunkCount - 1) totalSize - 1 else (index + 1) * chunkSize - 1
+            val start = index * chunkSize + al
+            val end = (if (index == chunkCount - 1) rest - 1 else (index + 1) * chunkSize - 1) + al
             request.newBuilder()
                 .header("Range", "bytes=$start-$end")
                 .header(SKIP_CHUNK_HEADER, "true")
@@ -109,6 +132,7 @@ class ImageOkHttpInterceptor(
             for (future in futures) {
                 try {
                     val bytes = future.get()
+                    painter?.write(bytes)
                     chunks.add(bytes)
                     if (isCached(request.url.toString())) {
                         throw ItemAlreadyCachedException("url: ${request.url}")
@@ -116,20 +140,17 @@ class ImageOkHttpInterceptor(
                 } catch (e: Exception) {
                     // 任何一个分块失败，取消所有未完成的任务
                     futures.forEach { it.cancel(true) }
-                    if ((e is IOException && e.cause is ItemAlreadyCachedException) || e is ItemAlreadyCachedException) {
-                        return Response.Builder()
-                            .request(request)
-                            .code(404)
-                            .protocol(Protocol.HTTP_1_1)
-                            .message("Item was already Cached")
-                            .build()
+                    if (e.cause is ItemAlreadyCachedException || e is ItemAlreadyCachedException) {
+                        return failedRespond(request,"item is already exist")
                     }
                     throw IOException("Chunk download failed", e)
                 }
             }
 
             // 4. 合并所有分块数据
-            val mergedData = chunks.fold(ByteArrayOutputStream(totalSize.toInt())) { acc, bytes ->
+            val mergedData = chunks.fold(ByteArrayOutputStream(totalSize.toInt()).apply {
+                painter?.bytes()?.let { write(it) }
+            }) { acc, bytes ->
                 acc.write(bytes)
                 acc
             }.toByteArray()
@@ -148,8 +169,18 @@ class ImageOkHttpInterceptor(
             e.printStackTrace()
             return chain.proceed(request)
         } finally {
+            painter?.release()
             executor.shutdownNow()
         }
+    }
+
+    private fun failedRespond(request: Request,msg: String = "", code: Int = 404) : Response {
+        return Response.Builder()
+            .request(request)
+            .code(code)
+            .protocol(Protocol.HTTP_1_1)
+            .message(msg)
+            .build()
     }
 
     private fun shouldUseMultithreadDownload(request: Request): Boolean {
@@ -157,26 +188,28 @@ class ImageOkHttpInterceptor(
         return (url.endsWith(".jpg") || url.endsWith(".jpeg") ||
                 url.endsWith(".png") || url.endsWith(".webp") ||
                 url.endsWith(".gif") || url.endsWith(".bmp"))
-                && (url.contains("master1200") || url.contains("i\\d.nhentai.net".toRegex()))
+                && (url.contains("master1200") || url.contains("i\\d.nhentai.net".toRegex()) || url.contains("ugoira"))
                 && ConfigUtil.useMultithread.value
     }
 
     // 通过 HEAD 请求获取文件总大小，同时验证服务器是否支持 Range
-    private fun getTotalSize(chain: Interceptor.Chain, request: Request): Long? {
+    private fun getTotalSize(client: OkHttpClient, request: Request): Long? {
         val headRequest = request.newBuilder()
             .header("Range", "bytes=0-0")
+            .header(SKIP_CHUNK_HEADER, "true")
             .build()
 
-        val headResponse = chain.proceed(headRequest)
         try {
+            val headResponse = client.newCall(headRequest).execute()
             // 服务器支持 Range 时应返回 206 Partial Content
             if (headResponse.code != 206) {
                 return null
             }
             val contentRange = headResponse.header("Content-Range") ?: return null
             return contentRange.substringAfter('/').toLongOrNull()
-        } finally {
-            headResponse.closeQuietly()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+        return null
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,16 +27,21 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.decode.DataSource
+import coil3.network.HttpException
 import coil3.request.ImageRequest
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
+import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.network.defaultImageRequest
+import com.xlrr.roambendom.progressive.SharedPainterManager
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.empty_page
@@ -229,6 +235,58 @@ fun CenterColumnInfo(content: @Composable ColumnScope.() -> Unit) {
         Column(Modifier, Arrangement.Center,Alignment.CenterHorizontally) {
             content()
         }
+    }
+}
+
+@Composable
+fun ProgressiveImage(
+    request: ImageRequest,
+    modifier: Modifier,
+    contentScale: ContentScale = ContentScale.Fit,
+    width: Float? = null,
+    height: Float? = null
+) {
+    val k = request.data.toString()
+    if (k.endsWith(".gif") || k.endsWith(".zip") || !ConfigUtil.useMultithread.value) {
+        AsyncImage(
+            model = request,
+            filterQuality = FilterQuality.Medium,
+            contentDescription = null,
+            placeholder = painterResource(Res.drawable.loading_jpg),
+            error = painterResource(Res.drawable.empty_page),
+            contentScale = contentScale,
+            modifier = modifier
+        )
+    } else {
+        val p = SharedPainterManager.add(request, rememberTextMeasurer(0))
+        LaunchedEffect(width, height) {
+            if (width != null && height != null) {
+                p.setSize(width, height)
+            }
+        }
+        AsyncImage(
+            model = request,
+            filterQuality = FilterQuality.Medium,
+            contentDescription = null,
+            placeholder = p,
+            error = p,
+            contentScale = contentScale,
+            modifier = modifier,
+            onSuccess = {
+                p.destroy()
+                if (it.result.dataSource != DataSource.NETWORK) {
+                    SharedPainterManager.checkDestroyed()
+                }
+            },
+            onError = {
+                if (
+                    it.result.throwable !is HttpException
+                    || it.result.throwable.message?.contains("943") == false
+                ) {
+                    p.error()
+                }
+            }
+        )
     }
 }
 

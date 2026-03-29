@@ -112,17 +112,11 @@ fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState)
 @Composable
 private fun SharedImage(uws: UrlWithSize, modifier: Modifier) {
     Box() {
-        AsyncImage(
-            model = defaultImageRequest(
-                uws.url,
-                LocalPlatformContext.current
-            ),
-            filterQuality = FilterQuality.Medium,
-            contentDescription = null,
-            placeholder = painterResource(Res.drawable.loading_jpg),
-            error = painterResource(Res.drawable.empty_page),
-            modifier = modifier
-        )
+        ProgressiveImage(
+            defaultImageRequest(
+            uws.url,
+            LocalPlatformContext.current
+        ), modifier, width = uws.w.toFloat(), height = uws.h.toFloat())
     }
 }
 
@@ -144,6 +138,7 @@ private fun LazyListScope.imagesOrAnimatedImage(
                         val testH = uws.h * screenWidth / uws.w
                         if (testH < screenHeight) {
                             width(with(LocalDensity.current) { screenWidth.toDp() })
+                                .heightIn(min = with(LocalDensity.current) { testH.toDp() })
                         } else {
                             height(with(LocalDensity.current) {
                                 (floor(testH / screenHeight).coerceIn(
@@ -186,7 +181,7 @@ private fun LazyListScope.imagesOrAnimatedImage(
                         }.clickable {
                             click(UrlWithSize(
                                 it.src,
-                                0,0, it.originalSrc
+                                it.width,it.height, it.originalSrc
                             ))
                         }
                     )
