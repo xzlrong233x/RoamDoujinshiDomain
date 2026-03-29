@@ -162,6 +162,8 @@ object PIXIVApiHelper {
                 it.urls.thumbMini
             }
         } else {
+            meta.width = jo.getAsInt("width")
+            meta.height = jo.getAsInt("height")
             info.ugoiraMetadata = meta
             info.thumbUrls = listOf(
                 jo["urls"]?.jsonObject?.getAsString("thumb") ?: ""

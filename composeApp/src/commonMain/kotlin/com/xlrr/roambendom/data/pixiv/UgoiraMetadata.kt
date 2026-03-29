@@ -15,5 +15,7 @@ data class UgoiraMetadata(
     @SerialName("mime_type")
     var mimeType: String,
     var originalSrc: String,
-    var src: String
+    var src: String,
+    var width: Int = 0,
+    var height: Int = 0
 )
