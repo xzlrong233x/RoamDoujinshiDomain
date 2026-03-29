@@ -91,5 +91,5 @@ actual fun CtrlPullToRefreshBox(
     indicator: @Composable (BoxScope.() -> Unit),
     content: @Composable (BoxScope.() -> Unit)
 ) {
-    Box(modifier,content = content)
+    Box(modifier, contentAlignment,content = content)
 }
