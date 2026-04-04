@@ -217,7 +217,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     val fcq = remember { FocusRequester() }
 
     LaunchedEffect(state) {
-        snapshotFlow { state.visibleItems(50f).firstOrNull() }
+        snapshotFlow { state.maxVisibleItem() }
             .filter { it?.key.toString().contains("ImgPage") }
             .distinctUntilChanged()
             .collect {

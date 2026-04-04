@@ -11,6 +11,11 @@ fun LazyListState.visibleItems(itemVisiblePercentThreshold: Float) =
             visibilityPercent(it) >= itemVisiblePercentThreshold
         }
 
+fun LazyListState.maxVisibleItem() =
+    if (layoutInfo.visibleItemsInfo.isEmpty())
+        null
+    else layoutInfo.visibleItemsInfo.maxBy { visibilityPercent(it) }
+
 fun LazyListState.visibilityPercent(info: LazyListItemInfo): Float {
     val cutTop = max(0, layoutInfo.viewportStartOffset - info.offset)
     val cutBottom = max(0, info.offset + info.size - layoutInfo.viewportEndOffset)
