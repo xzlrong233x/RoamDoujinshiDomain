@@ -17,6 +17,9 @@ object ConfigUtil {
     val useMultithread = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         "使用多线程加载图片"
     ))
+    val streamDisplay = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        "使用流式显示"
+    ))
     val disableHistoryRecord = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         "禁用历史记录"
     ))
@@ -29,6 +32,7 @@ object ConfigUtil {
         pixivLanguage.state = mutableDataSaverStateOf(dataSaver, "pixiv_language", "ja")
         pixivToken.state = mutableDataSaverStateOf(dataSaver, "pixiv_token", "")
         useMultithread.state = mutableDataSaverStateOf(dataSaver, "use_multithread", false)
+        streamDisplay.state = mutableDataSaverStateOf(dataSaver, "stream_display", false)
         disableHistoryRecord.state = mutableDataSaverStateOf(dataSaver, "disable_history_record", false)
         enableVolumeTurn.state = mutableDataSaverStateOf(dataSaver, "enable_volume_turn", false)
     }

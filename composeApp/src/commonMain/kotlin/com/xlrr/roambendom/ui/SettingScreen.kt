@@ -31,6 +31,7 @@ fun SettingScreen(modifier: Modifier) {
             Text("设置", style = MaterialTheme.typography.headlineMedium)
             CalUI(ConfigUtil.forceGrid)
             CalUI(ConfigUtil.useMultithread)
+            CalUI(ConfigUtil.streamDisplay)
             CalUI(ConfigUtil.disableHistoryRecord)
             CalUI(ConfigUtil.enableVolumeTurn)
             Spacer(Modifier.height(16.dp))

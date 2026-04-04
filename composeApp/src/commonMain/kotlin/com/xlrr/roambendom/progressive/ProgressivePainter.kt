@@ -64,7 +64,6 @@ class ProgressivePainter(
                     density = this
                 ),
                 color = Color.Gray,
-                shadow = Shadow()
             )
         }
         if (!isClosed()) {

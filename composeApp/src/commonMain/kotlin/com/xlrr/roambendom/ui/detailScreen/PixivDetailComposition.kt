@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -195,7 +196,8 @@ private fun LazyListScope.imagesOrAnimatedImage(
 fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     val state = rememberLazyListState()
     val context = LocalPlatformContext.current
-    val preload = remember { Preload(context) }
+    val tm = rememberTextMeasurer(0)
+    val preload = remember { Preload(context, tm) }
     val screenWidth = with(LocalDensity.current) {
         LocalWindowSize.current.width.coerceIn(null, 1104.dp).toPx()
     }

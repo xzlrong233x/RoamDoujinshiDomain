@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastJoinToString
@@ -60,6 +61,7 @@ import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
+import com.xlrr.roambendom.progressive.SharedPainterManager
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
@@ -578,7 +580,7 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
     }
 }
 
-class Preload(private val context: PlatformContext) {
+class Preload(private val context: PlatformContext, private val textMeasurer: TextMeasurer? = null) {
     private val preloadRequests = mutableSetOf<ImageRequest>()
 
     fun preload(data: List<String>, cur: Int, preCount: Int = 5) {
@@ -593,6 +595,9 @@ class Preload(private val context: PlatformContext) {
             }
             preloadRequests.add(req)
             try {
+                if (ConfigUtil.streamDisplay.value) {
+                    SharedPainterManager.add(req, textMeasurer)
+                }
                 imageLoader.enqueue(req)
             } catch (e: Exception) {
                 println(e.message)

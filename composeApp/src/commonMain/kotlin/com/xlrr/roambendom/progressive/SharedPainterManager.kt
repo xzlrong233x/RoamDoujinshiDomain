@@ -24,7 +24,7 @@ object SharedPainterManager {
     }
 
     fun checkDestroyed() {
-        map.values.removeIf { it.isClosed() && !it.isUsing() }
+        map.values.removeIf { it.isClosed() && !it.isUsing() && it.isDestroyed() }
     }
 
     fun remove(request: ImageRequest): Boolean {
