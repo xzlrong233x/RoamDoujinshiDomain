@@ -30,7 +30,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.ScaleFactor
@@ -40,6 +39,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastJoinToString
 import androidx.compose.ui.window.Dialog
@@ -47,7 +47,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import coil3.compose.AsyncImagePainter.Companion.DefaultTransform
 import coil3.compose.LocalPlatformContext
@@ -58,13 +57,13 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
-import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
+import com.xlrr.roambendom.utils.ProgressiveImage
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.ExperimentalZoomableApi
@@ -113,23 +112,25 @@ class ArtworkViewModel : ViewModel() {
 @Composable
 private fun LoadingImage(
     data: String,
+    modifier: Modifier = Modifier,
     transform: (AsyncImagePainter.State) -> AsyncImagePainter.State = DefaultTransform,
     contentScale: ContentScale = ContentScale.Fit,
     successfulContent: @Composable (BoxScope.() -> Unit) = {}
 ) {
-    if (data.isEmpty()) {
+    val uws = data.runCatching {
+        UrlWithSize.parse(this)
+    }.getOrNull()
+    if (data.isEmpty() || uws == null) {
         Image(painterResource(Res.drawable.empty_page), "empty page")
         return
     }
     Box {
-        AsyncImage(
-            model = defaultImageRequest(data, LocalPlatformContext.current),
-            filterQuality = FilterQuality.Medium,
-            contentDescription = null,
-            placeholder = painterResource(Res.drawable.loading_jpg),
-            error = painterResource(Res.drawable.empty_page),
-            contentScale = contentScale,
-            modifier = Modifier.fillMaxWidth()
+        ProgressiveImage(
+            defaultImageRequest(uws.url, LocalPlatformContext.current),
+            modifier,
+            contentScale,
+            uws.w.toFloat(),
+            uws.h.toFloat()
         )
         successfulContent()
     }
@@ -144,6 +145,8 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
         else modifier.fillMaxWidth()
     val ps = if (twicePage.value) PageSize.Fixed(LocalWindowSize.current.width/2)
         else PageSize.Fill
+    val sH = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
+    val sW = with(LocalDensity.current) {LocalWindowSize.current.width.toPx()} * if (twicePage.value) 0.5f else 1f
     HorizontalPager(pager, mod,
         pageSize = ps,
         reverseLayout = turnPageMode.value == 1
@@ -155,8 +158,21 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
             } else Alignment.Center
         ) {
             if (artworkInfo.ugoiraMetadata == null) {
-                LoadingImage(artworkInfo.pageUrls[it].let { str ->
-                    if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
+                val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
+                LoadingImage(artworkInfo.pageUrls[it], Modifier.run {
+                    val testH = uws.h * sW / uws.w
+                    if (testH < sH) {
+                        width(with(LocalDensity.current) { sW.toDp() })
+                            .heightIn(min = with(LocalDensity.current) { testH.toDp() })
+                    } else {
+                        height(with(LocalDensity.current) {
+                            (floor(testH / sH).coerceIn(
+                                1f,
+                                null
+                            ) * sH)
+                                .toDp()
+                        })
+                    }
                 }) {
                     pageIndex(it)
                 }
@@ -172,14 +188,29 @@ private fun ListShowPage(
     modifier: Modifier, artworkInfo: ArtworkInfo, lazyListState: LazyListState,
     cs: ContentScale, pageIndex: @Composable (BoxScope.(Int) -> Unit) = {}
 ) {
+    val sH = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
+    val sW = with(LocalDensity.current) {LocalWindowSize.current.width.toPx()}
     Box {
         LazyColumn(modifier, lazyListState, horizontalAlignment = Alignment.CenterHorizontally) {
             items(artworkInfo.pageUrls.size) {
-                Box() {
+                Box() { //已经可以获得图片大小了，接下来是自适应列表图片
                     if (artworkInfo.ugoiraMetadata == null) {
-                        LoadingImage(artworkInfo.pageUrls[it].let { str ->
-                            if (artworkInfo.source == CSources.PIXIV) UrlWithSize.parse(str).url else str
-                        }, contentScale = cs)
+                        val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
+                        LoadingImage(artworkInfo.pageUrls[it], Modifier.run {
+                            val testH = uws.h * sW / uws.w
+                            if (testH < sH) {
+                                width(with(LocalDensity.current) { sW.toDp() })
+                                    .heightIn(min = with(LocalDensity.current) { testH.toDp() })
+                            } else {
+                                height(with(LocalDensity.current) {
+                                    (floor(testH / sH).coerceIn(
+                                        1f,
+                                        null
+                                    ) * sH)
+                                        .toDp()
+                                })
+                            }
+                        })
                     } else {
                         artworkInfo.ugoiraMetadata?.let {u -> LoadingImage(u.src) }
                     }
@@ -237,7 +268,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         return
     }
     val context = LocalPlatformContext.current
-    val preload = remember { Preload(context) }
+    val textMeasurer = rememberTextMeasurer(0)
+    val preload = remember { Preload(context, textMeasurer) }
     val zzm = rememberZoomState()
     val screenWidth = with(LocalDensity.current) {LocalWindowSize.current.width.toPx()}
     val screenHeight = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
@@ -299,7 +331,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         }
         if (!lockHide) hide = true
         else lockHide = false
-        preload.preload(artworkInfo.pageUrls, pager.currentPage)
+        preload.preload(artworkInfo.pageUrls.map { UrlWithSize.parse(it).url }, pager.currentPage)
     }
     DisposableEffect(artworkData.pageDirection.value) {
         GlobalData.hideStatusBar = artworkData.pageDirection.value == 1

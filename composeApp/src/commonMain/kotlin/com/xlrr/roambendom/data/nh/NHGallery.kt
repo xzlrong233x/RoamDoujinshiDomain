@@ -59,6 +59,7 @@ enum class NHGalleryTagType {
     tag,
     artist,
     group,
+    parody,
     category;
 
     override fun toString(): String {

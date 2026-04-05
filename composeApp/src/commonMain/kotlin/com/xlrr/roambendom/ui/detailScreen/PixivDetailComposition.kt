@@ -332,11 +332,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                     if (details.content == null) {
                                         return@IconButton
                                     }
-                                    GlobalData.nav.push(Routes.Artwork(details.content!!.copy().apply {
-                                        pageUrls = pageUrls.map { s ->
-                                            UrlWithSize.parse(s).url
-                                        }
-                                    }))
+                                    GlobalData.nav.push(Routes.Artwork(details.content!!.copy()))
                                 }, enabled = details.content?.ugoiraMetadata == null) {
                                     Icon(
                                         painterResource(Res.drawable.book),

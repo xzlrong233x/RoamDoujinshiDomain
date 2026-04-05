@@ -26,7 +26,7 @@ data class UrlWithSize(
         val EMPTY = UrlWithSize("", 0, 0, "")
 
         fun parse(str: String) : UrlWithSize {
-            return Regex("(.+?)\\[w(\\d+)h(\\d+)]\\{(.+?)\\}").find(str)?.let {
+            return Regex("(.+?)\\[w(\\d+)h(\\d+)]\\{(.*?)\\}").find(str)?.let {
                 UrlWithSize(
                     it.groups[1]?.value.toString(),
                     it.groups[2]?.value?.toIntOrNull() ?: 0,

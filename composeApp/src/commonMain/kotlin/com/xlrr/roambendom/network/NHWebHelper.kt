@@ -162,7 +162,7 @@ object NHWebHelper {
             info.language = CLanguage.convert(it.lastOrNull { x -> x.id != 17249 }?.name ?: "unknow")
         }
         info.thumbUrls = s.pages.map { it.thumbnail.connectWithCdn(true) }
-        info.pageUrls = s.pages.map { it.path.connectWithCdn() }
+        info.pageUrls = s.pages.map { "${it.path.connectWithCdn()}[w${it.width}h${it.height}]{}" }
         info.likeCount = s.numFavorites
         info.time = s.uploadDate * 1000 // 服务器返回的是以秒(s)为单位的时间戳
         info.ai = s.tags.any { it.id == 145703 }
