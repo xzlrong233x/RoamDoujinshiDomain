@@ -2,9 +2,17 @@ package com.xlrr.roambendom.network
 
 import com.fleeksoft.ksoup.nodes.Element
 import com.xlrr.roambendom.data.*
+import com.xlrr.roambendom.data.nh.NHCdn
+import com.xlrr.roambendom.data.nh.NHGallery
+import com.xlrr.roambendom.data.nh.NHGalleryTagType
+import com.xlrr.roambendom.data.nh.NHSearchLike
+import com.xlrr.roambendom.data.nh.NHSearchSortType
+import io.ktor.client.call.body
 import io.ktor.client.request.*
+import io.ktor.client.statement.request
 import io.ktor.http.*
-import kotlin.time.Instant
+import kotlinx.io.IOException
+import kotlin.random.Random
 
 private const val prefix: String = "https://nhentai.net" //TODO: 用api。
 
@@ -29,10 +37,61 @@ private fun dealWithUrl(url: String) : String { // 2026/2/8 nhentai网站好像�
 }
 
 object NHWebHelper {
+    const val API_PREFIX = "https://nhentai.net/api/v2/"
+    private var cdn: NHCdn? = null
     private fun joinUrl(vararg arg: String): String {
         return arrayListOf(prefix).apply {
             addAll(arg.map { it.removePrefix("/").removeSuffix("/") })
         }.joinToString("/")
+    }
+
+    private fun String.connectWithCdn(thumb: Boolean = false): String {
+        val pres = if (thumb) cdn?.thumbServers else cdn?.imageServers
+        val pre = pres?.let {
+            it[Random.nextInt(it.size)]
+        } ?: "https://${if (thumb) "t" else "i"}1.nhentai.net"
+        return "$pre/$this"
+    }
+
+    /**
+     * refer to [api docs](https://nhentai.net/api/v2/docs#/)
+    * */
+    suspend inline fun <reified T> api(vararg post: String, block: HttpRequestBuilder.() -> Unit = {}) : Result<T> {
+        val resp = NetHelper.client.get {
+            url(API_PREFIX)
+            url {
+                appendPathSegments(*post)
+            }
+            block()
+        }
+        return if (resp.status == HttpStatusCode.OK) {
+            Result.success(resp.body())
+        } else {
+            Result.failure(IOException("bad code: ${resp.status} about ${resp.request.url}"))
+        }
+    }
+
+    private suspend fun checkCdn() {
+        if (cdn == null) {
+            cdn = api<NHCdn>("cdn").getOrNull()
+        }
+    }
+
+    suspend fun searchNH(key: String, page: Int = 1, sortType: NHSearchSortType = NHSearchSortType.DATE): NHSearchLike? {
+        checkCdn()
+        if (key.isEmpty()) {
+            return null
+        }
+        return api<NHSearchLike>("search") {
+            parameter("query", key)
+            parameter("page", page)
+            parameter("sort", sortType)
+        }.getOrNull()
+    }
+
+    suspend fun galleryNH(id: String): NHGallery? {
+        checkCdn()
+        return if (id.isNotEmpty()) api<NHGallery>("galleries",id).getOrNull() else null
     }
 
     /**
@@ -49,6 +108,23 @@ object NHWebHelper {
                 key,
                 page
             )
+        }
+        if (key.isNotEmpty()) {
+            val sh = searchNH(key, page)
+            val total = sh?.total ?: 0
+            return result(total, sh?.result?.map {
+                SearchItemData(
+                    it.id.toString(),
+                    CSources.NHENTAI,
+                    it.englishTitle,
+                    it.numPages,
+                    CLanguage.languageDetect(it.tagIds),
+                    it.thumbnail.connectWithCdn(true),
+                    ai = it.tagIds.contains(145703),
+                    restriction = if (it.tagIds.any {n -> n in CRestriction.nhNonHTag})
+                        CRestriction.Normal else CRestriction.R18
+                )
+            } ?: listOf())
         }
         val doc = if (key.isNotEmpty()) NetHelper.getWebDocument(joinUrl("search")) {
             parameter("q", key)
@@ -68,51 +144,30 @@ object NHWebHelper {
         //) return result(0, listOf())
         val works = doc.body().select(".gallery")
         var tot = -1
-        if (key.isNotEmpty()) {
-            val totaltxt = doc.body().select("#content > h1")
-            tot = totaltxt.text().filter { it.isDigit() }.toInt()
-        }
         return result(tot, works.map { unzipNHItem(it) })
     }
 
     suspend fun artwork(id: String): ArtworkInfo {
         val info = ArtworkInfo()
-        val doc = NetHelper.getWebDocument(joinUrl("g", id)) {
-            defaultHeader()
-        } ?: return info
-        info.cover = dealWithUrl(doc.select("#cover > a > img").attr("src"))
-        info.title = doc.select("#info > h1 > span").joinToString(" ") { it.text() }
-        info.altitle = doc.select("#info > h2 > span").joinToString(" ") { it.text() }
-        doc.select(".tag-container").forEach {
-            when (it.ownText().trim().lowercase().removeSuffix(":")) {
-                "tags" -> info.tags = it.select("span > a > span.name").map {s -> s.text() }
-                "groups" -> info.groups = it.select("span > a > span.name").map {s -> s.text() }
-                "artists" -> info.authors = it.select("span > a > span.name").map {s -> s.text() }
-                "pages" -> info.page = it.select("span > a > span").text().toIntOrNull() ?: 0
-                "languages" -> {
-                    val lang = it.select("span > a > span.name").map {s -> s.text() }
-                    if (lang.size == 2) {
-                        info.translated = true
-                    }
-                    info.language = CLanguage.convert(lang[lang.size-1])
-                }
-            }
+        val s = galleryNH(id) ?: return info
+        info.cover = s.cover.path.connectWithCdn(true)
+        info.title = s.title.english
+        info.altitle = s.title.japanese ?: ""
+        info.tags = s.tags.filter { it.type == NHGalleryTagType.tag }.map { it.name }
+        info.groups = s.tags.filter { it.type == NHGalleryTagType.group }.map { it.name }
+        info.authors = s.tags.filter { it.type == NHGalleryTagType.artist }.map { it.name }
+        info.page = s.numPages
+        s.tags.filter { it.type == NHGalleryTagType.language }.let {
+            if (it.size > 1) info.translated = true
+            info.language = CLanguage.convert(it.lastOrNull { x -> x.id != 17249 }?.name ?: "unknow")
         }
-        doc.select(".gallerythumb > img").let { y ->
-            info.thumbUrls = y.map { dealWithUrl(it.attr("data-src").ifEmpty { it.attr("src") }) }
-            info.pageUrls = info.thumbUrls.map {
-                it.replace(Regex("t(\\d)")) { x ->
-                    "i${x.groups.last()?.value.toString()}"
-                }.replace(Regex("(\\d+)t")) {x ->
-                    x.groups.last()?.value.toString()
-                }.replace(Regex("(\\.[^./]+).webp")) {x ->
-                    x.groups.last()?.value.toString()
-                }
-            }
-        }
-        info.likeCount = doc.select("#info > div > button.btn.btn-primary.tooltip > span:nth-child(2) > span")
-            .text().filter { it.isDigit() }.toIntOrNull() ?: 0
-        info.time = Instant.parse(doc.select("time").attr("datetime")).toEpochMilliseconds()
+        info.thumbUrls = s.pages.map { it.thumbnail.connectWithCdn(true) }
+        info.pageUrls = s.pages.map { it.path.connectWithCdn() }
+        info.likeCount = s.numFavorites
+        info.time = s.uploadDate * 1000 // 服务器返回的是以秒(s)为单位的时间戳
+        info.ai = s.tags.any { it.id == 145703 }
+        info.restriction = if (s.tags.any {n -> n.id in CRestriction.nhNonHTag})
+            CRestriction.Normal else CRestriction.R18
         return info
     }
 }
