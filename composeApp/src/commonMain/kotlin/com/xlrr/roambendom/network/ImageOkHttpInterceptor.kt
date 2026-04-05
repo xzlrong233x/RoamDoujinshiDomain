@@ -278,8 +278,8 @@ class ImageOkHttpInterceptor(
         val url = request.url.toString().lowercase()
         return (url.endsWith(".jpg") || url.endsWith(".jpeg") ||
                 url.endsWith(".png") || url.endsWith(".webp") ||
-                url.endsWith(".gif") || url.endsWith(".bmp")) &&
-                (url.contains("master1200") ||
+                url.endsWith(".gif") || url.endsWith(".bmp") || url.endsWith(".zip")) &&
+                (url.contains("master1200") || url.contains("img-original") ||
                         url.contains("i\\d.nhentai.net".toRegex()) ||
                         url.contains("ugoira"))
     }

@@ -15,17 +15,22 @@ sealed class Routes {
         ) : Root()
         open class SearchLike(
             val searchModel: SearchParameterModel,
-            val canChangeSettings: Boolean
+            val canChangeSettings: Boolean,
+            val clearInput: (() -> Boolean)? = null
         ) : Root()
         class Search(
             searchModel: SearchParameterModel
         ) : SearchLike(searchModel, true)
-        class History(searchParameterModel: SearchParameterModel)
-            : SearchLike(searchParameterModel, false)
+        class History(searchParameterModel: SearchParameterModel, clearFunc: () -> Boolean)
+            : SearchLike(searchParameterModel, false, clearFunc)
         data object Settings : Root()
     }
     data class Artwork(
         val artworkInfo: ArtworkInfo
     ) : Routes()
     data object TokenForm : Routes()
+}
+
+fun Routes.Root.SearchLike.shouldShowTrailingIcon() : Boolean {
+    return canChangeSettings || clearInput != null
 }

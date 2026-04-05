@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.*
 import androidx.compose.material3.SearchBarDefaults.InputFieldHeight
 import androidx.compose.material3.SearchBarDefaults.inputFieldColors
@@ -51,6 +52,7 @@ import com.xlrr.roambendom.data.SearchResult
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
+import com.xlrr.roambendom.nav.shouldShowTrailingIcon
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.ui.detailScreen.DetailScreen
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
@@ -99,7 +101,7 @@ private val navItems: List<NavItem> = listOf(
                     )
                 }
             }
-        ))}
+        ) { true })}
     ),
     NavItem(
         "设置",
@@ -402,15 +404,35 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                         drawerCaller()
                     }
                 } else null,
-                trailingIcon = if (curScreen is Routes.Root.SearchLike && curScreen.canChangeSettings) {
+                trailingIcon = if (curScreen is Routes.Root.SearchLike && curScreen.shouldShowTrailingIcon()) {
                     {
-                        IconButton(
-                            {
-                                searchSetting = true
+                        Row {
+                            if (curScreen.canChangeSettings) {
+                                IconButton(
+                                    {
+                                        searchSetting = true
+                                    }
+                                ) {
+                                    Icon(
+                                        painterResource(Res.drawable.sim_setting),
+                                        "search bar setting"
+                                    )
+                                }
                             }
-                        ) {
-                            Icon(painterResource(Res.drawable.sim_setting),
-                                "search bar setting")
+                            if (curScreen.clearInput != null && curScreen.searchModel.key.isNotEmpty()) {
+                                IconButton(
+                                    {
+                                        searchText.clearText()
+                                        val n = curScreen.clearInput()
+                                        if (n) search(searchText.text.toString())
+                                    }
+                                ) {
+                                    Icon(
+                                        painterResource(Res.drawable.close_icon),
+                                        "clear search bar text button"
+                                    )
+                                }
+                            }
                         }
                     }
                 } else null
@@ -539,7 +561,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             Modifier.fillMaxSize(),
             floatingActionButton = {
                 CtrlAnimatedVisibility(
-                    !nailOpen && !smallMode,
+                    !nailOpen && !smallMode && !GlobalData.shouldHideRailBtn(),
                     enter = fadeIn(),
                     exit = fadeOut(),
                     label = "FloatingRailOpenBtn"

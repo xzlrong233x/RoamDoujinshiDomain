@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -40,6 +41,7 @@ import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.getColor
+import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.network.UrlWithSize
@@ -58,7 +60,13 @@ import roambendom.composeapp.generated.resources.*
 import kotlin.math.floor
 
 @Composable
-fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState) {
+fun ImageDialog(
+    urlWithSize: UrlWithSize?,
+    onDismiss: () -> Unit,
+    zm: ZoomState,
+    ugoiraMetadata: UgoiraMetadata? = null,
+    realLoad: SnapshotStateList<String>
+) {
     val screenWidth = with(LocalDensity.current) {
         LocalWindowSize.current.width.toPx()
     }
@@ -79,6 +87,17 @@ fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState)
                 }
             ) {
                 if (uws != null) {
+                    DisposableEffect(Unit) {
+                        GlobalData.requestToHideRailBtn()
+                        onDispose {
+                            GlobalData.requestToShowRailBtn()
+                        }
+                    }
+                    val n by remember(realLoad) {
+                        derivedStateOf {
+                            realLoad.contains(uws.url)
+                        }
+                    }
                     Box(Modifier.fillMaxSize().focusRequester(fcq).focusable().clickable {
                         onDismiss()
                     }.background(Color.Black.copy(alpha = 0.75f)), Alignment.Center) {
@@ -93,12 +112,22 @@ fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState)
                             onTap = {
                                 onDismiss()
                             }
-                        ))
+                        ), n, ugoiraMetadata)
                         Row(Modifier.align(Alignment.BottomEnd).padding(14.dp)) {
                             Coil3SaveImageButton(
                                 defaultImageRequest(uws.url, LocalPlatformContext.current),
                                 painterResource(Res.drawable.img_download_icon)
                             )
+                        }
+                        if (!n) {
+                            Row(Modifier.align(Alignment.BottomStart).padding(14.dp)) {
+                                Button({ realLoad.add(uws.url) },
+                                    colors = ButtonDefaults.buttonColors().copy(
+                                        Color.Gray.copy(alpha = 0.75f)
+                                    )) {
+                                    Text("加载原图", color = Color.White)
+                                }
+                            }
                         }
                     }
                     SideEffect {
@@ -111,14 +140,26 @@ fun ImageDialog(urlWithSize: UrlWithSize?, onDismiss: () -> Unit, zm: ZoomState)
 }
 
 @Composable
-private fun SharedImage(uws: UrlWithSize, modifier: Modifier) {
-    Box() {
-        ProgressiveImage(
-            defaultImageRequest(
-            uws.url,
+private fun SharedImage(
+    uws: UrlWithSize,
+    modifier: Modifier,
+    ori: Boolean = false,
+    ugoiraMetadata: UgoiraMetadata? = null
+) {
+    ProgressiveImage(
+        defaultImageRequest(
+            if (!ori || uws.oriUrl.isEmpty()) uws.url else uws.oriUrl,
             LocalPlatformContext.current
-        ), modifier, width = uws.w.toFloat(), height = uws.h.toFloat())
-    }
+        ).run {
+            ugoiraMetadata?.let {
+                return@run newBuilder().also { ib->ib.extras[framesKey] = it.frames }.build()
+            }
+            return@run this
+        },
+        modifier,
+        width = uws.w.toFloat(),
+        height = uws.h.toFloat()
+    )
 }
 
 private fun LazyListScope.imagesOrAnimatedImage(
@@ -215,6 +256,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     var urlWithSize: UrlWithSize? by remember { mutableStateOf(null) }
     val zoom = rememberZoomState()
     val fcq = remember { FocusRequester() }
+    val rlPage = remember { mutableStateListOf<String>() }
 
     LaunchedEffect(state) {
         snapshotFlow { state.maxVisibleItem() }
@@ -266,7 +308,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                 }) {
                 Surface(
                     Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
-                        .padding(12.dp, 8.dp).align(Alignment.TopCenter),
+                        .padding(12.dp, 0.dp).align(Alignment.TopCenter),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
@@ -415,7 +457,12 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                     ss.launch { state.animateScrollToItem(it) }
                 }, { thumbExpand = false })
             }
-            ImageDialog(urlWithSize, { urlWithSize = null }, zoom)
+            ImageDialog(urlWithSize,
+                {
+                    urlWithSize = null
+                    ss.launch { zoom.reset() }
+                },
+                zoom, details.content?.ugoiraMetadata, rlPage)
             SideEffect {
                 if (urlWithSize == null) {
                     fcq.requestFocus()
