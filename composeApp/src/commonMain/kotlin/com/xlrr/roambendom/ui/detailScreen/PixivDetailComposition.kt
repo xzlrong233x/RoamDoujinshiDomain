@@ -146,9 +146,10 @@ private fun SharedImage(
     ori: Boolean = false,
     ugoiraMetadata: UgoiraMetadata? = null
 ) {
+    val ur = if (!ori || uws.oriUrl.isEmpty()) uws.url else uws.oriUrl
     ProgressiveImage(
         defaultImageRequest(
-            if (!ori || uws.oriUrl.isEmpty()) uws.url else uws.oriUrl,
+            ur,
             LocalPlatformContext.current
         ).run {
             ugoiraMetadata?.let {
@@ -202,31 +203,19 @@ private fun LazyListScope.imagesOrAnimatedImage(
         item {
             info.ugoiraMetadata?.let {
                 Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                    AsyncImage(
-                        ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(it.src)
-                            .httpHeaders(PIXIVApiHelper.pixivCoilHeader)
-                            .also { be ->
-                                be.extras[framesKey] = it.frames
-                            }
-                            .build(),
-                        filterQuality = FilterQuality.Medium,
-                        contentDescription = null,
-                        placeholder = painterResource(Res.drawable.loading_jpg),
-                        error = painterResource(Res.drawable.empty_page),
-                        modifier = Modifier.run {
-                            if (screenWidth >= screenHeight) {
-                                height(with(LocalDensity.current) {screenHeight.dp})
-                            } else {
-                                width(with(LocalDensity.current) {screenWidth.dp})
-                            }
-                        }.clickable {
-                            click(UrlWithSize(
-                                it.src,
-                                it.width,it.height, it.originalSrc
-                            ))
-                        }
+                    val u = UrlWithSize(
+                        it.src,
+                        it.width,it.height, it.originalSrc
                     )
+                    SharedImage(u, Modifier.run {
+                        if (screenWidth >= screenHeight) {
+                            height(with(LocalDensity.current) {screenHeight.dp})
+                        } else {
+                            width(with(LocalDensity.current) {screenWidth.dp})
+                        }
+                    }.clickable {
+                        click(u)
+                    }, ugoiraMetadata = it)
                 }
             }
         }
