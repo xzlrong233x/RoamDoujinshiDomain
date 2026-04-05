@@ -391,6 +391,15 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                 }
                             }
                         }
+                        item("IdText") {
+                            SelectionContainer {
+                                Text(
+                                    "#${searchItemData.id}",
+                                    Modifier.padding(6.dp, 2.dp),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
                         item("LikeCount") {
                             SelectionContainer {
                                 Text(

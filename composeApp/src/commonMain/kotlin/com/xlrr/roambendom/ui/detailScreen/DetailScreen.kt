@@ -107,6 +107,11 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                        Text(
+                                            "#${searchItemData.id}",
+                                            Modifier.padding(0.dp, 2.dp),
+                                            style = typography.bodyLarge
+                                        )
                                         if (it.page > 0) Text(
                                             "页数：${it.page}",
                                             style = typography.titleMedium
