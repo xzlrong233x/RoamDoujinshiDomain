@@ -11,6 +11,7 @@ import com.shakster.gifkt.GifDecoder
 import com.shakster.gifkt.GifEncoder
 import com.xlrr.roambendom.data.pixiv.UgoiraFrameItem
 import com.xlrr.roambendom.utils.framesKey
+import com.xlrr.roambendom.utils.isZip
 import kotlinx.io.asSink
 import kotlinx.io.buffered
 import org.jetbrains.skia.Image
@@ -61,7 +62,7 @@ class UgoiraDecoder(
             imageLoader: ImageLoader,
         ): Decoder? {
             try {
-                if (result.mimeType == "application/zip") {
+                if (result.mimeType == "application/zip" || options.extras[framesKey] != null || isZip(result.source.source())) {
                     return UgoiraDecoder(
                         ZipInputStream(result.source.source().inputStream()),
                         options.extras[framesKey] ?: listOf()
