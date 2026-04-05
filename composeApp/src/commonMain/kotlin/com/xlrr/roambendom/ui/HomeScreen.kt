@@ -186,7 +186,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         modifier.fillMaxSize(),
         floatingActionButton = {
             if (showBtn) { //TODO: 先占位，以后再改
-                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-100000f) } }) {
+                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-Float.MAX_VALUE) } }) {
                     Text("UP")
                 }
             }

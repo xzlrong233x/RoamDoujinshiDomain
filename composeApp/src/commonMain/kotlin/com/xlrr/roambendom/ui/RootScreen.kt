@@ -342,7 +342,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                     cs.searchModel.configs.applyChange()
                     ss.launch {
                         cs.searchModel.reload()
-                        GlobalData.forListState?.scrollBy(-10000f)
+                        GlobalData.forListState?.scrollBy(-Float.MAX_VALUE)
                     }
 
                     if (curScreen is Routes.Root.Search

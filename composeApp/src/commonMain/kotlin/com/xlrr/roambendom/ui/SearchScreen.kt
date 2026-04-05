@@ -209,7 +209,7 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
         modifier.fillMaxSize(),
         floatingActionButton = {
             if (showBtn) { //TODO: 先占位，以后再改
-                FloatingActionButton({ ss.launch { GlobalData.forListState?.animateScrollBy(-100000f) } }) {
+                FloatingActionButton({ ss.launch { GlobalData.forListState?.animateScrollBy(-Float.MAX_VALUE) } }) {
                     Text("UP")
                 }
             }
