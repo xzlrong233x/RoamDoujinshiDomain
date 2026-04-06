@@ -10,7 +10,7 @@ class AndroidPlatform : Platform {
 }
 
 actual fun getPlatform(): Platform = AndroidPlatform()
-actual fun getFormatVersionString(): String = "android client v$VERSION"
+actual fun getFormatVersionString(): String = "Android;v$VERSION"
 actual fun ComponentRegistry.Builder.addGifLoader() {
     add(AnimatedImageDecoder.Factory())
     add(UgoiraDecoder.Factory())

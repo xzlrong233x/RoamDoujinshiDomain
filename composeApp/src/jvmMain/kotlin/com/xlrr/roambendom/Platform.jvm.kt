@@ -9,7 +9,7 @@ class JVMPlatform : Platform {
 }
 
 actual fun getPlatform(): Platform = JVMPlatform()
-actual fun getFormatVersionString(): String = "jvm client v${VERSION}"
+actual fun getFormatVersionString(): String = "JVM;v${VERSION}"
 actual fun ComponentRegistry.Builder.addGifLoader() {
     add(CoilGIFDecoder.Factory())
     add(UgoiraDecoder.Factory())
