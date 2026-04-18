@@ -158,7 +158,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
     val small = LocalWindowSize.current.width < SmallScreenDpLine
     LaunchedEffect(viewModel.local) {
         GlobalData.homeContentSelection = viewModel.local
-        if (!viewModel.tempLeave) {
+        if (!viewModel.tempLeave || (viewModel.local == HomeSelection.NH && viewModel.spm.content.isEmpty())) {
             viewModel.reload()
         } else {
             viewModel.tempLeave = false
