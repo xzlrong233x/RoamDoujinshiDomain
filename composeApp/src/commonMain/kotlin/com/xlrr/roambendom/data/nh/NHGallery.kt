@@ -25,7 +25,7 @@ data class NHGallery(
 @Serializable
 data class NHGalleryTitle(
     val english: String,
-    val japanese: String?,
+    val japanese: String? = null,
     val pretty: String,
 )
 

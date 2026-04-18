@@ -21,7 +21,7 @@ data class NHSearchLikeResultItem(
     @SerialName("english_title")
     val englishTitle: String,
     @SerialName("japanese_title")
-    val japaneseTitle: String?,
+    val japaneseTitle: String? = null,
     val thumbnail: String,
     @SerialName("thumbnail_width")
     val thumbnailWidth: Int,
