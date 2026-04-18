@@ -488,6 +488,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
 
     val maxUpPx = with(LocalDensity.current) { RootBarHeight.roundToPx().toFloat() }
     val minUpPx = 0f
+    //TODO：令其可以向下传递
     val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx, scope) }
 
     val toggleNav = {

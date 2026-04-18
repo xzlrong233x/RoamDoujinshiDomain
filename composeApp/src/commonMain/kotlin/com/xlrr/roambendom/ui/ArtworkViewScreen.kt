@@ -186,7 +186,7 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
 @Composable
 private fun ListShowPage(
     modifier: Modifier, artworkInfo: ArtworkInfo, lazyListState: LazyListState,
-    cs: ContentScale, pageIndex: @Composable (BoxScope.(Int) -> Unit) = {}
+    opos: MutableState<Boolean>, pageIndex: @Composable (BoxScope.(Int) -> Unit) = {}
 ) {
     val sH = with(LocalDensity.current) {LocalWindowSize.current.height.toPx()}
     val sW = with(LocalDensity.current) {LocalWindowSize.current.width.toPx()}
@@ -197,19 +197,22 @@ private fun ListShowPage(
                     if (artworkInfo.ugoiraMetadata == null) {
                         val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
                         LoadingImage(artworkInfo.pageUrls[it], Modifier.run {
-                            val testH = uws.h * sW / uws.w
-                            if (testH < sH) {
-                                width(with(LocalDensity.current) { sW.toDp() })
-                                    .heightIn(min = with(LocalDensity.current) { testH.toDp() })
-                            } else {
-                                height(with(LocalDensity.current) {
-                                    (floor(testH / sH).coerceIn(
-                                        1f,
-                                        null
-                                    ) * sH)
-                                        .toDp()
-                                })
+                            if (opos.value) {
+                                val testH = uws.h * sW / uws.w
+                                if (testH < sH) {
+                                    width(with(LocalDensity.current) { sW.toDp() })
+                                        .heightIn(min = with(LocalDensity.current) { testH.toDp() })
+                                } else {
+                                    height(with(LocalDensity.current) {
+                                        (floor(testH / sH).coerceIn(
+                                            1f,
+                                            null
+                                        ) * sH)
+                                            .toDp()
+                                    })
+                                }
                             }
+                            else fillMaxWidth()
                         })
                     } else {
                         artworkInfo.ugoiraMetadata?.let {u -> LoadingImage(u.src) }
@@ -235,7 +238,6 @@ private fun ShowContent(
     turnPageMode: MutableState<Int>,
     pageDirection: MutableState<Int>,
     oneScreenOnePage: MutableState<Boolean>,
-    cs: ContentScale,
     content: @Composable (BoxScope.(Int) -> Unit) = {}
 ) {
     if (pageDirection.value == 0) {
@@ -252,7 +254,7 @@ private fun ShowContent(
             modifier,
             artworkInfo,
             lazyListState,
-            cs,
+            oneScreenOnePage,
             content
         )
     }
@@ -289,7 +291,6 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
             zzm.scale > 1f
         }
     }
-    var cs by remember { mutableStateOf(ContentScale.Fit) }
     val toPage : (Int) -> Unit = {x->
         if (artworkData.pageDirection.value == 0) {
             pager.requestScrollToPage(x)
@@ -337,27 +338,6 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         GlobalData.hideStatusBar = artworkData.pageDirection.value == 1
         onDispose {
             GlobalData.hideStatusBar = false
-        }
-    }
-    LaunchedEffect(artworkData.oneScreenOnePage.value, LocalWindowSize.current) {
-        if (artworkData.oneScreenOnePage.value) {
-            cs = object : ContentScale {
-                override fun computeScaleFactor(
-                    srcSize: androidx.compose.ui.geometry.Size,
-                    dstSize: androidx.compose.ui.geometry.Size
-                ): ScaleFactor {
-                    val ws = screenWidth / srcSize.width
-                    val hs = screenHeight / srcSize.height
-                    val bigH = srcSize.height * ws
-                    val rd = floor(bigH / screenHeight)
-                    if (rd < 1) {
-                        return ScaleFactor(ws, ws)
-                    }
-                    return ScaleFactor(hs * rd, hs * rd)
-                }
-            }
-        } else {
-            cs = ContentScale.Fit
         }
     }
 
@@ -425,8 +405,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
             artworkData.twicePage.state,
             artworkData.turnPageMode.state,
             artworkData.pageDirection.state,
-            artworkData.oneScreenOnePage.state,
-            cs
+            artworkData.oneScreenOnePage.state
         ) {
             if (
                 hide

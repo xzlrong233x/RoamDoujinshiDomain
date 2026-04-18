@@ -60,7 +60,7 @@ class ImageOkHttpInterceptor(
             (painter != null && !painter.focus())) {
             if (painter != null && ConfigUtil.streamDisplay.value) {
                 return failedRespond(request, "there has been a painter focus on its multithread download", 943)
-            } // 这部分代码主要是为了让coil不发送过多请求，但似乎会导致一些问题，或许我应该让它直接报错
+            } // TODO：一定要报错。
             return chain.proceed(request)
         }
         val client = call.client

@@ -14,7 +14,7 @@ import io.ktor.http.*
 import kotlinx.io.IOException
 import kotlin.random.Random
 
-private const val prefix: String = "https://nhentai.net" //TODO: 用api。
+private const val prefix: String = "https://nhentai.net"
 
 private fun unzipNHItem(ele: Element) : SearchItemData {
     val a = ele.child(0)
