@@ -5,7 +5,7 @@ import coil3.ComponentRegistry
 interface Platform {
     val name: String
 }
-const val VERSION = "1.1.0"
+const val VERSION = "1.1.1" //修改此处后需修改build.gradle
 expect fun getPlatform(): Platform
 expect fun getFormatVersionString(): String
 

@@ -69,8 +69,8 @@ android {
         applicationId = "com.xlrr.roambendom"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 4
-        versionName = "1.1.0"
+        versionCode = 5
+        versionName = "1.1.1"
     }
     packaging {
         resources {
@@ -111,7 +111,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RoamDoujinshiDomain"
-            packageVersion = "1.1.0"
+            packageVersion = "1.1.1"
         }
     }
 }
