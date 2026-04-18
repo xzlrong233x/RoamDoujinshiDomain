@@ -18,9 +18,11 @@ import androidx.compose.material3.SearchBarDefaults.InputFieldHeight
 import androidx.compose.material3.SearchBarDefaults.inputFieldColors
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -49,6 +51,7 @@ import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
+import com.xlrr.roambendom.data.SuggestionItem
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.data.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
@@ -60,6 +63,7 @@ import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
 import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -160,6 +164,48 @@ private class TopAppBarOffsetState(
     companion object {
         const val ANIMATION_DURATION = 280L
         const val ANIMATION_DELAY = 10L
+    }
+}
+
+private class SearchSuggestionsService(
+    val coroutineScope: CoroutineScope
+) {
+    val list: SnapshotStateList<SuggestionItem> = SnapshotStateList()
+    private var job: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
+
+    suspend fun suggest(q: String, curScreen: Any) {
+        if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
+                    && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
+                    && curScreen.searchModel.configs.searchTarget.value == 1)) {
+            PIXIVApiHelper.keywordSuggestion(q).also { list.clear() }.forEach {
+                list.add(SuggestionItem(
+                    it.tagName,
+                    it.tagTranslation ?: ""
+                ))
+            }
+        }
+        else if ((GlobalData.homeContentSelection == HomeSelection.NH
+                    && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
+                    && curScreen.searchModel.configs.searchTarget.value == 0)) {
+            GlobalData.historyData.requestTokens(q).also { list.clear() }.forEach {
+                list.add(SuggestionItem(it))
+            }
+        }
+    }
+
+    fun reload(text: String, curScreen: Any) {
+        // TODO: 支持一些复杂的解析
+        job = coroutineScope.launch {
+            suggest(text, curScreen)
+        }
+    }
+
+    fun clear() {
+        list.clear()
     }
 }
 
@@ -275,6 +321,52 @@ fun RootSearchBar(
     )
 }
 
+private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: FocusManager) {
+    val cs = GlobalData.nav.backStack.last()
+    val res = "([np])(\\d+)".toRegex().find(it)
+    if (res != null && res.groupValues.size == 3) {
+        val s = when(res.groupValues[1]) {
+            "n" -> CSources.NHENTAI
+            "p" -> CSources.PIXIV
+            else -> null
+        }
+        if (s != null && res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }) {
+            GlobalData.nav.push(Routes.Root.Detail(
+                SearchItemData(res.groupValues.last(), s)
+            ))
+
+        }
+    }
+    else if (cs is Routes.Root.SearchLike) {
+        cs.searchModel.key = it
+        cs.searchModel.configs.applyChange()
+        ss.launch {
+            cs.searchModel.reload()
+            GlobalData.forListState?.scrollBy(-Float.MAX_VALUE)
+        }
+
+        if (curScreen is Routes.Root.Search
+            && curScreen.searchModel.configs.searchTarget.realValue == 0) {
+            GlobalData.historyData.addSearchToken(it)
+        }
+    } else {
+        if (GlobalData.homeContentSelection == HomeSelection.NH) {
+            GlobalData.historyData.addSearchToken(it)
+        }
+        GlobalData.nav.push(
+            Routes.Root.Search(
+                SearchParameterModel(it).config {
+                    if (GlobalData.homeContentSelection != null) {
+                        val t = if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
+                        searchTarget.setAll(t)
+                    }
+                }
+            )
+        )
+    }
+    fM.clearFocus()
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState, topBarState: TopAppBarOffsetState,
@@ -288,6 +380,9 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
     var exp by remember { mutableStateOf(false) }
     val freq = remember { FocusRequester() }
     var searchSetting by remember { mutableStateOf(false) }
+    val suggestionsService = remember {
+        SearchSuggestionsService(ss)
+    }
     Surface(Modifier.statusBarsPadding()
         .fillMaxWidth().offset {
             IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
@@ -321,79 +416,22 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             .fillMaxWidth().offset {
                 IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
             }, Alignment.Center) {
-            val search: (String) -> Unit = {
-                val cs = GlobalData.nav.backStack.last()
-                val res = "([np])(\\d+)".toRegex().find(it)
-                if (res != null && res.groupValues.size == 3) {
-                    val s = when(res.groupValues[1]) {
-                        "n" -> CSources.NHENTAI
-                        "p" -> CSources.PIXIV
-                        else -> null
-                    }
-                    if (s != null && res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }) {
-                        GlobalData.nav.push(Routes.Root.Detail(
-                            SearchItemData(res.groupValues.last(), s)
-                        ))
-
-                    }
-                }
-                else if (cs is Routes.Root.SearchLike) {
-                    cs.searchModel.key = it
-                    cs.searchModel.configs.applyChange()
-                    ss.launch {
-                        cs.searchModel.reload()
-                        GlobalData.forListState?.scrollBy(-Float.MAX_VALUE)
-                    }
-
-                    if (curScreen is Routes.Root.Search
-                        && curScreen.searchModel.configs.searchTarget.realValue == 0) {
-                        GlobalData.historyData.addSearchToken(it)
-                    }
-                } else {
-                    if (GlobalData.homeContentSelection == HomeSelection.NH) {
-                        GlobalData.historyData.addSearchToken(it)
-                    }
-                    GlobalData.nav.push(
-                        Routes.Root.Search(
-                            SearchParameterModel(it).config {
-                                if (GlobalData.homeContentSelection != null) {
-                                    val t = if (GlobalData.homeContentSelection == HomeSelection.NH) 0 else 1
-                                    searchTarget.setAll(t)
-                                }
-                            }
-                        )
-                    )
-                }
-                fM.clearFocus()
-            }
             RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
                 {
                     searchText.edit {
                         replace(0, length, it)
                     }
-                    if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
-                                && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                                && curScreen.searchModel.configs.searchTarget.value == 1)) {
-                        job?.cancel()
-                        job = ss.launch {
-                            suggestions = PIXIVApiHelper.keywordSuggestion(it)
-                        }
-                    }
-                    else if ((GlobalData.homeContentSelection == HomeSelection.NH
-                                && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                                && curScreen.searchModel.configs.searchTarget.value == 0)) {
-                        job?.cancel()
-                        job = ss.launch {
-                            suggestions = GlobalData.historyData.requestTokens(it).map { x->
-                                KeywordSuggestionItem("1", x, "", "prefix")
-                            }
-                        }
+                    suggestionsService.reload(it, curScreen)
+                },
+                exp && suggestionsService.list.isNotEmpty(),
+                {
+                    exp = it
+                    if (it) {
+                        suggestionsService.reload(searchText.text.toString(), curScreen)
                     }
                 },
-                exp && suggestions.isNotEmpty(),
-                {exp = it},
                 {
-                    if (it.isNotEmpty()) search(it)
+                    if (it.isNotEmpty()) screenSearch(it, ss, curScreen, fM)
                     else fM.clearFocus()
                 },
                 true,
@@ -424,7 +462,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                                     {
                                         searchText.clearText()
                                         val n = curScreen.clearInput()
-                                        if (n) search(searchText.text.toString())
+                                        if (n) screenSearch(searchText.text.toString(), ss, curScreen, fM)
                                     }
                                 ) {
                                     Icon(
@@ -438,20 +476,20 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 } else null
             ) {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
-                    suggestions.forEach {
+                    suggestionsService.list.forEach {
                         ListItem(
                             {
-                                Text(it.tagName)
+                                Text(it.key)
                             }, Modifier.clickable {
                                 searchText.edit {
-                                    replace(0, length, it.tagName)
+                                    replace(0, length, it.key)
                                 }
                                 exp = false
-                                search(searchText.text.toString())
-                                suggestions = listOf()
-                            }, supportingContent = if (it.tagTranslation.isNotEmpty()) {
+                                screenSearch(searchText.text.toString(), ss, curScreen, fM)
+                                suggestionsService.clear()
+                            }, supportingContent = if (it.extra.isNotEmpty()) {
                                 {
-                                    Text(it.tagTranslation)
+                                    Text(it.extra)
                                 }
                             } else null
                         )
