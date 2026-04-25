@@ -46,10 +46,10 @@ class DetailViewModel() : ViewModel() {
     }
 
     suspend fun reload(idd: String, sourceIn: CSources, forceLoad: Boolean = false) {
-        error = null
-        if (idd == id && sourceIn == source && !forceLoad) {
+        if (idd == id && sourceIn == source && !forceLoad && error == null) {
             return
         }
+        error = null
         loading = true
         id = idd
         source = sourceIn
