@@ -27,6 +27,7 @@ class ImageOkHttpInterceptor(
     private val chunkCount: Int = 16,
     private val minSizeForChunk: Long = 1024 * 64,
     private val timeoutSeconds: Long = 30,
+    private val preReadSize: Long = 32L * 1024,
     private val platformContext: PlatformContext
 ): Interceptor {
     class ItemAlreadyCachedException(msg: String) : Exception(msg)
@@ -59,7 +60,7 @@ class ImageOkHttpInterceptor(
             call !is RealCall ||
             (painter != null && !painter.focus())) {
             if (painter != null && ConfigUtil.streamDisplay.value) {
-                return failedRespond(request, "there has been a painter focus on its multithread download", 943)
+                throw Exception("there has been a painter focus on its multithread download")
             } // TODO：一定要报错。
             return chain.proceed(request)
         }
@@ -87,7 +88,7 @@ class ImageOkHttpInterceptor(
 
         if (ConfigUtil.streamDisplay.value && !ConfigUtil.useMultithread.value) {
             try {
-                return streamRead(chain, painter, client, totalSize)
+                return streamRead(chain, painter, client, totalSize, preReadSize)
             } finally {
                 painter?.release()
             }

@@ -14,10 +14,10 @@ class ImageNetInterceptor(
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         var t = chain.proceed()
         var c = 0
-        if (t is ErrorResult && t.throwable is HttpException && t.throwable.message?.contains("943") == true) {
-            t.request.diskCacheKey?.let { SingletonImageLoader.get(chain.request.context).diskCache?.remove(it) }
-            t = chain.proceed()
-        }
+//        if (t is ErrorResult && t.throwable is HttpException && t.throwable.message?.contains("943") == true) {
+//            t.request.diskCacheKey?.let { SingletonImageLoader.get(chain.request.context).diskCache?.remove(it) }
+//            t = chain.proceed()
+//        }
         while (t is ErrorResult && t.throwable.message == "timeout" && c < maxCount) {
             c++
             t = chain.proceed()

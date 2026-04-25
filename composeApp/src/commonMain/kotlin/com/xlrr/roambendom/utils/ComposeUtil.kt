@@ -276,7 +276,7 @@ fun ProgressiveImage(
             onSuccess = {
                 p.destroy()
                 if (it.result.dataSource != DataSource.NETWORK) {
-                    SharedPainterManager.checkDestroyed()
+                    SharedPainterManager.checkDestroyed(request.context)
                 }
             },
             onError = {
