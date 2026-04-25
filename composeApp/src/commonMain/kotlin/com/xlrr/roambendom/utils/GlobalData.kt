@@ -11,6 +11,7 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.ui.HomeSelection
+import kotlinx.coroutines.flow.MutableStateFlow
 import okio.Path.Companion.toPath
 
 object GlobalData {
@@ -19,7 +20,7 @@ object GlobalData {
     var forListState: ScrollableState? by mutableStateOf(null)
     var rootSearchQuery: TextFieldState = TextFieldState()
 
-    var hideStatusBar by mutableStateOf(false) // 是否不显示状态栏，对桌面端无效
+    var hideStatusBar = MutableStateFlow(false) // 是否不显示状态栏，对桌面端无效
     var rootSearchBarExpanded by mutableStateOf(false) // 保留，说不定什么时候就用上了
     private var _hideRailCount by mutableIntStateOf(0) //写的什么狗屁倒灶的代码
 

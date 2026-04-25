@@ -334,11 +334,14 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         else lockHide = false
         preload.preload(artworkInfo.pageUrls.map { UrlWithSize.parse(it).url }, pager.currentPage)
     }
-    DisposableEffect(artworkData.pageDirection.value) {
-        GlobalData.hideStatusBar = artworkData.pageDirection.value == 1
+    DisposableEffect(Unit) {
+        GlobalData.hideStatusBar.tryEmit(true)
         onDispose {
-            GlobalData.hideStatusBar = false
+            GlobalData.hideStatusBar.tryEmit(false)
         }
+    }
+    LaunchedEffect(hide) {
+        GlobalData.hideStatusBar.emit(hide)
     }
 
     val onTop: (Offset) -> Unit = { of ->

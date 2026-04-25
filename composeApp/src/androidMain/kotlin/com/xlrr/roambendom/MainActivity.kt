@@ -2,6 +2,7 @@ package com.xlrr.roambendom
 
 import android.os.Bundle
 import android.view.WindowInsets
+import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -9,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.funny.data_saver.core.DataSaverPreferences
@@ -34,12 +36,13 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalPlatformForUI provides UIEnablePlatform.ANDROID) {
                 App()
             }
-            LaunchedEffect(GlobalData.hideStatusBar) {
-                if (GlobalData.hideStatusBar) {
-                    wic?.hide(WindowInsets.Type.statusBars())
-                } else {
-                    wic?.show(WindowInsets.Type.statusBars())
-                }
+            val sh = GlobalData.hideStatusBar.collectAsState().value
+            if (sh) {
+                wic?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                wic?.hide(WindowInsets.Type.statusBars())
+            } else {
+                wic?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+                wic?.show(WindowInsets.Type.statusBars())
             }
         }
     }
