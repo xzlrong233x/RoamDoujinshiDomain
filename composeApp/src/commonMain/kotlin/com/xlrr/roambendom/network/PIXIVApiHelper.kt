@@ -135,7 +135,9 @@ object PIXIVApiHelper {
             pixivNormalSetting()
         }
         if (bd.error) {
-            return info
+            throw Exception("artwork info get error info: ${
+                bd.message.ifEmpty { "\nmessage is empty, maybe the artwork is disappeared" } //TODO: Localization
+            }")
         }
         val jo = bd.realData(JsonObject.serializer())
         info.title = jo.getAsString("illustTitle")

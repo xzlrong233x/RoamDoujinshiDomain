@@ -260,17 +260,19 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
             preload.preload(it.pageUrls.map { s -> UrlWithSize.parse(s).url }, page,)
         }
     }
+    LaunchedEffect(details.loading) {
+        if (!details.loading && details.error == null) {
+            details.content?.let {
+                GlobalData.historyData.addItem(searchItemData.fillSelfIfDefective(it), true)
+            }
+        }
+    }
 
     var showAllDes by remember { mutableStateOf(false) }
     var moreBtn by remember { mutableStateOf(false) }
     var showAllPage by remember { mutableStateOf(false) }
     Box() {
         if (!details.loading && details.content != null) {
-            LaunchedEffect(Unit) {
-                details.content?.let {
-                    GlobalData.historyData.addItem(searchItemData.fillSelfIfDefective(it), true)
-                }
-            }
             Box(Modifier.align(Alignment.TopCenter).focusRequester(fcq).focusable()
                 .onPreviewKeyEvent {
                     if (ConfigUtil.enableVolumeTurn.value) {

@@ -194,13 +194,6 @@ fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, 
     val co = rememberCoroutineScope()
     Scaffold(modifier.fillMaxSize()) { pd ->
         Surface(modifier.fillMaxSize().padding(pd)) {
-            when (searchItemData.source) {
-                NHENTAI -> NHDetail(searchItemData, details)
-                PIXIV -> PIXIVDetail(searchItemData, details)
-            }
-            if (details.loading) {
-                CenterCircular()
-            }
             if (details.error != null) {
                 details.error?.let {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -220,6 +213,14 @@ fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, 
                         }
                     }
                 }
+            } else {
+                when (searchItemData.source) {
+                    NHENTAI -> NHDetail(searchItemData, details)
+                    PIXIV -> PIXIVDetail(searchItemData, details)
+                }
+            }
+            if (details.loading) {
+                CenterCircular()
             }
         }
     }

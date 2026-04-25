@@ -89,9 +89,9 @@ object NHWebHelper {
         }.getOrNull()
     }
 
-    suspend fun galleryNH(id: String): NHGallery? {
+    suspend fun galleryNH(id: String): Result<NHGallery> {
         checkCdn()
-        return if (id.isNotEmpty()) api<NHGallery>("galleries",id).getOrNull() else null
+        return if (id.isNotEmpty()) api<NHGallery>("galleries",id) else Result.failure(Exception("id should be not empty"))
     }
 
     /**
@@ -149,7 +149,7 @@ object NHWebHelper {
 
     suspend fun artwork(id: String): ArtworkInfo {
         val info = ArtworkInfo()
-        val s = galleryNH(id) ?: return info
+        val s = galleryNH(id).getOrThrow()
         info.cover = s.cover.path.connectWithCdn(true)
         info.title = s.title.english
         info.altitle = s.title.japanese ?: ""
