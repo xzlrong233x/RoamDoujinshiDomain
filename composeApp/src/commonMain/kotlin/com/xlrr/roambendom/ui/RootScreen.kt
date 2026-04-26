@@ -61,6 +61,7 @@ import com.xlrr.roambendom.ui.detailScreen.DetailScreen
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
+import com.xlrr.roambendom.utils.MthUtil
 import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,13 +94,12 @@ private val navItems: List<NavItem> = listOf(
         { it is Routes.Root.History },
         { GlobalData.nav.replace(Routes.Root.History(
             SearchParameterModel("").config {
-                searchFunction = {k, p ->
+                searchFunction = {k, p, e ->
                     val l = GlobalData.historyData.search(k)
-                    val ln = ((p-1) * 30).coerceIn(null, l.size)
-                    val rn = (p * 30).coerceIn(null, l.size)
                     SearchResult(
                         l.size,
-                        l.subList(ln, rn),
+                        MthUtil.calWindow(p, 30, l.size)
+                            .let { l.subList(it.first, it.second) },
                         k,
                         p
                     )
@@ -123,6 +123,10 @@ private class TopAppBarOffsetState(
     private val _toolbarOffset = mutableFloatStateOf(0f)
     var lockBar: Boolean = false
     private var _job: Job? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
     var toolbarOffsetHeightPx: Float
         get() {
             if (lockBar) {
@@ -133,7 +137,23 @@ private class TopAppBarOffsetState(
         set(value) {
             _toolbarOffset.floatValue = value
         }
+
+    fun startReturn() {
+        val b = if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) 1 else -1
+        val d = maxUpPx - minUpPx
+        _job = coroutineScope.launch {
+            while (true) {
+                val newV = _toolbarOffset.floatValue + d / (ANIMATION_DURATION / ANIMATION_DELAY) * b
+                toolbarOffsetHeightPx = newV.coerceIn(-maxUpPx,-minUpPx)
+                if (abs(newV) !in minUpPx..maxUpPx) {
+                    break
+                }
+                delay(ANIMATION_DELAY)
+            }
+        } // 我不认为有那么好
+    }
     val nestedScrollConnection = object : NestedScrollConnection {
+        private var fling = false
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
             _job?.cancel()
             if (!WhatShouldFixBar.any { GlobalData.nav.backStack.last().instanceOf(it) } || lockBar) {
@@ -144,19 +164,23 @@ private class TopAppBarOffsetState(
             return Offset.Zero
         }
 
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if ((source == NestedScrollSource.SideEffect && !fling)
+                || (available.y == 0f && consumed.y == 0f)) { // 桌面端在一些操作后会出现非用户操作的滑动事件
+                startReturn()
+            }
+            return super.onPostScroll(consumed, available, source)
+        }
+
+        override suspend fun onPreFling(available: Velocity): Velocity {
+            fling = true
+            _job?.cancel()
+            return super.onPreFling(available)
+        }
+
         override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            val b = if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) 1 else -1
-            val d = maxUpPx - minUpPx
-            _job = coroutineScope.launch {
-                while (true) {
-                    val newV = _toolbarOffset.floatValue + d / (ANIMATION_DURATION / ANIMATION_DELAY) * b
-                    toolbarOffsetHeightPx = newV.coerceIn(-maxUpPx,-minUpPx)
-                    if (abs(newV) !in minUpPx..maxUpPx) {
-                        break
-                    }
-                    delay(ANIMATION_DELAY)
-                }
-            } // 我不认为有那么好
+            fling = false
+            startReturn()
             return super.onPostFling(consumed, available)
         }
     }
@@ -334,7 +358,6 @@ private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: Foc
             GlobalData.nav.push(Routes.Root.Detail(
                 SearchItemData(res.groupValues.last(), s)
             ))
-
         }
     }
     else if (cs is Routes.Root.SearchLike) {
@@ -344,7 +367,6 @@ private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: Foc
             cs.searchModel.reload()
             GlobalData.forListState?.scrollBy(-Float.MAX_VALUE)
         }
-
         if (curScreen is Routes.Root.Search
             && curScreen.searchModel.configs.searchTarget.realValue == 0) {
             GlobalData.historyData.addSearchToken(it)
@@ -396,6 +418,13 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 returnCaller()
             } else if (!should) {
                 drawerCaller()
+            }
+            CtrlAnimatedVisibility(
+                !should && curScreen is Routes.Root && curScreen.headerTitle.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Text(if (curScreen is Routes.Root) curScreen.headerTitle else "")
             }
         }
     }
@@ -716,6 +745,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                     is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
                     is Routes.Root.History -> HistoryScreen(Modifier.padding(it), x.searchModel)
+                    is Routes.Root.FixedSearch -> SearchScreen(Modifier.padding(it), x.searchModel)
                 }
             }
         }

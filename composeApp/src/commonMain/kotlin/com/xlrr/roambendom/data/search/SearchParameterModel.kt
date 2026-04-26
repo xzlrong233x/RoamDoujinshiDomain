@@ -8,7 +8,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class SearchParameterModel(
     var key: String,
     var configs: SearchConfigs = SearchConfigs()
-) {
+) { //TODO: 我到时候一定要写一个通用的带refresh，loading，data，func的开放类
     fun config(fc: SearchConfigs.() -> Unit) : SearchParameterModel {
         fc(configs)
         return this
@@ -24,6 +24,7 @@ class SearchParameterModel(
     val content = mutableStateSetOf<SearchItemData>()
 
     var page by mutableIntStateOf(0)
+    val extra = HashMap<String, Any>()
 
     suspend fun reload() {
         reset()
@@ -54,7 +55,7 @@ class SearchParameterModel(
         loading = true
         try {
             if (configs.clearList) content.clear()
-            val result = configs.searchFunction(key, page)
+            val result = configs.searchFunction(key, page, extra)
             if (clearAfterGet) {
                 content.clear()
             }

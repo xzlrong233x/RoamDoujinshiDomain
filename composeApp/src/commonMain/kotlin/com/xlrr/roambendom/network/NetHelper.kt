@@ -13,6 +13,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 import java.security.KeyStore
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
@@ -54,7 +55,15 @@ object NetHelper {
 
     private fun createClient(): HttpClient = HttpClient(OkHttp) {
         install(ContentNegotiation) {
-            json()
+            json(Json {
+                encodeDefaults = true
+                isLenient = true
+                allowSpecialFloatingPointValues = true
+                allowStructuredMapKeys = true
+                prettyPrint = false
+                useArrayPolymorphism = false
+                ignoreUnknownKeys = true
+            })
         }
         engine {
             config {

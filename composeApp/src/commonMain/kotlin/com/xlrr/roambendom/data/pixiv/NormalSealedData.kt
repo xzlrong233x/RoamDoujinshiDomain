@@ -13,4 +13,8 @@ data class NormalSealedData<T>(
     fun realData(serializer: KSerializer<T>): T {
         return Json.decodeFromJsonElement(serializer, body)
     }
+
+    fun throwIfError() {
+        if (error) throw Exception(message)
+    }
 }

@@ -1,10 +1,8 @@
 package com.xlrr.roambendom.data.search
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.TempChangeConfig
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.SearchResult
@@ -24,7 +22,7 @@ class SearchConfigs {
             "搜索模式", PixivSearchRestriction.entries.toList()
         ) { it.lowerStr() })
 
-    var searchFunction : suspend (key: String, page: Int) -> SearchResult = {key, page ->
+    var searchFunction : suspend (key: String, page: Int, extra: HashMap<String, Any>) -> SearchResult = {key, page, extra ->
         if (searchTarget.realValue == 0) NHWebHelper.search(key, page) else
             PIXIVApiHelper.search(key, page, pixivSearchRestriction.realValue)
     }

@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -31,10 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.ArtworkInfo
@@ -43,7 +39,6 @@ import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
 import com.xlrr.roambendom.nav.Routes
-import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.ui.Preload
@@ -56,7 +51,9 @@ import net.engawapg.lib.zoomable.ZoomState
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import org.jetbrains.compose.resources.painterResource
-import roambendom.composeapp.generated.resources.*
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.book
+import roambendom.composeapp.generated.resources.img_download_icon
 import kotlin.math.floor
 
 @Composable
@@ -423,7 +420,12 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                 details.content?.let {
                                     Text(
                                         "${it.authors.first()} (${it.authors.last()})",
-                                        Modifier.padding(6.dp, 6.dp)
+                                        Modifier.padding(6.dp, 6.dp).clickable {
+                                            GlobalData.nav.pushAuthorSearch(
+                                                it.authors.last(),
+                                                it.authors.first()
+                                            )
+                                        }
                                     )
                                 }
 

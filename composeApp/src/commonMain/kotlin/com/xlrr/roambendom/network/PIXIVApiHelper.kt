@@ -74,6 +74,21 @@ object PIXIVApiHelper {
         return result
     }
 
+    fun joToPixivSearchItem(n: JsonObject) : SearchItemData {
+        return SearchItemData(
+            n.getAsString("id"),
+            CSources.PIXIV,
+            n.getAsString("title"),
+            n.getAsInt("pageCount"),
+            CLanguage.Unknown,
+            n.getAsString("url"),
+            CRestriction.entries[n.getAsInt("xRestrict")],
+            n.getAsInt("aiType") > 1,
+            "${n.getAsString("userName")}(${n.getAsString("userId")})",
+            Instant.parse(n.getAsString("updateDate")).toEpochMilliseconds()
+        )
+    }
+
     suspend fun search(key: String, page: Int = 1,
                        mode: PixivSearchRestriction = PixivSearchRestriction.All) : SearchResult {
         val encoded = key.encodeURLQueryComponent()
@@ -94,18 +109,7 @@ object PIXIVApiHelper {
                 it.jsonObject.let { n ->
                     if (n.getAsBoolean("isAdContainer")) return@let
                     change.add(
-                        SearchItemData(
-                            n.getAsString("id"),
-                            CSources.PIXIV,
-                            n.getAsString("title"),
-                            n.getAsInt("pageCount"),
-                            CLanguage.Unknown,
-                            n.getAsString("url"),
-                            CRestriction.entries[n.getAsInt("xRestrict")],
-                            n.getAsInt("aiType") > 1,
-                            "${n.getAsString("userName")}(${n.getAsString("userId")})",
-                            Instant.parse(n.getAsString("updateDate")).toEpochMilliseconds()
-                        )
+                        joToPixivSearchItem(n)
                     )
                 }
             }
@@ -181,6 +185,39 @@ object PIXIVApiHelper {
         }.body<JsonObject>()["candidates"]?.let {
              Json.decodeFromJsonElement(it)
         } ?: listOf()
+    }
+
+    suspend fun userAllWorks(id: String) : UserAllWorkData {
+        val std = requestStandard<JsonObject>("/ajax/user/${id}/profile/all") {
+            pixivNormalSetting()
+        }
+        if (std.error)
+            return UserAllWorkData(listOf(),listOf(),listOf())
+        return UserAllWorkData(
+            std.body.jsonObject.getOrDefault("illusts", JsonElement).let {
+                if (it is JsonObject) it.map { t -> t.key.toInt() }
+                else listOf()
+            },
+            std.body.jsonObject.getOrDefault("manga", JsonElement).let {
+                if (it is JsonObject) it.map { t -> t.key.toInt() }
+                else listOf()
+            },
+            std.body.jsonObject.getOrDefault("novels", JsonElement).let {
+                if (it is JsonObject) it.map { t -> t.key.toInt() }
+                else listOf()
+            }
+        )
+    }
+
+    suspend fun userWorkInfo(ids: List<Int>, userId: String, ty: String = "illustManga"): List<SearchItemData> {
+        if (ids.isEmpty()) return listOf()
+        val std = requestStandard<JsonObject>("/ajax/user/${userId}/profile/illusts") {
+            pixivNormalSetting()
+            ids.forEach { parameter("ids[]", it) }
+            parameter("work_category", ty)
+            parameter("is_first_page", 0)
+        }
+        return std.body.jsonObject["works"]?.jsonObject?.map { joToPixivSearchItem(it.value.jsonObject) } ?: listOf()
     }
 
     suspend fun testPixivRequest(): PixivTestResult {

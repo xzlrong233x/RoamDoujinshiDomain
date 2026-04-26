@@ -5,7 +5,9 @@ import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.search.SearchParameterModel
 
 sealed class Routes {
-    sealed class Root : Routes() {
+    sealed class Root(
+        val headerTitle: String = ""
+    ) : Routes() {
         companion object {
             val Default = Home
         }
@@ -16,13 +18,16 @@ sealed class Routes {
         open class SearchLike(
             val searchModel: SearchParameterModel,
             val canChangeSettings: Boolean,
-            val clearInput: (() -> Boolean)? = null
-        ) : Root()
+            val clearInput: (() -> Boolean)? = null,
+            title: String = ""
+        ) : Root(title)
         class Search(
             searchModel: SearchParameterModel
         ) : SearchLike(searchModel, true)
         class History(searchParameterModel: SearchParameterModel, clearFunc: () -> Boolean)
             : SearchLike(searchParameterModel, false, clearFunc)
+        class FixedSearch(searchParameterModel: SearchParameterModel, title: String)
+            : SearchLike(searchParameterModel, false, title = title)
         data object Settings : Root()
     }
     data class Artwork(
