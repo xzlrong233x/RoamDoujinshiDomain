@@ -1,6 +1,5 @@
 package com.xlrr.roambendom.progressive
 
-import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.text.TextMeasurer
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -37,7 +36,7 @@ object SharedPainterManager {
             val r = nouse && ((it.value.isClosed() && it.value.isDestroyed())
                             || SingletonImageLoader.get(platformContext).memoryCache
                                 ?.get(MemoryCache.Key(it.key)) != null
-                            || keyCount.getOrDefault(it.key, 0) > 100)
+                            || keyCount.getOrDefault(it.key, 0) > 200)
             if (r) keyCount.remove(it.key)
             r
         }

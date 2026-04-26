@@ -20,6 +20,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.internal.closeQuietly
 import okhttp3.internal.connection.RealCall
 import java.io.ByteArrayOutputStream
+import java.io.InterruptedIOException
 import java.util.concurrent.Executors
 import kotlin.random.Random
 
@@ -60,7 +61,7 @@ class ImageOkHttpInterceptor(
             call !is RealCall ||
             (painter != null && !painter.focus())) {
             if (painter != null && ConfigUtil.streamDisplay.value) {
-                throw Exception("there has been a painter focus on its multithread download")
+                throw InterruptedIOException("there has been a painter focus on its multithread download")
             } // TODO：一定要报错。
             return chain.proceed(request)
         }
