@@ -1,6 +1,5 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -13,7 +12,8 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.SearchItemData
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.detail.asDetail
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
@@ -46,7 +46,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
             },
             imgLabel = it.thumb,
             onclick = {
-                GlobalData.nav.push(Routes.Root.Detail(it))
+                GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },
             toColumn = orColumn
         )

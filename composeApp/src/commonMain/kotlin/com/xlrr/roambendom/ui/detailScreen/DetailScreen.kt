@@ -23,60 +23,29 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.data.ArtworkInfo
-import com.xlrr.roambendom.data.CSources
-import com.xlrr.roambendom.data.CSources.NHENTAI
-import com.xlrr.roambendom.data.CSources.PIXIV
-import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.model.detail.BaseDetailModel
+import com.xlrr.roambendom.model.detail.NHDetailModel
+import com.xlrr.roambendom.model.detail.PIXIVDetailModel
 import com.xlrr.roambendom.nav.Routes
-import com.xlrr.roambendom.network.NHWebHelper
-import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 
 class DetailViewModel() : ViewModel() {
     var content: ArtworkInfo? by mutableStateOf(null)
-    var loading by mutableStateOf(false)
-    var error : Exception? by mutableStateOf(null)
-    var source: CSources = NHENTAI
-    var id: String = ""
-
-    fun isSuccessful() : Boolean {
-        return !loading && content != null && error == null
-    }
-
-    suspend fun reload(idd: String, sourceIn: CSources, forceLoad: Boolean = false) {
-        if (idd == id && sourceIn == source && !forceLoad && error == null) {
-            return
-        }
-        error = null
-        loading = true
-        id = idd
-        source = sourceIn
-        try {
-            content = when (source) {
-                NHENTAI -> NHWebHelper.artwork(id)
-                PIXIV -> PIXIVApiHelper.artwork(id)
-            }
-        } catch (e : Exception) {
-            e.printStackTrace()
-            error = e
-        }
-        loading = false
-    }
 }
 
 // 我使用SelectionContainer的时候，曾遇到过一个关于select range的报错，不过我难以复现。
 
 
 @Composable
-fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
+fun NHDetail(details: NHDetailModel) {
     with(LocalSharedTransitionScope.current) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally) {
             DetailBox() {
                 Row(Modifier.fillMaxWidth()) {
-                    val url = searchItemData.thumb.ifEmpty { details.content?.thumbUrls?.first() }
+                    val url = details.searchItemData.thumb.ifEmpty { details.content?.thumbUrls?.first() }
                     if (url != null && url.isNotEmpty()) {
                         DefaultErrorHandleImage(
                             url,
@@ -89,7 +58,7 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                     Spacer(Modifier.width(8.dp))
                     SelectionContainer {
                         Column {
-                            Text(searchItemData.title.ifEmpty { details.content?.title ?: "" },
+                            Text(details.searchItemData.title.ifEmpty { details.content?.title ?: "" },
                                 style = typography.titleLarge,
                                 maxLines = 3, overflow = TextOverflow.Ellipsis)
                             CtrlAnimatedVisibility(
@@ -108,7 +77,7 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            "#${searchItemData.id}",
+                                            "#${details.searchItemData.id}",
                                             Modifier.padding(0.dp, 2.dp),
                                             style = typography.bodyLarge
                                         )
@@ -149,7 +118,7 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                                 return@Button
                             }
                             GlobalData.historyData.addItem(
-                                searchItemData.fillSelf(details.content!!),
+                                details.searchItemData.fillSelf(details.content!!),
                                 true
                             )
                             GlobalData.nav.push(Routes.Artwork(details.content!!))
@@ -186,26 +155,22 @@ fun NHDetail(searchItemData: SearchItemData, details: DetailViewModel) {
 }
 
 @Composable
-fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
+fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
     LaunchedEffect(Unit) {
-        if (!searchItemData.isDefective()) GlobalData.historyData.addItem(searchItemData)
-        details.reload(searchItemData.id, searchItemData.source)
+        if (!detailModel.searchItemData.isDefective()) GlobalData.historyData.addItem(detailModel.searchItemData)
+        detailModel.reloadIfEmpty()
     }
     val co = rememberCoroutineScope()
     Scaffold(modifier.fillMaxSize()) { pd ->
         Surface(modifier.fillMaxSize().padding(pd)) {
-            if (details.error != null) {
-                details.error?.let {
+            if (detailModel.error != null) {
+                detailModel.error?.let {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("错误：${it.message}")
                             Button({
                                 co.launch {
-                                    details.reload(
-                                        searchItemData.id,
-                                        searchItemData.source,
-                                        true
-                                    )
+                                    detailModel.reloadIfEmpty()
                                 }
                             }) {
                                 Text("点我重载")
@@ -214,12 +179,12 @@ fun DetailScreen(searchItemData: SearchItemData, modifier: Modifier = Modifier, 
                     }
                 }
             } else {
-                when (searchItemData.source) {
-                    NHENTAI -> NHDetail(searchItemData, details)
-                    PIXIV -> PIXIVDetail(searchItemData, details)
+                when (detailModel) {
+                    is NHDetailModel -> NHDetail(detailModel)
+                    is PIXIVDetailModel -> PIXIVDetail(detailModel)
                 }
             }
-            if (details.loading) {
+            if (detailModel.loading) {
                 CenterCircular()
             }
         }

@@ -35,9 +35,9 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.CRestriction
-import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
+import com.xlrr.roambendom.model.detail.PIXIVDetailModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
@@ -220,7 +220,7 @@ private fun LazyListScope.imagesOrAnimatedImage(
 }
 
 @Composable
-fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
+fun PIXIVDetail(details: PIXIVDetailModel) {
     val state = rememberLazyListState()
     val context = LocalPlatformContext.current
     val tm = rememberTextMeasurer(0)
@@ -260,7 +260,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
     LaunchedEffect(details.loading) {
         if (!details.loading && details.error == null) {
             details.content?.let {
-                GlobalData.historyData.addItem(searchItemData.fillSelfIfDefective(it), true)
+                GlobalData.historyData.addItem(details.searchItemData.fillSelfIfDefective(it), true)
             }
         }
     }
@@ -343,7 +343,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         item("Title") {
                             SelectionContainer {
                                 Text(
-                                    searchItemData.title.ifEmpty { details.content?.title.toString() },
+                                    details.searchItemData.title.ifEmpty { details.content?.title.toString() },
                                     Modifier.padding(6.dp, 0.dp),
                                     style = MaterialTheme.typography.headlineMedium
                                 )
@@ -393,7 +393,7 @@ fun PIXIVDetail(searchItemData: SearchItemData, details: DetailViewModel) {
                         item("IdText") {
                             SelectionContainer {
                                 Text(
-                                    "#${searchItemData.id}",
+                                    "#${details.searchItemData.id}",
                                     Modifier.padding(6.dp, 2.dp),
                                     style = MaterialTheme.typography.bodyLarge
                                 )

@@ -20,7 +20,8 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.PixivTestResult
 import com.xlrr.roambendom.data.SearchItemData
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.detail.asDetail
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
@@ -74,7 +75,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             onclick = {
-                GlobalData.nav.push(Routes.Root.Detail(it))
+                GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },
             imgLabel = it.thumb,
             toColumn = orColumn

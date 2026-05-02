@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
@@ -23,7 +23,7 @@ import kotlin.math.max
 private fun LoadingIndexer(spm: SearchParameterModel, ss: CoroutineScope) {
     Box(Modifier.fillMaxWidth(), Alignment.Center) {
         if (spm.error == null) {
-            if (spm.end) {
+            if (spm.completed) {
                 Text("没有更多了，页码${spm.page}")
             } else {
                 CircularProgressIndicator()
@@ -64,7 +64,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
             val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
 
             // 确保列表不为空且不在加载中，且最后一个可见项接近末尾
-            !searchParameterModel.loading && !searchParameterModel.end
+            !searchParameterModel.loading && !searchParameterModel.completed
                     && lastVisibleItem != null && lastVisibleItem.index >= totalItems - 1
                     && lastVisibleItem.key == "nextLoading"
         }
@@ -94,7 +94,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
                 main(searchParameterModel)
                 if (load != null) {
                     item(
-                        if (searchParameterModel.end) "bottom" else "nextLoading",
+                        if (searchParameterModel.completed) "bottom" else "nextLoading",
                         span = StaggeredGridItemSpan.FullLine
                     ) {
                         load(searchParameterModel, ss)
@@ -124,7 +124,7 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
             val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
 
             // 确保列表不为空且不在加载中，且最后一个可见项接近末尾
-            !searchParameterModel.loading && !searchParameterModel.end
+            !searchParameterModel.loading && !searchParameterModel.completed
                     && lastVisibleItem != null && lastVisibleItem.index >= totalItems - 1
                     && lastVisibleItem.key == "nextLoading"
         }
@@ -146,7 +146,7 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
         if (searchParameterModel.content.isNotEmpty()) {
             main(searchParameterModel)
             if (load != null){
-                item(if (searchParameterModel.end) "bottom" else "nextLoading") {
+                item(if (searchParameterModel.completed) "bottom" else "nextLoading") {
                     load(searchParameterModel, ss)
                 }
             }
@@ -200,7 +200,7 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
     }
 
     LaunchedEffect(Unit) {
-        if (searchParameterModel.content.isEmpty() && !searchParameterModel.end) {
+        if (searchParameterModel.content.isEmpty() && !searchParameterModel.completed) {
             searchParameterModel.reload()
         }
     }

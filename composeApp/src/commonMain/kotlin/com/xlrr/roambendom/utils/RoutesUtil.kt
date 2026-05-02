@@ -2,7 +2,7 @@ package com.xlrr.roambendom.utils
 
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper

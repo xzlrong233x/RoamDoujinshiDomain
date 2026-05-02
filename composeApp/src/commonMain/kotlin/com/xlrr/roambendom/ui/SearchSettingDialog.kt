@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.xlrr.roambendom.config.CalUI
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.utils.LocalWindowSize
 import kotlin.math.min
 

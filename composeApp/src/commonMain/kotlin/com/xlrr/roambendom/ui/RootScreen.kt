@@ -53,7 +53,8 @@ import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
 import com.xlrr.roambendom.data.SuggestionItem
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.detail.asDetail
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.nav.shouldShowTrailingIcon
 import com.xlrr.roambendom.network.PIXIVApiHelper
@@ -64,7 +65,6 @@ import com.xlrr.roambendom.utils.LocalWindowSize
 import com.xlrr.roambendom.utils.MthUtil
 import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -356,7 +356,7 @@ private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: Foc
         }
         if (s != null && res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }) {
             GlobalData.nav.push(Routes.Root.Detail(
-                SearchItemData(res.groupValues.last(), s)
+                SearchItemData(res.groupValues.last(), s).asDetail()
             ))
         }
     }
@@ -741,7 +741,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
             CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
                 when (x) {
                     is Routes.Root.Home -> HomeScreen(modifier.padding(it))
-                    is Routes.Root.Detail -> DetailScreen(x.searchItemData, modifier.padding(it))
+                    is Routes.Root.Detail -> DetailScreen(x.detailModel, modifier.padding(it))
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                     is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
                     is Routes.Root.History -> HistoryScreen(Modifier.padding(it), x.searchModel)

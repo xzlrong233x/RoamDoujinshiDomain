@@ -1,8 +1,8 @@
 package com.xlrr.roambendom.nav
 
 import com.xlrr.roambendom.data.ArtworkInfo
-import com.xlrr.roambendom.data.SearchItemData
-import com.xlrr.roambendom.data.search.SearchParameterModel
+import com.xlrr.roambendom.model.detail.BaseDetailModel
+import com.xlrr.roambendom.model.search.SearchParameterModel
 
 sealed class Routes {
     sealed class Root(
@@ -13,7 +13,7 @@ sealed class Routes {
         }
         data object Home : Root()
         data class Detail(
-            val searchItemData: SearchItemData
+            val detailModel: BaseDetailModel
         ) : Root()
         open class SearchLike(
             val searchModel: SearchParameterModel,

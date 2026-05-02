@@ -1,32 +1,30 @@
-package com.xlrr.roambendom.data.search
+package com.xlrr.roambendom.model.search
 
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateSet
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.model.RequestRefreshModel
 import kotlin.coroutines.cancellation.CancellationException
 
 class SearchParameterModel(
     var key: String,
     var configs: SearchConfigs = SearchConfigs()
-) { //TODO: 我到时候一定要写一个通用的带refresh，loading，data，func的开放类
+) : RequestRefreshModel<SnapshotStateSet<SearchItemData>>({mutableStateSetOf()}) {
     fun config(fc: SearchConfigs.() -> Unit) : SearchParameterModel {
         fc(configs)
         return this
     }
+    private var _complete by mutableStateOf(false)
 
-    var loading by mutableStateOf(false)
-    var refreshing by mutableStateOf(false)
-    var end by mutableStateOf(false)
-    var error: Throwable? by mutableStateOf(null)
-
+    val completed
+        get() = _complete
     var scrollState : ScrollableState? = null
-
-    val content = mutableStateSetOf<SearchItemData>()
 
     var page by mutableIntStateOf(0)
     val extra = HashMap<String, Any>()
 
-    suspend fun reload() {
+    override suspend fun reload() {
         reset()
         clear()
         request()
@@ -39,20 +37,20 @@ class SearchParameterModel(
 
     fun reset() {
         error = null
-        end = false
+        _complete = false
     }
 
-    suspend fun refresh() { //纯他妈叠石山
+    override suspend fun refresh() { //纯他妈叠石山
         page = 0
         reset()
-        refreshing = true
+        _refreshing = true
         request(true)
-        refreshing = false
+        _refreshing = false
     }
 
     suspend fun request(clearAfterGet: Boolean = false) {
         page++
-        loading = true
+        _loading = true
         try {
             if (configs.clearList) content.clear()
             val result = configs.searchFunction(key, page, extra)
@@ -61,11 +59,11 @@ class SearchParameterModel(
             }
             if (result.items.isNotEmpty()) {
                 content.addAll(result.items)
-            } else end = true
+            } else _complete = true
         } catch (e: Exception) {
             if (e !is CancellationException)
                 error = e
         }
-        loading = false
+        _loading = false
     }
 }

@@ -1,4 +1,4 @@
-package com.xlrr.roambendom.data.search
+package com.xlrr.roambendom.model.search
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
