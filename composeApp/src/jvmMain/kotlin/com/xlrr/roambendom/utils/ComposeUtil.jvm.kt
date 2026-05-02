@@ -1,5 +1,7 @@
 package com.xlrr.roambendom.utils
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.Icon
@@ -91,5 +93,9 @@ actual fun CtrlPullToRefreshBox(
     indicator: @Composable (BoxScope.() -> Unit),
     content: @Composable (BoxScope.() -> Unit)
 ) {
-    Box(modifier, contentAlignment,content = content)
+    ContextMenuArea({listOf(
+        ContextMenuItem("刷新", onRefresh)
+    )}) {
+        Box(modifier, contentAlignment,content = content)
+    }
 }

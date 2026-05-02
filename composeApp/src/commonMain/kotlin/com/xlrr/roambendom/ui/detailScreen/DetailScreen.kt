@@ -22,6 +22,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
+import com.xlrr.roambendom.config.LocalPlatformForUI
+import com.xlrr.roambendom.config.UIEnablePlatform
 import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.model.detail.BaseDetailModel
 import com.xlrr.roambendom.model.detail.NHDetailModel
@@ -162,7 +164,12 @@ fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier, de
     }
     val co = rememberCoroutineScope()
     Scaffold(modifier.fillMaxSize()) { pd ->
-        Surface(modifier.fillMaxSize().padding(pd)) {
+        CtrlPullToRefreshBox(
+            detailModel.loading,
+            {co.launch { detailModel.refresh() }},
+            Modifier.fillMaxSize().padding(pd),
+            contentAlignment =  Alignment.TopCenter
+        ) {
             if (detailModel.error != null) {
                 detailModel.error?.let {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -184,7 +191,7 @@ fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier, de
                     is PIXIVDetailModel -> PIXIVDetail(detailModel)
                 }
             }
-            if (detailModel.loading) {
+            if (detailModel.loading && LocalPlatformForUI.current == UIEnablePlatform.DESKTOP) {
                 CenterCircular()
             }
         }
