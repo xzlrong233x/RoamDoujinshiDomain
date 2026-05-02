@@ -1,13 +1,10 @@
 package com.xlrr.roambendom.gif
 
-import androidx.compose.ui.graphics.toAwtImage
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import coil3.ImageLoader
 import coil3.decode.DecodeResult
 import coil3.decode.Decoder
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
-import com.shakster.gifkt.GifDecoder
 import com.shakster.gifkt.GifEncoder
 import com.xlrr.roambendom.data.pixiv.UgoiraFrameItem
 import com.xlrr.roambendom.utils.framesKey
@@ -18,7 +15,6 @@ import org.jetbrains.skia.Image
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import kotlin.time.Duration.Companion.milliseconds
 
 class UgoiraDecoder(
     val zip: ZipInputStream,
@@ -28,14 +24,12 @@ class UgoiraDecoder(
         val out = ByteArrayOutputStream()
         val enc = GifEncoder(out.asSink().buffered())
         var ent: ZipEntry? = zip.nextEntry
+        val mp = HashMap<Image, Int>()
         while (ent != null) {
             try {
                 val byte = ByteArrayOutputStream()
                 zip.copyTo(byte)
-                enc.writeFrame(
-                    Image.makeFromEncoded(byte.toByteArray()).toComposeImageBitmap().toAwtImage(),
-                    (frames.find { it.file == ent.name }?.delay ?: 100).milliseconds
-                )
+                mp[Image.makeFromEncoded(byte.toByteArray())] = (frames.find { it.file == ent.name }?.delay ?: 100)
                 byte.close()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -45,10 +39,7 @@ class UgoiraDecoder(
         enc.close()
         val s = out.size().toLong()
         return DecodeResult(
-            GifImage(
-                GifDecoder(out.toByteArray()),
-                size = s
-            ),
+            GifImage(mp.toMap(), s, 0),
             false
         )
     }

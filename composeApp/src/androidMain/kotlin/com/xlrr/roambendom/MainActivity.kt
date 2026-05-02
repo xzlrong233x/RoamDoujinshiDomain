@@ -1,5 +1,6 @@
 package com.xlrr.roambendom
 
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -41,7 +42,9 @@ class MainActivity : ComponentActivity() {
                 wic?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 wic?.hide(WindowInsets.Type.statusBars())
             } else {
-                wic?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    wic?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+                }
                 wic?.show(WindowInsets.Type.statusBars())
             }
         }

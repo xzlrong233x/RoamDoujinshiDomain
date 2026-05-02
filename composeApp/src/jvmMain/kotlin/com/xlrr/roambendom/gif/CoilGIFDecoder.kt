@@ -8,11 +8,11 @@ import coil3.fetch.SourceFetchResult
 import coil3.request.Options
 import com.shakster.gifkt.GifDecoder
 import com.xlrr.roambendom.utils.isGif
+import org.jetbrains.skiko.toImage
+import kotlin.time.DurationUnit
 
 class CoilGIFDecoder(
     private val source: ImageSource,
-    private val options: Options,
-    private val enforceMinimumFrameDelay: Boolean = true,
 ): Decoder {
     override suspend fun decode(): DecodeResult? {
         try {
@@ -20,7 +20,14 @@ class CoilGIFDecoder(
             val ba = source.source().readByteArray()
             val gifD = GifDecoder(ba, 0)
             return DecodeResult(
-                GifImage(gifD, ba.size.toLong()),
+                GifImage(
+                    gifD.asList().associateBy(
+                        {it.toBufferedImage().toImage()},
+                        {it.duration.toInt(DurationUnit.MILLISECONDS)}
+                    ),
+                    ba.size.toLong(),
+                    gifD.loopCount
+                ),
                 false
             )
         } catch (e: Exception) {
@@ -39,7 +46,7 @@ class CoilGIFDecoder(
             imageLoader: ImageLoader,
         ): Decoder? {
             if (!isGif(result.source.source())) return null
-            return CoilGIFDecoder(result.source, options, enforceMinimumFrameDelay)
+            return CoilGIFDecoder(result.source)
         }
     }
 }

@@ -3,10 +3,9 @@ package com.xlrr.roambendom.utils
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.drawable.AnimationDrawable
 import android.provider.MediaStore
-import androidx.core.graphics.drawable.toBitmap
 import com.shakster.gifkt.GifEncoder
+import com.xlrr.roambendom.ugoira.MultiImagePackage
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.Dispatchers
@@ -69,20 +68,8 @@ suspend fun saveAsGif(byteArray: ByteArray, context: Context, fileName: String?)
     }
 }
 
-suspend fun saveAnimatedDrawable(animationDrawable: AnimationDrawable, context: Context, fileName: String?) : Boolean {
-    val frames = mutableListOf<Pair<Bitmap, Int>>()
-    for (i in 0 until animationDrawable.numberOfFrames) {
-        val frameDrawable = animationDrawable.getFrame(i)
-        val duration = (animationDrawable.getDuration(i))
-
-        // 将 Drawable 转为 Bitmap
-        val bitmap = frameDrawable.toBitmap()
-        frames.add(bitmap to duration)
-    }
-
-    if (frames.isEmpty()) return false
-
-
+suspend fun saveAnimatedDrawable(multiImagePackage: MultiImagePackage, context: Context, fileName: String?) : Boolean {
+    if (multiImagePackage.map.isEmpty()) return false
 
     val resolver = context.contentResolver
     val displayName = (fileName ?: "GIF_${System.currentTimeMillis()}") + ".gif"
@@ -101,7 +88,7 @@ suspend fun saveAnimatedDrawable(animationDrawable: AnimationDrawable, context: 
         try {
             resolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
                 val enc = GifEncoder(outputStream.asSink().buffered())
-                for ((bitmap, delayMs) in frames) {
+                for ((bitmap, delayMs) in multiImagePackage.map) {
                     // 设置每一帧的延迟时间（毫秒）
                     enc.writeFrame(bitmap, delayMs.milliseconds)
                 }

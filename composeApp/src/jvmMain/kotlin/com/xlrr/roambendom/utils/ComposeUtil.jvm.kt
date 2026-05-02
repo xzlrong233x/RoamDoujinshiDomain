@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
@@ -31,6 +33,7 @@ import kotlinx.io.buffered
 import org.jetbrains.skiko.toBufferedImage
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 actual fun Coil3SaveImageButton(
@@ -49,15 +52,15 @@ actual fun Coil3SaveImageButton(
             val format = when (extension.lowercase()) {
                 "jpg", "jpeg" -> "JPEG"
                 "png" -> "PNG"
-                "gif" -> "GIF"
+                "gif", "zip" -> "GIF"
                 else -> "PNG"
             }
             val img = (state.value as AsyncImagePainter.State.Success).result.image
             ssio.launch {
                 if (img is GifImage) {
                     val enc = GifEncoder(file.sink().buffered())
-                    for (i in img.gifDecoder.asList()) {
-                        enc.writeFrame(i)
+                    for (i in img.map) {
+                        enc.writeFrame(i.key.toComposeImageBitmap().toAwtImage(), i.value.milliseconds)
                     }
                     enc.close()
                 } else {

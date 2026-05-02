@@ -1,11 +1,9 @@
 package com.xlrr.roambendom.ugoira
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.drawable.AnimationDrawable
-import android.graphics.drawable.BitmapDrawable
 import coil3.ImageLoader
-import coil3.asImage
 import coil3.decode.DecodeResult
 import coil3.decode.Decoder
 import coil3.fetch.SourceFetchResult
@@ -26,20 +24,19 @@ class UgoiraDecoder(
     val context: Context
 ): Decoder {
     override suspend fun decode(): DecodeResult? {
-        val animationDrawable = AnimationDrawable()
         val out = ByteArrayOutputStream()
         val enc = GifEncoder(out.asSink().buffered())
         var ent: ZipEntry? = zip.nextEntry
+        val mp = HashMap<Bitmap, Int>()
         while (ent != null) {
             try {
                 val byte = ByteArrayOutputStream()
                 zip.copyTo(byte)
                 val bitmap = BitmapFactory.decodeByteArray(byte.toByteArray(), 0, byte.size())
                 if (bitmap != null) {
-                    val drawable = BitmapDrawable(context.resources, bitmap)
-                    animationDrawable.addFrame(drawable, frames.find {
+                    mp[bitmap] = frames.find {
                         it.file == ent.name
-                    }?.delay ?: 100)
+                    }?.delay ?: 100
                 }
                 byte.close()
             } catch (e: Exception) {
@@ -49,7 +46,7 @@ class UgoiraDecoder(
         }
         enc.close()
         return DecodeResult(
-            animationDrawable.asImage(),
+            MultiImagePackage(mp, mp.keys.sumOf { it.allocationByteCount }.toLong(), 0),
             false
         )
     }

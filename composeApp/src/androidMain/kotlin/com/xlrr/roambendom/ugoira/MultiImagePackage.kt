@@ -1,5 +1,6 @@
-package com.xlrr.roambendom.gif
+package com.xlrr.roambendom.ugoira
 
+import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
@@ -8,12 +9,11 @@ import coil3.Image
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
-class GifImage(
-    val map: Map<org.jetbrains.skia.Image, Int>,
+class MultiImagePackage(
+    val map: Map<Bitmap, Int>,
     override val size: Long,
     val loopCount: Int
 ) : Image {
-
     override val width: Int = map.keys.sumOf { it.width } / map.size
     override val height: Int = map.keys.sumOf { it.height } / map.size
     override val shareable: Boolean
@@ -47,7 +47,7 @@ class GifImage(
                     null
                 }
             }
-            canvas.drawImage(bit, 0f, 0f)
+            canvas.drawBitmap(bit, 0f, 0f, null)
             invalidateTick++
             if (newLp) {
                 if (loopCount == -1 || (loopCount in 1..loop)) {
