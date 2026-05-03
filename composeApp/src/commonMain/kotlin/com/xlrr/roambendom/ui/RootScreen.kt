@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -51,6 +53,7 @@ import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
+import com.xlrr.roambendom.data.SuggestionClickType
 import com.xlrr.roambendom.data.SuggestionItem
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
 import com.xlrr.roambendom.model.detail.asDetail
@@ -63,6 +66,8 @@ import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
 import com.xlrr.roambendom.utils.MthUtil
+import com.xlrr.roambendom.utils.pushAuthorSearch
+import com.xlrr.roambendom.utils.pushDetail
 import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -201,24 +206,66 @@ private class SearchSuggestionsService(
             field = value
         }
 
-    suspend fun suggest(q: String, curScreen: Any) {
+    suspend fun webSuggest(q: String, curScreen: Any): List<SuggestionItem> {
         if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
                     && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
                     && curScreen.searchModel.configs.searchTarget.value == 1)) {
-            PIXIVApiHelper.keywordSuggestion(q).also { list.clear() }.forEach {
-                list.add(SuggestionItem(
+            return PIXIVApiHelper.keywordSuggestion(q).map {
+                SuggestionItem(
                     it.tagName,
                     it.tagTranslation ?: ""
-                ))
+                )
             }
         }
         else if ((GlobalData.homeContentSelection == HomeSelection.NH
                     && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
                     && curScreen.searchModel.configs.searchTarget.value == 0)) {
-            GlobalData.historyData.requestTokens(q).also { list.clear() }.forEach {
-                list.add(SuggestionItem(it))
+            return GlobalData.historyData.requestTokens(q).map {
+                SuggestionItem(it)
             }
         }
+        return listOf()
+    }
+
+    suspend fun suggestID(q: String) : List<SuggestionItem> {
+        val rs = SpecialSerializedRegex.find(q)
+        if (rs != null && rs.groupValues.size > 2) {
+            val type = rs.groupValues[1]
+            val id = rs.groupValues[2]
+            when (type) {
+                "a" -> return listOf(SuggestionItem(id, "P站作者ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushAuthorSearch(id, "")
+                }))
+                "n" -> return listOf(SuggestionItem(id, "N站作品ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushDetail(id, CSources.NHENTAI)
+                }))
+                "p" -> return listOf(SuggestionItem(id, "P站作品ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushDetail(id, CSources.PIXIV)
+                }))
+            }
+        } else if (q.toIntOrNull() != null) {
+            return listOf(
+                SuggestionItem(q, "N站作品ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushDetail(q, CSources.NHENTAI)
+                }),
+                SuggestionItem(q, "P站作品ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushDetail(q, CSources.PIXIV)
+                }),
+                SuggestionItem(q, "P站作者ID", clickType = SuggestionClickType.Custom {
+                    GlobalData.nav.pushAuthorSearch(q, "")
+                }),
+
+            )
+        }
+        return listOf()
+    }
+
+    suspend fun suggest(q: String, curScreen: Any) {
+        val lis = ArrayList<SuggestionItem>()
+        lis.addAll(suggestID(q))
+        lis.addAll(webSuggest(q, curScreen))
+        list.clear()
+        list.addAll(lis)
     }
 
     fun reload(text: String, curScreen: Any) {
@@ -247,6 +294,7 @@ private val WhatShouldFixBar: List<KClass<*>> = listOf(
 val SmallScreenDpLine = 480.dp
 val MediumScreenDpLine = 720.dp
 val RootBarHeight = 58.dp
+val SpecialSerializedRegex = "([npa])(\\d+)".toRegex()
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -347,17 +395,22 @@ fun RootSearchBar(
 
 private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: FocusManager) {
     val cs = GlobalData.nav.backStack.last()
-    val res = "([np])(\\d+)".toRegex().find(it)
+    val res = SpecialSerializedRegex.find(it)
     if (res != null && res.groupValues.size == 3) {
         val s = when(res.groupValues[1]) {
             "n" -> CSources.NHENTAI
             "p" -> CSources.PIXIV
             else -> null
         }
-        if (s != null && res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }) {
-            GlobalData.nav.push(Routes.Root.Detail(
-                SearchItemData(res.groupValues.last(), s).asDetail()
-            ))
+        val isInt = res.groupValues.last().let { str -> str.isNotEmpty() && str.toIntOrNull() != null }
+        if (isInt) {
+            if (s != null)
+                GlobalData.nav.push(Routes.Root.Detail(
+                    SearchItemData(res.groupValues.last(), s).asDetail()
+                ))
+            else if (res.groupValues[1] == "a") {
+
+            }
         }
     }
     else if (cs is Routes.Root.SearchLike) {
@@ -504,19 +557,24 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                     }
                 } else null
             ) {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    suggestionsService.list.forEach {
+                LazyColumn(Modifier) {
+                    items(suggestionsService.list) {
                         ListItem(
                             {
                                 Text(it.key)
                             }, Modifier.clickable {
-                                searchText.edit {
-                                    replace(0, length, it.key)
-                                }
                                 exp = false
-                                screenSearch(searchText.text.toString(), ss, curScreen, fM)
+                                when (it.clickType) {
+                                    is SuggestionClickType.Default -> {
+                                        searchText.edit {
+                                            replace(0, length, it.key)
+                                        }
+                                        screenSearch(searchText.text.toString(), ss, curScreen, fM)
+                                    }
+                                    is SuggestionClickType.Custom -> it.clickType.click()
+                                }
                                 suggestionsService.clear()
-                            }, supportingContent = if (it.extra.isNotEmpty()) {
+                            }.animateItem(), supportingContent = if (it.extra.isNotEmpty()) {
                                 {
                                     Text(it.extra)
                                 }

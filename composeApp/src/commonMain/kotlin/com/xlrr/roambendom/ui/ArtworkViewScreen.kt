@@ -187,7 +187,7 @@ private fun ListShowPage(
     Box {
         LazyColumn(modifier, lazyListState, horizontalAlignment = Alignment.CenterHorizontally) {
             items(artworkInfo.pageUrls.size) {
-                Box() { //已经可以获得图片大小了，接下来是自适应列表图片
+                Box() {
                     if (artworkInfo.ugoiraMetadata == null) {
                         val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
                         LoadingImage(artworkInfo.pageUrls[it], Modifier.run {

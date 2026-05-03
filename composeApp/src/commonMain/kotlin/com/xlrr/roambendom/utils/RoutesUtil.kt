@@ -1,7 +1,9 @@
 package com.xlrr.roambendom.utils
 
+import com.xlrr.roambendom.data.CSources
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.data.SearchResult
+import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
@@ -36,6 +38,13 @@ fun Navigator.pushAuthorSearch(userId: String, userName: String) {
                     p
                 )
             }
-        }, "${userName}的作品"
+        }, "${userName.ifEmpty { userId }}的作品"
+    ))
+}
+
+fun Navigator.pushDetail(id: String, source: CSources) {
+    if (id.toIntOrNull() == null) return
+    push(Routes.Root.Detail(
+        SearchItemData(id, source).asDetail()
     ))
 }
