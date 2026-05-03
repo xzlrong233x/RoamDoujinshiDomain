@@ -10,9 +10,14 @@ object SharedPainterManager {
     val map = HashMap<String, ProgressivePainter>()
     private val keyCount = HashMap<String, Int>()
 
-    fun add(request: ImageRequest, textMeasurer: TextMeasurer? = null): ProgressivePainter {
+    fun add(
+        request: ImageRequest,
+        platformContext: PlatformContext,
+        textMeasurer: TextMeasurer? = null,
+        animated: Boolean = false
+    ): ProgressivePainter {
         if (!exist(request)) {
-            val p = ProgressivePainter(textMeasurer)
+            val p = ProgressivePainter(textMeasurer, animated, platformContext)
             map[request.data.toString()] = p
             return p
         }

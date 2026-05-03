@@ -248,7 +248,7 @@ fun ProgressiveImage(
 ) {
     val txtM = rememberTextMeasurer(0)
     val k = request.data.toString()
-    if (k.endsWith(".gif") || k.endsWith(".zip") || !ConfigUtil.streamDisplay.value) {
+    if (!ConfigUtil.streamDisplay.value) {
         AsyncImage(
             model = request,
             filterQuality = FilterQuality.Medium,
@@ -259,7 +259,12 @@ fun ProgressiveImage(
             modifier = modifier
         )
     } else {
-        val p = SharedPainterManager.add(request, txtM)
+        val p = SharedPainterManager.add(
+            request,
+            LocalPlatformContext.current,
+            txtM,
+            animated = k.endsWith(".gif") || k.endsWith(".zip")
+        )
         LaunchedEffect(width, height) {
             if (width != null && height != null) {
                 p.setSize(width, height)

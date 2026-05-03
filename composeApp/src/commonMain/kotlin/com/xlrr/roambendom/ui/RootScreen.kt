@@ -281,7 +281,7 @@ fun RootSearchBar(
                             minHeight = InputFieldHeight,
                         )
                         .focusRequester(freq)
-                        .onFocusChanged { if (it.isFocused) onExpandedChange(true) }
+                        .onFocusChanged { if (it.isFocused) onExpandedChange(true) else onExpandedChange(false) }
                         .onKeyEvent {
                             if (it.type == KeyEventType.KeyUp && it.key == Key.Escape) {
                                 fM.clearFocus()

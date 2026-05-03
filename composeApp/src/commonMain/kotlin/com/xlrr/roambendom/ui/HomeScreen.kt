@@ -210,7 +210,12 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                             HomeSelection.entries.forEachIndexed { index, selection ->
                                 SegmentedButton(
                                     viewModel.local == selection,
-                                    { viewModel.local = selection },
+                                    {
+                                        viewModel.local = selection
+                                        if (selection == HomeSelection.PIXIV) {
+                                            viewModel.spm.reset()
+                                        }
+                                    },
                                     SegmentedButtonDefaults.itemShape(
                                         index = index,
                                         count = 2

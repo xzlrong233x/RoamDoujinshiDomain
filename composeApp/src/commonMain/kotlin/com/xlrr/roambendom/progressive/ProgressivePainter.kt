@@ -4,12 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.decodeToImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -17,10 +18,19 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastRoundToInt
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.ImageResult
 import com.fleeksoft.io.ByteArrayOutputStream
+import com.xlrr.roambendom.drawSpecial
+import com.xlrr.roambendom.gif.MultiImagePlayer
+import kotlinx.coroutines.Deferred
 
 class ProgressivePainter(
-    val textMeasurer: TextMeasurer? = null
+    val textMeasurer: TextMeasurer? = null,
+    val animated: Boolean = false,
+    val platformContext: PlatformContext
 ) : Painter() {
     private var _w: Float = 1f
     private var _h: Float = 1f
@@ -34,28 +44,55 @@ class ProgressivePainter(
     private var _totalFileSize = 0
     private var userCount = 0
     private var _error = false
+    var animatedImage: MultiImagePlayer<*>? = null
+        private set
+    private var job: Deferred<ImageResult>? = null
+        set(value) {
+            field?.cancel()
+            field = value
+        }
 
     override fun DrawScope.onDraw() {
-        if (_lastImg == null) {
-            _lastImg = Pair(ImageBitmap(_w.toInt(), _h.toInt()), 0)
+        if (!animated) {
+            if (_lastImg == null) {
+                _lastImg = Pair(ImageBitmap(_w.toInt(), _h.toInt()), 0)
+            } else {
+                if (_output.size() > (_lastImg?.second ?: 0)) {
+                    _lastImg = Pair(_output.toByteArray().decodeToImageBitmap(), _output.size())
+                }
+            }
+            val img = _lastImg!!.first
+            if (!_sizeSet) {
+                _w = img.width.toFloat()
+                _h = img.height.toFloat()
+            }
+            drawImage(
+                img,
+                dstSize =
+                    IntSize(
+                        this@onDraw.size.width.fastRoundToInt(),
+                        this@onDraw.size.height.fastRoundToInt(),
+                    )
+            )
         } else {
-            if (_output.size() > (_lastImg?.second ?: 0)) {
-                _lastImg = Pair(_output.toByteArray().decodeToImageBitmap(), _output.size())
+            if (animatedImage == null && job?.isCompleted != true && _totalFileSize > 0) {
+                drawArc(
+                    Color.DarkGray,
+                    0f,
+                    _output.size() * 360f/_totalFileSize,
+                    false,
+                    Offset(size.width / 2, size.height / 2),
+                    Size(75f, 75f),
+                    1f,
+                    Stroke(2f),
+                )
+            } else if (job?.isCompleted == true) {
+                animatedImage = job?.getCompleted()?.image as? MultiImagePlayer<*>
+                animatedImage?.let {
+                    drawSpecial(it)
+                }
             }
         }
-        val img = _lastImg!!.first
-        if (!_sizeSet) {
-            _w = img.width.toFloat()
-            _h = img.height.toFloat()
-        }
-        drawImage(
-            img,
-            dstSize =
-                IntSize(
-                    this@onDraw.size.width.fastRoundToInt(),
-                    this@onDraw.size.height.fastRoundToInt(),
-                )
-        )
         if (_totalFileSize > 0 && textMeasurer != null && !isCompleted()) {
             drawText(
                 textMeasurer.measure(
@@ -66,7 +103,14 @@ class ProgressivePainter(
                 color = Color.Gray,
             )
         }
-        if (!isClosed()) {
+        if (animatedImage == null && job == null && isCompleted() && animated && userCount == 0) {
+            job = SingletonImageLoader.get(platformContext).enqueue(
+                ImageRequest.Builder(platformContext).data(SharedPainterManager.map.firstNotNullOf {
+                    if (it.value != this@ProgressivePainter) null else it.key
+                }).build()
+            ).job
+        }
+        if (!isClosed() || animated) {
             invalidateTick++
         }
     }

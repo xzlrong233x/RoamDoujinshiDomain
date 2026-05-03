@@ -24,10 +24,10 @@ material3 = "1.10.0-alpha05"
 kotlinxSerializationJson = "1.11.0"
 serialization = "2.3.21"
 coil = "3.4.0"
-ktor = "3.4.0"
+ktor = "3.4.3"
 filekit = "0.13.0"
 zoomable = "2.11.1"
-ksoup = "0.2.5"
+ksoup = "0.2.6"
 dataSaverCore = "1.2.3"
 
 [libraries]

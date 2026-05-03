@@ -4,10 +4,7 @@ import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -32,7 +29,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -60,10 +56,8 @@ import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
-import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.LocalWindowSize
-import com.xlrr.roambendom.utils.ProgressiveImage
+import com.xlrr.roambendom.utils.*
+import com.xlrr.roambendom.utils.MthUtil.hsv
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.ExperimentalZoomableApi
@@ -361,7 +355,13 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                 else
         Modifier.zoomableWithScroll(zzm, enableOneFingerZoom = ifZoomed, onTap = onTop)
 
-    Box(Modifier.fillMaxSize().background(Color.Gray).focusRequester(focusReq).focusable()
+    Box(Modifier.fillMaxSize().background(
+        Color.hsv(
+            MthUtil.rgbToHsv(LocalContentColor.current).copy(
+                v = if (isSystemInDarkTheme()) 0.25f else 0.65f
+            )
+        )
+    ).focusRequester(focusReq).focusable()
         .onPreviewKeyEvent { keyEvent ->
         if (keyEvent.type == KeyEventType.KeyUp) {
             when (keyEvent.key) {
@@ -610,7 +610,12 @@ class Preload(private val context: PlatformContext, private val textMeasurer: Te
             preloadRequests.add(req)
             try {
                 if (ConfigUtil.streamDisplay.value) {
-                    SharedPainterManager.add(req, textMeasurer)
+                    SharedPainterManager.add(
+                        req,
+                        context,
+                        textMeasurer,
+                        req.data.toString().let { it.endsWith(".gif") || it.endsWith(".zip") }
+                    )
                 }
                 imageLoader.enqueue(req)
             } catch (e: Exception) {
