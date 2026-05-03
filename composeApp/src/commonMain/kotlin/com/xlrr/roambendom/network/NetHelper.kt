@@ -53,17 +53,19 @@ object NetHelper {
         return mgs
     }
 
+    val json = Json {
+        encodeDefaults = true
+        isLenient = true
+        allowSpecialFloatingPointValues = true
+        allowStructuredMapKeys = true
+        prettyPrint = false
+        useArrayPolymorphism = false
+        ignoreUnknownKeys = true
+    }
+
     private fun createClient(): HttpClient = HttpClient(OkHttp) {
         install(ContentNegotiation) {
-            json(Json {
-                encodeDefaults = true
-                isLenient = true
-                allowSpecialFloatingPointValues = true
-                allowStructuredMapKeys = true
-                prettyPrint = false
-                useArrayPolymorphism = false
-                ignoreUnknownKeys = true
-            })
+            json(json)
         }
         engine {
             config {

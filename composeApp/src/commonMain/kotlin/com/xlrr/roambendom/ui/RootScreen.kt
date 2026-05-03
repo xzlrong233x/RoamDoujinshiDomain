@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
@@ -477,7 +478,8 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                Text(if (curScreen is Routes.Root) curScreen.headerTitle else "")
+                Text(if (curScreen is Routes.Root) curScreen.headerTitle else "", maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
             }
         }
     }

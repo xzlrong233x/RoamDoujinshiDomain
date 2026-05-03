@@ -244,6 +244,27 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
     val fcq = remember { FocusRequester() }
     val rlPage = remember { mutableStateListOf<String>() }
 
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val layoutInfo = state.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+
+            // 确保列表不为空且不在加载中，且最后一个可见项接近末尾
+            !details.recommendModel.loading && !details.recommendModel.completed
+                    && details.recommendModel.content.isEmpty()
+                    && lastVisibleItem != null && lastVisibleItem.index >= totalItems - 1
+                    && lastVisibleItem.key == "recommends"
+        }
+    }
+    LaunchedEffect(Unit) {
+        snapshotFlow { shouldLoadMore.value }
+            .filter { it }          // 只处理 true 的情况
+            .collect {
+                details.recommendModel.request()
+            }
+    }
+
     LaunchedEffect(state) {
         snapshotFlow { state.maxVisibleItem() }
             .filter { it?.key.toString().contains("ImgPage") }
@@ -251,6 +272,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
             .collect {
                 page = ("\\d+".toRegex().find(it?.key.toString())?.value?.toInt() ?: 0)
             }
+
     }
     LaunchedEffect(page) {
         details.content?.let {
@@ -430,6 +452,18 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                 }
 
                             }
+                        }
+                        item("line1") {
+                            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                        }
+                        item("recommends") {
+                            Box(Modifier.fillMaxWidth()) {
+                                Button({
+                                    GlobalData.nav.pushRecommend(details)
+                                }, Modifier.align(Alignment.Center)) {
+                                    Text("查看推荐")
+                                }
+                            } // TODO: 单页面加载。
                         }
                     }
                 }

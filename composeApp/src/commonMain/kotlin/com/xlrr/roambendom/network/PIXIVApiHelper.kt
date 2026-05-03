@@ -220,6 +220,47 @@ object PIXIVApiHelper {
         return std.body.jsonObject["works"]?.jsonObject?.map { joToPixivSearchItem(it.value.jsonObject) } ?: listOf()
     }
 
+    private suspend fun recommendWorkInfo(ids: List<String>, type: String = "illust"): List<SearchItemData> {
+        if (ids.isEmpty()) return listOf()
+        val std = requestStandard<JsonObject>("/ajax/${type}/recommend/${type}s") {
+            pixivNormalSetting()
+            ids.forEach { parameter("${if (type == "illust") "illust_ids" else "novelIds"}[]", it) }
+        }
+        return std.body.jsonObject["${type}s"]?.jsonArray?.mapNotNull {
+            try {
+                return@mapNotNull joToPixivSearchItem(it.jsonObject)
+            } catch (_: Exception) {
+            }
+            null
+        } ?: listOf()
+    }
+
+    suspend fun recommendArtworkInfo(ids: List<String>) = recommendWorkInfo(ids, "illust")
+
+    private suspend fun recommendWork(id: String, type: String, limit: Int = 9): RecommendData {
+        val std = requestStandard<JsonObject>("/ajax/${type}/${id}/recommend/init") {
+            pixivNormalSetting()
+            parameter("limit", limit)
+        }
+        val recommend = RecommendData()
+        if (std.error) return recommend
+        std.body.jsonObject["details"]?.let {
+            recommend.details = NetHelper.json.decodeFromJsonElement(it)
+        }
+        std.body.jsonObject["novels"]?.let {
+            recommend.novels = it.jsonArray.map {m -> joToPixivSearchItem(m.jsonObject) }
+        }
+        std.body.jsonObject["illusts"]?.let {
+            recommend.illusts = it.jsonArray.map {m -> joToPixivSearchItem(m.jsonObject) }
+        }
+        std.body.jsonObject["nextIds"]?.let {
+            recommend.nextIds = it.jsonArray.map {m -> m.jsonPrimitive.content }
+        }
+        return recommend
+    }
+
+    suspend fun recommendArtwork(id: String, limit: Int = 18) = recommendWork(id, "illust", limit)
+
     suspend fun testPixivRequest(): PixivTestResult {
         val result = PixivTestResult()
         try {
