@@ -590,7 +590,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
     if (searchSetting && curScreen is Routes.Root.SearchLike) {
         SearchSettingDialog({
             searchSetting = false
-        }, curScreen.searchModel)
+        }, curScreen.searchModel, ss)
     }
 }
 

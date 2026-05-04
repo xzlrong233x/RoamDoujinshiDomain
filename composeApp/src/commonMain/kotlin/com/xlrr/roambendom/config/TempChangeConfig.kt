@@ -15,6 +15,10 @@ class TempChangeConfig<T>(
         realValue = value
     }
 
+    fun isUnchange() : Boolean {
+        return realValue == value
+    }
+
     fun setAll(v: T) {
         realValue = v
         value = v

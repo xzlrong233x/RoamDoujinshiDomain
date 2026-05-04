@@ -17,10 +17,12 @@ import androidx.compose.ui.window.Dialog
 import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.utils.LocalWindowSize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
 @Composable
-fun SearchSettingDialog(onDismiss: () -> Unit, searchParameterModel: SearchParameterModel) {
+fun SearchSettingDialog(onDismiss: () -> Unit, searchParameterModel: SearchParameterModel, cs: CoroutineScope) {
     val cfg by rememberUpdatedState(searchParameterModel.configs)
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -34,7 +36,14 @@ fun SearchSettingDialog(onDismiss: () -> Unit, searchParameterModel: SearchParam
                 bottomBar = {
                     Row(Modifier.fillMaxWidth()
                         .background(CardDefaults.cardColors().containerColor), Arrangement.End) {
-                        TextButton(onDismiss) {
+                        TextButton({
+                            onDismiss()
+                            if (searchParameterModel.configs.searchTarget.isUnchange()) {
+                                cs.launch {
+                                    searchParameterModel.reload()
+                                }
+                            }
+                        }) {
                             Text("确定")
                         }
                     }
