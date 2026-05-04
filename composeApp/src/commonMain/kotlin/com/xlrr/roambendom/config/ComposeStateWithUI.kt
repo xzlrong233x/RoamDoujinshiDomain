@@ -97,7 +97,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
                     }, {
                         config.value = it
                         exp = false
-                    })
+                    }, enabled = config.value != it)
                 }
             }
         }
