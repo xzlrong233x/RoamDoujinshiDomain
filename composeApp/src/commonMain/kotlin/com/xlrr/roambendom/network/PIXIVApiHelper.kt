@@ -245,6 +245,7 @@ object PIXIVApiHelper {
         val recommend = RecommendData()
         if (std.error) return recommend
         std.body.jsonObject["details"]?.let {
+            if (it is JsonArray && it.isEmpty()) return@let
             recommend.details = NetHelper.json.decodeFromJsonElement(it)
         }
         std.body.jsonObject["novels"]?.let {
