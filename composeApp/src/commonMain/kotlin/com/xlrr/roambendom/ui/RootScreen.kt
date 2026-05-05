@@ -126,10 +126,12 @@ private class TopAppBarOffsetState(
     val minUpPx: Float,
     val coroutineScope: CoroutineScope
 ) {
+    private var jobLock = false
     private val _toolbarOffset = mutableFloatStateOf(0f)
     var lockBar: Boolean = false
     private var _job: Job? = null
         set(value) {
+            jobLock = false
             field?.cancel()
             field = value
         }
@@ -143,6 +145,28 @@ private class TopAppBarOffsetState(
         set(value) {
             _toolbarOffset.floatValue = value
         }
+
+    fun animatedTo(end: Float) {
+        _job = coroutineScope.launch {
+            var rest = ANIMATION_DURATION
+            var c = 0
+            while (rest > 0) {
+                delay(ANIMATION_DELAY)
+                if (c >= 5) break
+                val dt = (end - toolbarOffsetHeightPx) / (rest) * ANIMATION_DELAY
+                rest -= ANIMATION_DELAY
+                if (abs(dt) < 0.25f) {
+                    c++
+                    toolbarOffsetHeightPx = end
+                    continue
+                } else {
+                    toolbarOffsetHeightPx += dt
+                }
+            }
+            jobLock = false
+        }
+        jobLock = true
+    }
 
     fun startReturn() {
         val b = if (abs(_toolbarOffset.floatValue) < maxUpPx / 2) 1 else -1
@@ -161,7 +185,7 @@ private class TopAppBarOffsetState(
     val nestedScrollConnection = object : NestedScrollConnection {
         private var fling = false
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            _job?.cancel()
+            if (!jobLock) _job?.cancel()
             if (!WhatShouldFixBar.any { GlobalData.nav.backStack.last().instanceOf(it) } || lockBar) {
                 val delta = available.y
                 val newOffset = toolbarOffsetHeightPx + delta
@@ -171,10 +195,10 @@ private class TopAppBarOffsetState(
         }
 
         override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-            if ((source == NestedScrollSource.SideEffect && !fling)
-                || (available.y == 0f && consumed.y == 0f)) { // 桌面端在一些操作后会出现非用户操作的滑动事件
-                startReturn()
-            }
+//            if ((source == NestedScrollSource.SideEffect && !fling)
+//                || (available.y == 0f && consumed.y == 0f)) { // 桌面端在一些操作后会出现非用户操作的滑动事件
+//                startReturn()
+//            }
             return super.onPostScroll(consumed, available, source)
         }
 
@@ -656,7 +680,8 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
         }
     }
     LaunchedEffect(GlobalData.nav.backStack.last()) {
-        topBarState.toolbarOffsetHeightPx = 0f
+        topBarState.animatedTo(0f)
+        //topBarState.toolbarOffsetHeightPx = 0f
     }
     ModalNavigationDrawer(
         modifier = Modifier.fillMaxSize(),
