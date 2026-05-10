@@ -40,6 +40,7 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
+import com.xlrr.roambendom.network.ImageOkHttpInterceptor
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import org.jetbrains.compose.resources.painterResource
@@ -287,7 +288,7 @@ fun ProgressiveImage(
             onError = {
                 if (
                     it.result.throwable !is HttpException
-                    || it.result.throwable.message?.contains("943") == false
+                            && it.result.throwable !is ImageOkHttpInterceptor.ItemHasBeenCaughtException
                 ) {
                     p.error()
                 }

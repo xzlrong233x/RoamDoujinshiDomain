@@ -61,19 +61,25 @@ class ProgressivePainter(
                     _lastImg = Pair(_output.toByteArray().decodeToImageBitmap(), _output.size())
                 }
             }
-            val img = _lastImg!!.first
-            if (!_sizeSet) {
+            val img = _lastImg?.first
+            if (!_sizeSet && img != null) {
                 _w = img.width.toFloat()
                 _h = img.height.toFloat()
             }
-            drawImage(
-                img,
-                dstSize =
-                    IntSize(
-                        this@onDraw.size.width.fastRoundToInt(),
-                        this@onDraw.size.height.fastRoundToInt(),
+            img?.let {
+                try { // 在安卓平台上部分webp数据解码出来的Bitmap可能是null
+                    drawImage(
+                        it,
+                        dstSize =
+                            IntSize(
+                                this@onDraw.size.width.fastRoundToInt(),
+                                this@onDraw.size.height.fastRoundToInt(),
+                            )
                     )
-            )
+                } catch (_: Exception) {
+                    //println(e.message)
+                }
+            }
         } else {
             if (animatedImage == null && job?.isCompleted != true && _totalFileSize > 0) {
                 drawArc(

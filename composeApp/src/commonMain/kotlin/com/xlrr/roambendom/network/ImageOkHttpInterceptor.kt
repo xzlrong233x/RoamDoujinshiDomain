@@ -32,6 +32,7 @@ class ImageOkHttpInterceptor(
     private val platformContext: PlatformContext
 ): Interceptor {
     class ItemAlreadyCachedException(msg: String) : Exception(msg)
+    class ItemHasBeenCaughtException(msg: String) : InterruptedIOException(msg)
     companion object {
         private const val SKIP_CHUNK_HEADER = "X-Skip-Chunked"
     }
@@ -61,7 +62,7 @@ class ImageOkHttpInterceptor(
             call !is RealCall ||
             (painter != null && !painter.focus())) {
             if (painter != null && ConfigUtil.streamDisplay.value) {
-                throw InterruptedIOException("there has been a painter focus on its multithread download")
+                throw ItemHasBeenCaughtException("there has been a painter focus on its multithread download")
             } // TODO：一定要报错。
             return chain.proceed(request)
         }
