@@ -1,5 +1,7 @@
 package com.xlrr.roambendom.nav
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.model.detail.BaseDetailModel
 import com.xlrr.roambendom.model.search.SearchParameterModel
@@ -33,6 +35,16 @@ sealed class Routes {
     data class Artwork(
         val artworkInfo: ArtworkInfo
     ) : Routes()
+    sealed class Auth : Routes() {
+        data class Choose(
+            var callback: ((String, MutableState<Boolean>) -> Unit)? = null,
+            val called: MutableState<Boolean> = mutableStateOf(false)
+        ) : Auth()
+        data class PasswordLogin(
+            val callback: (String, MutableState<Boolean>) -> Unit,
+            val called: MutableState<Boolean> = mutableStateOf(false)
+        ) : Auth()
+    }
     data object TokenForm : Routes()
 }
 

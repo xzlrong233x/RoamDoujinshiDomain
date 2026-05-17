@@ -1,5 +1,7 @@
 package com.xlrr.roambendom
 
+import android.app.ComponentCaller
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsets
@@ -14,9 +16,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.util.Consumer
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.funny.data_saver.core.DataSaverPreferences
 import com.xlrr.roambendom.config.LocalPlatformForUI
 import com.xlrr.roambendom.config.UIEnablePlatform
+import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.GlobalData
 
 class MainActivity : ComponentActivity() {
@@ -25,6 +31,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val wic = window.decorView.windowInsetsController
         installSplashScreen()
+        println("Activity create")
 
         setContent {
             BackHandler {
@@ -48,6 +55,37 @@ class MainActivity : ComponentActivity() {
                 wic?.show(WindowInsets.Type.statusBars())
             }
         }
+        addLifeCycleIntentListener()
+    }
+
+    private fun addLifeCycleIntentListener() {
+        val intentConsumer = Consumer<Intent> { handleIntent(it) }
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+
+            override fun onCreate(owner: LifecycleOwner) {
+                addOnNewIntentListener(intentConsumer)
+            }
+
+            override fun onDestroy(owner: LifecycleOwner) {
+                removeOnNewIntentListener(intentConsumer)
+                lifecycle.removeObserver(this)
+            }
+        })
+    }
+
+    override fun onNewIntent(intent: Intent, caller: ComponentCaller) {
+        println("new intent")
+        super.onNewIntent(intent, caller)
+        println(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        println(intent)
+        val cur = GlobalData.nav.backStack.last() as? Routes.Auth.Choose ?: return
+        val dt = intent.data ?: return
+        val authCode = dt.getQueryParameter("code")
+        if (authCode != null) cur.callback?.invoke(authCode, cur.called)
     }
 }
 

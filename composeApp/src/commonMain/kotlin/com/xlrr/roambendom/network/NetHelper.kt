@@ -97,3 +97,25 @@ object NetHelper {
         return Ksoup.parseBodyFragment("<p>$str</p>").body().child(0).text()
     }
 }
+
+data class UrlWithSize(
+    val url: String,
+    val w: Int,
+    val h: Int,
+    val oriUrl: String
+) {
+    companion object {
+        val EMPTY = UrlWithSize("", 0, 0, "")
+
+        fun parse(str: String) : UrlWithSize {
+            return Regex("(.+?)\\[w(\\d+)h(\\d+)]\\{(.*?)\\}").find(str)?.let {
+                UrlWithSize(
+                    it.groups[1]?.value.toString(),
+                    it.groups[2]?.value?.toIntOrNull() ?: 0,
+                    it.groups[3]?.value?.toIntOrNull() ?: 0,
+                    it.groups[4]?.value.toString()
+                )
+            } ?: EMPTY
+        }
+    }
+}

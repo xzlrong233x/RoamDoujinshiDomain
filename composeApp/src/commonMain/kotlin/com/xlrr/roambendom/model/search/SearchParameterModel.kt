@@ -49,7 +49,6 @@ class SearchParameterModel(
     }
 
     suspend fun request(clearAfterGet: Boolean = false) {
-        page++
         _loading = true
         try {
             if (configs.clearList) content.clear()
@@ -59,6 +58,7 @@ class SearchParameterModel(
             }
             if (result.items.isNotEmpty()) {
                 content.addAll(result.items)
+                page = result.page
             } else _complete = true
         } catch (e: Exception) {
             if (e !is CancellationException)

@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.xlrr.roambendom.nav.Routes
+import com.xlrr.roambendom.ui.loginScreen.TotalAuthScreen
 import com.xlrr.roambendom.utils.GlobalData
 
 
@@ -16,6 +17,7 @@ fun MainContent() {
         contentKey = {
             when (it) {
                 is Routes.Root -> "root"
+                is Routes.Auth -> "auth"
                 else -> it
             }
         },
@@ -34,6 +36,7 @@ fun MainContent() {
             is Routes.Root -> RootScreen()
             is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo)
             is Routes.TokenForm -> TokenFormScreen(Modifier)
+            is Routes.Auth -> TotalAuthScreen(Modifier)
             else -> Text("空空如也")
         }
     }

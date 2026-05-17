@@ -24,6 +24,7 @@ kotlin {
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.brower)
             implementation(libs.coil.gif)
         }
         commonMain.dependencies {

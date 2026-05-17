@@ -169,6 +169,9 @@ private fun LazyListScope.imagesOrAnimatedImage(
     boxItem: @Composable (Int) -> Unit
 ) {
     if (info.ugoiraMetadata == null) {
+        //TODO_NOTE：api更改后最麻烦的地方，因为软件api不再提供每张图片的长宽，可以考虑在artwork返回的pageUrl里将默认长宽设为illust的长宽，然后
+        //          在progressivePainter里添加一个Callback功能，可以让其在成功解码时调用callback，更改长宽以使这里重载，至于如果
+        //          用户没开stream_display的话那只能砍掉该情况下的自适应。
         items(
             if (!showAllPage) 1 else info.page,
             { "ImgPage$it" }) {

@@ -1,6 +1,16 @@
 package com.xlrr.roambendom.utils
 
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.network.PIXIVApiHelper
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.header
+import io.ktor.http.Parameters
+import io.ktor.http.URLBuilder
+import io.ktor.http.URLProtocol
+import kotlinx.coroutines.runBlocking
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 object PixivTokenUtil {
     val map: HashMap<String, String> = hashMapOf()
@@ -20,5 +30,57 @@ object PixivTokenUtil {
     fun setToken(a: String, b: String, c: String) {
         ConfigUtil.pixivToken.value = encryptSP(listOf(a,b,c).joinToString("|"))
         reload()
+    }
+
+    private var codeVerifier: String = ""
+    private var codeChallenge: String =""
+    const val CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
+    const val CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
+    private var accessToken = ""
+    private var passTime: Instant = Clock.System.now()
+
+    fun genCodeChallenge() : String {
+        codeVerifier = CryptUtil.generateCodeVerifier()
+        codeChallenge = CryptUtil.generateCodeChallenge(codeVerifier)
+        return codeChallenge
+    }
+
+    suspend fun handleCode(code: String) {
+        if (codeVerifier.isEmpty() || codeChallenge.isEmpty()) return
+        val r = PIXIVApiHelper.requestTokenWithCode(code, codeVerifier)
+        accessToken = r.first
+        passTime = Clock.System.now() + 3600.seconds
+        ConfigUtil.pixivRToken.value = r.second
+        codeVerifier = ""
+        codeChallenge = ""
+    }
+
+    suspend fun verifyToken(rToken: String) : Boolean {
+        if (accessToken == "" || Clock.System.now() >= passTime) {
+            val r = PIXIVApiHelper.requestTokenWithToken(rToken)
+            if (r.first.isEmpty()) {
+                return false
+            }
+            accessToken = r.first
+            passTime = r.second
+        }
+        return true
+    }
+
+    fun HttpRequestBuilder.pixivToken() : Boolean {
+        if (accessToken == "" || Clock.System.now() >= passTime) {
+            return false
+        }
+        println("header -> $accessToken")
+        header("Authorization", "Bearer $accessToken")
+        return true
+    }
+
+    fun genPixivLoginUrl() : String {
+        return URLBuilder(URLProtocol.HTTPS, "app-api.pixiv.net", pathSegments = listOf("web","v1","login"), parameters = Parameters.build {
+            append("code_challenge", codeChallenge)
+            append("code_challenge_method", "S256")
+            append("client", "pixiv-android")
+        }).buildString()
     }
 }

@@ -62,12 +62,12 @@ class ProgressivePainter(
                 }
             }
             val img = _lastImg?.first
-            if (!_sizeSet && img != null) {
-                _w = img.width.toFloat()
-                _h = img.height.toFloat()
-            }
             img?.let {
                 try { // 在安卓平台上部分webp数据解码出来的Bitmap可能是null
+                    if (!_sizeSet) {
+                        _w = it.width.toFloat()
+                        _h = it.height.toFloat()
+                    }
                     drawImage(
                         it,
                         dstSize =

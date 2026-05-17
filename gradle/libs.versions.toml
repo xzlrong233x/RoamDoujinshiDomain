@@ -20,6 +20,7 @@ kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
 log4jCore = "2.25.3"
 log4jApiKotlin = "1.5.0"
+brower = "1.8.0"
 material3 = "1.10.0-alpha05"
 kotlinxSerializationJson = "1.11.0"
 serialization = "2.3.21"
@@ -32,6 +33,7 @@ dataSaverCore = "1.2.3"
 
 [libraries]
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-brower = { module = "androidx.browser:browser", version.ref = "brower"}
 coil-gif = { module = "io.coil-kt.coil3:coil-gif", version.ref = "coil" }
 data-saver-core = { module = "io.github.funnysaltyfish:data-saver-core", version.ref = "dataSaverCore" }
 gifkt = { module = "com.shakster:gifkt", version.ref = "gifkt" }

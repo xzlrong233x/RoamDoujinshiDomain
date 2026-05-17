@@ -35,7 +35,7 @@ fun SettingScreen(modifier: Modifier) {
             CenterFlowRow(Modifier.fillMaxWidth()) {
                 Text("P站Token")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button({ GlobalData.nav.push(Routes.TokenForm)}) {
+                    Button({ GlobalData.nav.push(Routes.Auth.Choose())}) {
                         Text("点我填写")
                     }
                 }

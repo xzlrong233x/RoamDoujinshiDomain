@@ -104,10 +104,10 @@ private val navItems: List<NavItem> = listOf(
                     val l = GlobalData.historyData.search(k)
                     SearchResult(
                         l.size,
-                        MthUtil.calWindow(p, 30, l.size)
+                        MthUtil.calWindow(p+1, 30, l.size)
                             .let { l.subList(it.first, it.second) },
                         k,
-                        p
+                        p+1
                     )
                 }
             }
