@@ -63,7 +63,7 @@ class ImageOkHttpInterceptor(
             (painter != null && !painter.focus())) {
             if (painter != null && ConfigUtil.streamDisplay.value) {
                 throw ItemHasBeenCaughtException("there has been a painter focus on its multithread download")
-            } // TODO：一定要报错。
+            }
             return chain.proceed(request)
         }
         val client = call.client

@@ -141,7 +141,8 @@ private fun SharedImage(
     uws: UrlWithSize,
     modifier: Modifier,
     ori: Boolean = false,
-    ugoiraMetadata: UgoiraMetadata? = null
+    ugoiraMetadata: UgoiraMetadata? = null,
+    onSizeKnown: ((Int, Int) -> Unit)? = null
 ) {
     val ur = if (!ori || uws.oriUrl.isEmpty()) uws.url else uws.oriUrl
     ProgressiveImage(
@@ -156,12 +157,14 @@ private fun SharedImage(
         },
         modifier,
         width = uws.w.toFloat(),
-        height = uws.h.toFloat()
+        height = uws.h.toFloat(),
+        onSizeKnown = onSizeKnown
     )
 }
 
 private fun LazyListScope.imagesOrAnimatedImage(
     info: ArtworkInfo,
+    pageSizes: SnapshotStateList<UrlWithSize>,
     screenWidth: Float,
     screenHeight: Float,
     showAllPage: Boolean,
@@ -169,15 +172,12 @@ private fun LazyListScope.imagesOrAnimatedImage(
     boxItem: @Composable (Int) -> Unit
 ) {
     if (info.ugoiraMetadata == null) {
-        //TODO_NOTE：api更改后最麻烦的地方，因为软件api不再提供每张图片的长宽，可以考虑在artwork返回的pageUrl里将默认长宽设为illust的长宽，然后
-        //          在progressivePainter里添加一个Callback功能，可以让其在成功解码时调用callback，更改长宽以使这里重载，至于如果
-        //          用户没开stream_display的话那只能砍掉该情况下的自适应。
         items(
             if (!showAllPage) 1 else info.page,
             { "ImgPage$it" }) {
             Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                UrlWithSize.parse(info.pageUrls[it]).let { uws ->
-                    SharedImage(uws, Modifier.run {
+                pageSizes[it].let { uws ->
+                    SharedImage(uws, Modifier.run { //这部分逻辑在代码中有重复，TODO：整合
                         val testH = uws.h * screenWidth / uws.w
                         if (testH < screenHeight) {
                             width(with(LocalDensity.current) { screenWidth.toDp() })
@@ -193,7 +193,13 @@ private fun LazyListScope.imagesOrAnimatedImage(
                         }
                     }.clickable {
                         click(uws)
-                    })
+                    },
+                        onSizeKnown = { w, h ->
+                            if (!(pageSizes[it].w == w && pageSizes[it].h == h)) {
+                                pageSizes[it] = pageSizes[it].copy(w = w, h = h)
+                            }
+                        }
+                    )
                 }
 
                 boxItem(it)
@@ -222,6 +228,9 @@ private fun LazyListScope.imagesOrAnimatedImage(
     }
 }
 
+val PIXIV_DETAIL_MAIN_HORIZONTAL = 12.dp
+val PIXIV_DETAIL_MAIN = 1104.dp
+
 @Composable
 fun PIXIVDetail(details: PIXIVDetailModel) {
     val state = rememberLazyListState()
@@ -229,7 +238,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
     val tm = rememberTextMeasurer(0)
     val preload = remember { Preload(context, tm) }
     val screenWidth = with(LocalDensity.current) {
-        LocalWindowSize.current.width.coerceIn(null, 1104.dp).toPx()
+        (LocalWindowSize.current.width.coerceIn(null, PIXIV_DETAIL_MAIN) - PIXIV_DETAIL_MAIN_HORIZONTAL * 2).toPx()
     }
     val ss = rememberCoroutineScope()
     val screenHeight = with(LocalDensity.current) { LocalWindowSize.current.height.toPx()}
@@ -246,6 +255,12 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
     val zoom = rememberZoomState()
     val fcq = remember { FocusRequester() }
     val rlPage = remember { mutableStateListOf<String>() }
+
+    val pageSizes = remember(details.content) {
+        mutableStateListOf<UrlWithSize>().also { list ->
+            details.content?.pageUrls?.forEach { list.add(UrlWithSize.parse(it)) }
+        }
+    }
 
     LaunchedEffect(state) {
         snapshotFlow { state.maxVisibleItem() }
@@ -299,14 +314,14 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                     false
                 }) {
                 Surface(
-                    Modifier.width(1104.dp).widthIn(0.dp, 1104.dp)
-                        .padding(12.dp, 0.dp).align(Alignment.TopCenter),
+                    Modifier.width(PIXIV_DETAIL_MAIN).widthIn(0.dp, PIXIV_DETAIL_MAIN)
+                        .padding(PIXIV_DETAIL_MAIN_HORIZONTAL, 0.dp).align(Alignment.TopCenter),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
                     LazyColumn(Modifier, state) {
                         imagesOrAnimatedImage(
-                            details.content!!,
+                            details.content!!, pageSizes,
                             screenWidth,
                             screenHeight,
                             showAllPage,

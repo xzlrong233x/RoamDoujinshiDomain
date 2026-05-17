@@ -245,7 +245,8 @@ fun ProgressiveImage(
     modifier: Modifier,
     contentScale: ContentScale = ContentScale.Fit,
     width: Float? = null,
-    height: Float? = null
+    height: Float? = null,
+    onSizeKnown: ((Int, Int) -> Unit)? = null
 ) {
     val txtM = rememberTextMeasurer(0)
     val k = request.data.toString()
@@ -266,10 +267,11 @@ fun ProgressiveImage(
             txtM,
             animated = k.endsWith(".gif") || k.endsWith(".zip")
         )
-        LaunchedEffect(width, height) {
+        LaunchedEffect(width, height, onSizeKnown) {
             if (width != null && height != null) {
                 p.setSize(width, height)
             }
+            p.onSizeKnown = onSizeKnown
         }
         AsyncImage(
             model = request,
@@ -281,6 +283,7 @@ fun ProgressiveImage(
             modifier = modifier,
             onSuccess = {
                 p.destroy()
+                it.result.image.let {s -> onSizeKnown?.invoke(s.width, s.height) }
                 if (it.result.dataSource != DataSource.NETWORK) {
                     SharedPainterManager.checkDestroyed(request.context)
                 }

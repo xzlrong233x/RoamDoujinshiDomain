@@ -24,7 +24,7 @@ class ComposeAppCommonTest {
 
     @Test
     fun pixivSearch() = runBlocking {
-        val sr = PIXIVApiHelper.search("悪堕ち")
+        val sr = PIXIVApiHelper.searchIllust("悪堕ち")
         assert(sr.total > 0)
         assert(sr.items.size >= 58)
         println("Total: ${sr.total}")

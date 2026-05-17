@@ -4,7 +4,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
-//TODO_NOTE：detail返回的似乎有所不同。
 @Serializable
 data class ArtworkDetailData(
     val id: Int,

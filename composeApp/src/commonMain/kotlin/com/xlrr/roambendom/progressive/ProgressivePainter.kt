@@ -51,6 +51,7 @@ class ProgressivePainter(
             field?.cancel()
             field = value
         }
+    var onSizeKnown: ((Int, Int) -> Unit)? = null
 
     override fun DrawScope.onDraw() {
         if (!animated) {
@@ -64,9 +65,11 @@ class ProgressivePainter(
             val img = _lastImg?.first
             img?.let {
                 try { // 在安卓平台上部分webp数据解码出来的Bitmap可能是null
-                    if (!_sizeSet) {
+                    if (!_sizeSet && fileSize() > 0 && it.height > 1 && it.width > 1) {
                         _w = it.width.toFloat()
                         _h = it.height.toFloat()
+                        _sizeSet = true
+                        onSizeKnown?.invoke(it.width, it.height)
                     }
                     drawImage(
                         it,
@@ -128,7 +131,6 @@ class ProgressivePainter(
     fun setSize(w: Float, h: Float) {
         _w = w
         _h = h
-        _sizeSet = true
         invalidateTick++
     }
 

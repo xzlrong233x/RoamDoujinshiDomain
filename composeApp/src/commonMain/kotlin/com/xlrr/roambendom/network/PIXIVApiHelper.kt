@@ -148,22 +148,22 @@ object PIXIVApiHelper {
                     )
                 )
             }
-//            x.jsonArray.map {
-//                it.jsonObject.let { n ->
-//                    change.add(
-//                        joToPixivSearchItem(n)
-//                    )
-//                }
-//            }
         }
         illustManga?.let {
-            it.getAsString("next_url")
+            "offset=(\\d+)".toRegex().find(it.getAsString("next_url")).let { x->
+                if (x == null) {
+                    sr.page += 120
+                    return@let
+                }
+                sr.page = x.groupValues.last().toInt()
+            }
         }
         sr.items = change
         return sr
     }
 
-    //TODO_NOTE: page访问，软件api没有pages。
+    // Deprecated: App API 的 illust/detail 已在 meta_pages 中直接返回页面信息，不再需要单独请求
+    @Deprecated("Use artwork() which fetches detail and pages in one App API call")
     suspend fun artworkPage(id: String) : List<ArtworkPageItem> {
         val res = requestStandard<List<ArtworkPageItem>>("/ajax/illust/$id/pages")
         if (res.error) {
@@ -172,66 +172,96 @@ object PIXIVApiHelper {
         return res.realData(serializer())
     }
 
-    //TODO_NOTE：ugoira信息的获取，通过软件api获取的与UgoiraMetadata定义的不一样，例如说软件api返回的数据里没originalSrc，
-    // 不过根据考查，规律不难发现，以下是例子：[
-    // src -> "https://i.pximg.net/img-zip-ugoira/img/2020/09/07/23/29/31/84226963_ugoira600x600.zip"
-    // ori -> "https://i.pximg.net/img-zip-ugoira/img/2020/09/07/23/29/31/84226963_ugoira1920x1080.zip"
-    // ], [
-    // src -> "https://i.pximg.net/img-zip-ugoira/img/2026/05/03/17/20/09/144305714_ugoira600x600.zip"
-    // originalSrc -> "https://i.pximg.net/img-zip-ugoira/img/2026/05/03/17/20/09/144305714_ugoira1920x1080.zip"
-    // ]
+    // 使用 App API /v1/ugoira/metadata 获取 ugoira 信息
+    // App API 的 zip_urls 只有 medium，originalSrc 通过 URL 替换推导
     suspend fun ugoiraData(id: String) : UgoiraMetadata? {
-        val r = requestStandard<UgoiraMetadata>("/ajax/illust/$id/ugoira_meta")
-        return if (r.error) null else r.realData(serializer())
+        val r = apiRequest("/v1/ugoira/metadata", Parameters.build {
+            append("illust_id", id)
+        }, true)
+        if (r.isFailure) return null
+        val body = r.getOrNull() ?: return null
+        val meta = body["ugoira_metadata"]?.jsonObject ?: return null
+        val zipUrls = meta["zip_urls"]?.jsonObject
+        val src = zipUrls?.getAsString("medium") ?: return null
+        // 推导 originalSrc: _ugoira600x600 -> _ugoira1920x1080
+        val originalSrc = src.replace("_ugoira600x600", "_ugoira1920x1080")
+        val frames = meta["frames"]?.jsonArray?.map {
+            val f = it.jsonObject
+            UgoiraFrameItem(
+                f.getAsString("file"),
+                f.getAsInt("delay")
+            )
+        } ?: listOf()
+        return UgoiraMetadata(
+            frames = frames,
+            mimeType = "image/jpeg",
+            originalSrc = originalSrc,
+            src = src
+        )
     }
 
-    //TODO_NOTE：获取一个artwork的详细信息，值得注意的是软件api不再提供每张图片的长宽，这影响了一些实现，见PixivDetailComposition
+    // 使用 App API /v1/illust/detail 获取作品详情
+    // App API 不再提供单张图片的宽高，meta_pages 中只有 image_urls（有 large/original 但无宽高）
     suspend fun artwork(id: String) : ArtworkInfo {
         val info = ArtworkInfo()
         info.source = CSources.PIXIV
-        val bd = requestStandard<JsonObject>("/ajax/illust/$id") {
-            pixivNormalSetting()
+        val r = apiRequest("/v1/illust/detail", Parameters.build {
+            append("illust_id", id)
+        }, true)
+        if (r.isFailure) {
+            throw Exception("artwork info get error info: ${r.exceptionOrNull()?.message
+                ?: "\nmessage is empty, maybe the artwork is disappeared"}")
         }
-        if (bd.error) {
-            throw Exception("artwork info get error info: ${
-                bd.message.ifEmpty { "\nmessage is empty, maybe the artwork is disappeared" } //TODO: Localization
-            }")
-        }
-        val jo = bd.realData(JsonObject.serializer())
-        info.title = jo.getAsString("illustTitle")
-        info.tags = jo["tags"]?.jsonObject["tags"]?.jsonArray?.map { x ->
-            x.jsonObject.getAsString("tag")
-        } ?: listOf()
-        info.authors = listOf(jo.getAsString("userName"),jo.getAsString("userId"))
-        info.description = jo.getAsString("description")
+        val body = r.getOrNull() ?: throw Exception("artwork info get error: empty response")
+        val detail = NetHelper.json.decodeFromJsonElement(
+            ArtworkDetailData.serializer(), body["illust"]!!
+        )
+
+        info.title = detail.title
+        info.tags = detail.tags.map { it.name }
+        info.authors = listOf(detail.user.name, detail.user.id.toString())
+        info.description = detail.caption
             .split("<\\s*br\\s*/\\s*>".toRegex()).joinToString("\n") {
             NetHelper.handleHTMLString(it)
         }
-        info.page = jo.getAsInt("pageCount")
-        info.likeCount = jo.getAsInt("bookmarkCount")
-        info.time = Instant.parse(jo.getAsString("uploadDate")).toEpochMilliseconds()
-        info.ai = jo.getAsInt("aiType") > 1
-        info.restriction = CRestriction.entries[jo.getAsInt("xRestrict")]
-        val meta = ugoiraData(id)
-        if (meta == null) {
-            val page = artworkPage(id)
-            info.pageUrls = page.map {
-                "${it.urls.regular}[w${it.width}h${it.height}]{${it.urls.original}}" //TODO_NOTE：这个地方。
-            }
-            info.thumbUrls = page.map {
-                it.urls.thumbMini
+        info.page = detail.pageCount
+        info.likeCount = detail.totalBookmarks
+        info.time = Instant.parse(detail.createDate).toEpochMilliseconds()
+        info.ai = detail.illustAIType > 1
+        info.restriction = CRestriction.entries[detail.xRestrict]
+
+        val illustWidth = detail.width
+        val illustHeight = detail.height
+
+        if (detail.type == "ugoira") {
+            val meta = ugoiraData(id)
+            if (meta != null) {
+                meta.width = illustWidth
+                meta.height = illustHeight
+                info.ugoiraMetadata = meta
+                info.thumbUrls = listOf(detail.imageUrls.medium)
             }
         } else {
-            meta.width = jo.getAsInt("width")
-            meta.height = jo.getAsInt("height")
-            info.ugoiraMetadata = meta
-            info.thumbUrls = listOf(
-                jo["urls"]?.jsonObject?.getAsString("thumb") ?: ""
-            )
+            if (detail.metaPages.isNotEmpty()) {
+                info.pageUrls = detail.metaPages.map { mp ->
+                    // App API 无单图宽高，用作品整体宽高作为默认
+                    "${mp.imageUrls.large}[w${illustWidth}h${illustHeight}]{${mp.imageUrls.original ?: ""}}"
+                }
+                info.thumbUrls = detail.metaPages.map { it.imageUrls.squareMedium }
+            } else {
+                // 单页作品: meta_single_page
+                val original = detail.metaSinglePage.originalImageURL
+                val large = detail.imageUrls.large.ifEmpty { original }
+                if (large.isNotEmpty()) {
+                    info.pageUrls = listOf("$large[w${illustWidth}h${illustHeight}]{$original}")
+                }
+                info.thumbUrls = listOf(detail.imageUrls.squareMedium)
+            }
         }
         return info
     }
 
+    // NOTE：不动
     suspend fun keywordSuggestion(keyword: String) : List<KeywordSuggestionItem> {
         return NetHelper.client.get("https://$mainPrefix/rpc/cps.php") {
             pixivNormalSetting()
@@ -241,7 +271,32 @@ object PIXIVApiHelper {
         } ?: listOf()
     }
 
-    // TODO_NOTE：网页api中与user work info配合使用，但软件api里会直接返回作品列表，这个变化会涉及RoutesUtil下pushAuthorSearch访问方式的改变
+    // 使用 App API /v1/user/illusts 直接获取用户作品列表
+    // 替代旧的 userAllWorks + userWorkInfo 两步流程
+    suspend fun userIllusts(
+        userId: String,
+        type: String = "",
+        offset: Int = 0
+    ): Pair<List<SearchItemData>, String?> {
+        val pms = Parameters.build {
+            append("user_id", userId)
+            append("filter", "for_ios")
+            if (type.isNotEmpty()) append("type", type)
+            append("offset", offset.toString())
+        }
+        val r = apiRequest("/v1/user/illusts", pms, true)
+        if (r.isFailure) return Pair(listOf(), null)
+        val body = r.getOrNull() ?: return Pair(listOf(), null)
+        val illusts = body["illusts"]?.jsonArray?.mapNotNull {
+            try {
+                joToPixivSearchItem(it.jsonObject)
+            } catch (_: Exception) { null }
+        } ?: listOf()
+        val nextUrl = body.getAsString("next_url").ifEmpty { null }
+        return Pair(illusts, nextUrl)
+    }
+
+    @Deprecated("Use userIllusts() which fetches full illust list in one App API call")
     suspend fun userAllWorks(id: String) : UserAllWorkData {
         val std = requestStandard<JsonObject>("/ajax/user/${id}/profile/all") {
             pixivNormalSetting()
@@ -264,6 +319,7 @@ object PIXIVApiHelper {
         )
     }
 
+    @Deprecated("Use userIllusts() which fetches full illust list in one App API call")
     suspend fun userWorkInfo(ids: List<Int>, userId: String, ty: String = "illustManga"): List<SearchItemData> {
         if (ids.isEmpty()) return listOf()
         val std = requestStandard<JsonObject>("/ajax/user/${userId}/profile/illusts") {
@@ -275,9 +331,36 @@ object PIXIVApiHelper {
         return std.body.jsonObject["works"]?.jsonObject?.map { joToPixivSearchItem(it.value.jsonObject) } ?: listOf()
     }
 
-    //TODO_NOTE：会与recommendWork混合，但软件api中是直接返回信息列表，同时这里对应的是api的related字段，type是给novel留的坑，但软件api是
-    //          都分离的，可以删掉这个形参，专门就访问illust，同时由于返回内容的改变，PIXIVDetailModel下的recommendModel也是要改的，
-    //          值得注意的是related返回的next_url是用viewed[]来确定的，虽然很难评，但还是可以通过Pair来向searchFunction提供viewed来实现的
+    // 使用 App API /v2/illust/related 获取相关作品
+    // 替代旧的 recommendWork + recommendWorkInfo 两步流程
+    // next_url 中通过 viewed[] 参数确定翻页
+    // 难以评价，能用就行
+    suspend fun illustRelated(
+        illustId: String,
+        offset: Int = 0,
+        viewed: List<String> = listOf(),
+        seedIllustIds: List<String> = listOf()
+    ): Pair<List<SearchItemData>, String?> {
+        val pms = Parameters.build {
+            append("illust_id", illustId)
+            append("filter", "for_ios")
+            append("offset", offset.toString())
+            seedIllustIds.forEach { append("seed_illust_ids[]", it) }
+            viewed.forEach { append("viewed[]", it) }
+        }
+        val r = apiRequest("/v2/illust/related", pms, true)
+        if (r.isFailure) return Pair(listOf(), null)
+        val body = r.getOrNull() ?: return Pair(listOf(), null)
+        val illusts = body["illusts"]?.jsonArray?.mapNotNull {
+            try {
+                joToPixivSearchItem(it.jsonObject)
+            } catch (_: Exception) { null }
+        } ?: listOf()
+        val nextUrl = body.getAsString("next_url").ifEmpty { null }
+        return Pair(illusts, nextUrl)
+    }
+
+    @Deprecated("Use illustRelated() which fetches related illusts in one App API call")
     private suspend fun recommendWorkInfo(ids: List<String>, type: String = "illust"): List<SearchItemData> {
         if (ids.isEmpty()) return listOf()
         val std = requestStandard<JsonObject>("/ajax/${type}/recommend/${type}s") {
@@ -293,8 +376,10 @@ object PIXIVApiHelper {
         } ?: listOf()
     }
 
+    @Deprecated("Use illustRelated() which fetches related illusts in one App API call")
     suspend fun recommendArtworkInfo(ids: List<String>) = recommendWorkInfo(ids, "illust")
 
+    @Deprecated("Use illustRelated() which fetches related illusts in one App API call")
     private suspend fun recommendWork(id: String, type: String, limit: Int = 9): RecommendData {
         val std = requestStandard<JsonObject>("/ajax/${type}/${id}/recommend/init") {
             pixivNormalSetting()
@@ -318,6 +403,7 @@ object PIXIVApiHelper {
         return recommend
     }
 
+    @Deprecated("Use illustRelated() which fetches related illusts in one App API call")
     suspend fun recommendArtwork(id: String, limit: Int = 18) = recommendWork(id, "illust", limit)
 
     suspend fun requestTokenWithCode(code: String, codeVerifier: String) : Pair<String, String> {
@@ -359,6 +445,7 @@ object PIXIVApiHelper {
         }
     }
 
+    // NOTE：保留
     suspend fun testPixivRequest(): PixivTestResult {
         val result = PixivTestResult()
         try {
