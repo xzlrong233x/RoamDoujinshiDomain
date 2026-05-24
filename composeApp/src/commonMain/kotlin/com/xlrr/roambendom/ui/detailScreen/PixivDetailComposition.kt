@@ -7,6 +7,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -44,6 +45,7 @@ import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.ui.Preload
 import com.xlrr.roambendom.ui.ThumbDialog
 import com.xlrr.roambendom.utils.*
+import com.xlrr.roambendom.utils.MthUtil.adaptiveSize
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -54,7 +56,6 @@ import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.book
 import roambendom.composeapp.generated.resources.img_download_icon
-import kotlin.math.floor
 
 @Composable
 fun ImageDialog(
@@ -177,21 +178,13 @@ private fun LazyListScope.imagesOrAnimatedImage(
             { "ImgPage$it" }) {
             Box(Modifier.fillMaxWidth(), Alignment.Center) {
                 pageSizes[it].let { uws ->
-                    SharedImage(uws, Modifier.run { //这部分逻辑在代码中有重复，TODO：整合
-                        val testH = uws.h * screenWidth / uws.w
-                        if (testH < screenHeight) {
-                            width(with(LocalDensity.current) { screenWidth.toDp() })
-                                .heightIn(min = with(LocalDensity.current) { testH.toDp() })
-                        } else {
-                            height(with(LocalDensity.current) {
-                                (floor(testH / screenHeight).coerceIn(
-                                    1f,
-                                    null
-                                ) * screenHeight)
-                                    .toDp()
-                            })
-                        }
-                    }.clickable {
+                    SharedImage(uws, Modifier.adaptiveSize(
+                        screenWidth,
+                        screenHeight,
+                        uws.w.toFloat(),
+                        uws.h.toFloat(),
+                        LocalDensity.current,
+                    ).clickable {
                         click(uws)
                     },
                         onSizeKnown = { w, h ->
@@ -384,7 +377,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                 if (moreBtn) {
                                     Text("展示更多", Modifier.align(Alignment.End).clickable {
                                         showAllDes = true
-                                    }, color = Color(0f, 0f, 0f, 0.5f))
+                                    }, color = (if (isSystemInDarkTheme()) Color.White else Color.Black).copy(0.5f))
                                 }
                             }
                         }

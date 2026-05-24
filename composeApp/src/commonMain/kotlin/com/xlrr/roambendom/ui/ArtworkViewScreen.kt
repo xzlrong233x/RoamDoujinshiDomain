@@ -57,6 +57,7 @@ import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import com.xlrr.roambendom.utils.*
+import com.xlrr.roambendom.utils.MthUtil.adaptiveSize
 import com.xlrr.roambendom.utils.MthUtil.hsv
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -66,7 +67,6 @@ import net.engawapg.lib.zoomable.zoomable
 import net.engawapg.lib.zoomable.zoomableWithScroll
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.*
-import kotlin.math.floor
 import kotlin.math.min
 
 class ArtworkViewModel : ViewModel() {
@@ -153,21 +153,13 @@ private fun TypicalShowPage(modifier: Modifier, artworkInfo: ArtworkInfo,
         ) {
             if (artworkInfo.ugoiraMetadata == null) {
                 val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
-                LoadingImage(artworkInfo.pageUrls[it], Modifier.run {
-                    val testH = uws.h * sW / uws.w
-                    if (testH < sH) {
-                        width(with(LocalDensity.current) { sW.toDp() })
-                            .heightIn(min = with(LocalDensity.current) { testH.toDp() })
-                    } else {
-                        height(with(LocalDensity.current) {
-                            (floor(testH / sH).coerceIn(
-                                1f,
-                                null
-                            ) * sH)
-                                .toDp()
-                        })
-                    }
-                }) {
+                LoadingImage(artworkInfo.pageUrls[it], Modifier.adaptiveSize(
+                    sW,
+                    sH,
+                    uws.w.toFloat(),
+                    uws.h.toFloat(),
+                    LocalDensity.current
+                )) {
                     pageIndex(it)
                 }
             } else {
@@ -192,19 +184,13 @@ private fun ListShowPage(
                         val uws = UrlWithSize.parse(artworkInfo.pageUrls[it])
                         LoadingImage(artworkInfo.pageUrls[it], Modifier.run {
                             if (opos.value) {
-                                val testH = uws.h * sW / uws.w
-                                if (testH < sH) {
-                                    width(with(LocalDensity.current) { sW.toDp() })
-                                        .heightIn(min = with(LocalDensity.current) { testH.toDp() })
-                                } else {
-                                    height(with(LocalDensity.current) {
-                                        (floor(testH / sH).coerceIn(
-                                            1f,
-                                            null
-                                        ) * sH)
-                                            .toDp()
-                                    })
-                                }
+                                adaptiveSize(
+                                    sW,
+                                    sH,
+                                    uws.w.toFloat(),
+                                    uws.h.toFloat(),
+                                    LocalDensity.current
+                                )
                             }
                             else fillMaxWidth()
                         })

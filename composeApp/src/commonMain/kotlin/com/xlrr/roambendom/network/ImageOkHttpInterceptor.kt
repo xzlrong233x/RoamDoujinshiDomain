@@ -72,7 +72,8 @@ class ImageOkHttpInterceptor(
         val totalSize = getTotalSize(client, request)
         if (totalSize == null) {
             painter?.release()
-            return chain.proceed(request)
+            val res = chain.proceed(request)
+            return res
         }
         painter?.setFileSize(totalSize)
 
@@ -95,11 +96,11 @@ class ImageOkHttpInterceptor(
                 painter?.release()
             }
         }
-
-        val chunkSize = rest / chunkCount
-        val rangeRequests = (0 until chunkCount).map { index ->
+        val localChunk = (rest / (64 * 1024L)).toInt()
+        val chunkSize = rest / localChunk
+        val rangeRequests = (0 until localChunk).map { index ->
             val start = index * chunkSize + al
-            val end = (if (index == chunkCount - 1) rest - 1 else (index + 1) * chunkSize - 1) + al
+            val end = (if (index == localChunk - 1) rest - 1 else (index + 1) * chunkSize - 1) + al
             request.newBuilder()
                 .header("Range", "bytes=$start-$end")
                 .header(SKIP_CHUNK_HEADER, "true")
@@ -107,7 +108,7 @@ class ImageOkHttpInterceptor(
         }
 
         // 3. 使用固定线程池并发下载（限制最大并发数，避免创建过多线程）
-        val executor = Executors.newFixedThreadPool(chunkCount.coerceAtMost(6))
+        val executor = Executors.newFixedThreadPool(localChunk.coerceAtMost(6))
         try {
             val maxRetries = 5
 
@@ -296,14 +297,11 @@ class ImageOkHttpInterceptor(
 
         try {
             val headResponse = client.newCall(headRequest).execute()
-            // 服务器支持 Range 时应返回 206 Partial Content
-            if (headResponse.code != 206) {
-                headResponse.closeQuietly()
-                return null
-            }
-            val contentRange = headResponse.header("Content-Range") ?: return null
             headResponse.closeQuietly()
-            return contentRange.substringAfter('/').toLongOrNull()
+            var len = headResponse.header("Content-Range")
+            if (len != null) return len.substringAfter('/').toLongOrNull()
+            len = headResponse.header("Content-Length")
+            if (len != null && !ConfigUtil.useMultithread.value) return len.toLongOrNull()
         } catch (e: Exception) {
             e.printStackTrace()
         }

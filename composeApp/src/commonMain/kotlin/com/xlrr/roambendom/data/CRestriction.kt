@@ -17,7 +17,7 @@ enum class CRestriction {
 
 fun CRestriction.getColor(): Color {
     return when (this) {
-        Normal -> Color(0xFFF5F55A)
+        Normal -> Color(0xFFF5A623)
         R18 -> Color.Red
         R18G -> Color(0xFF8B0000)
     }

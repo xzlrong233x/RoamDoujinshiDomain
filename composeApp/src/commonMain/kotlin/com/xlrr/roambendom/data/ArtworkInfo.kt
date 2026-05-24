@@ -20,5 +20,6 @@ data class ArtworkInfo(
     var likeCount: Int = 0,
     var time: Long = 0,
     var ai: Boolean = false,
+    var isAnimation: Boolean = false,
     var ugoiraMetadata: UgoiraMetadata? = null
 )

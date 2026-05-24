@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.config.LocalPlatformForUI
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.CoroutineScope
@@ -77,6 +78,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
             }
     }
 
+    val ty = LocalPlatformForUI.current
     Box(Modifier.widthIn(0.dp, 1272.dp)) {
         LazyVerticalStaggeredGrid(
             columns,
@@ -90,7 +92,7 @@ fun InfiniteScrollStaggeredGrid(modifier: Modifier, state: LazyStaggeredGridStat
                     header()
                 }
             }
-            if (searchParameterModel.content.isNotEmpty()) {
+            if (searchParameterModel.content.isNotEmpty() && !searchParameterModel.isFullLoading(ty)) {
                 main(searchParameterModel)
                 if (load != null) {
                     item(
@@ -137,15 +139,16 @@ fun InfiniteScrollList(modifier: Modifier, state: LazyListState, searchParameter
             }
     }
 
+    val ty = LocalPlatformForUI.current
     LazyColumn(modifier, state, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (header != null) {
             item(key = "head") {
                 header()
             }
         }
-        if (searchParameterModel.content.isNotEmpty()) {
+        if (searchParameterModel.content.isNotEmpty() && !searchParameterModel.isFullLoading(ty)) {
             main(searchParameterModel)
-            if (load != null){
+            if (load != null) {
                 item(if (searchParameterModel.completed) "bottom" else "nextLoading") {
                     load(searchParameterModel, ss)
                 }
@@ -221,7 +224,7 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
             contentAlignment =  Alignment.TopCenter
         ) {
             content()
-            if (searchParameterModel.content.isEmpty() && searchParameterModel.loading) {
+            if (searchParameterModel.isFullLoading()) {
                 CenterCircular()
             }
             if (searchParameterModel.content.isEmpty()) {

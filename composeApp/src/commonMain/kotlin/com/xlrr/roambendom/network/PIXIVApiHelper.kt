@@ -5,6 +5,10 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.*
 import com.xlrr.roambendom.data.pixiv.*
 import com.xlrr.roambendom.data.pixiv.search.ArtworkDetailData
+import com.xlrr.roambendom.data.pixiv.search.ArtworkDetailData.Companion.toSearchItem
+import com.xlrr.roambendom.data.pixiv.search.PixivSearchDuration
+import com.xlrr.roambendom.data.pixiv.search.PixivSearchTarget
+import com.xlrr.roambendom.data.pixiv.search.PixivSort
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import com.xlrr.roambendom.utils.PixivTokenUtil.pixivToken
 import com.xlrr.roambendom.utils.decryptSP
@@ -103,7 +107,8 @@ object PIXIVApiHelper {
             n["user"]?.jsonObject?.let { n ->
                 "${n.getAsString("name")}(${n.getAsString("id")})"
             } ?: "",
-            Instant.parse(n.getAsString("create_date")).toEpochMilliseconds()
+            Instant.parse(n.getAsString("create_date")).toEpochMilliseconds(),
+            n.getAsString("type") == "ugoira"
         )
     }
 
@@ -113,6 +118,7 @@ object PIXIVApiHelper {
         searchTarget: PixivSearchTarget = PixivSearchTarget.PartialMatchForTags,
         searchSort: PixivSort = PixivSort.DateDesc,
         searchDuration: PixivSearchDuration? = null,
+        aiType: Int = 1
     ) : SearchResult {
         val data = apiRequest("/v1/search/illust", Parameters.build {
             append("search_target", searchTarget.toString())
@@ -121,6 +127,7 @@ object PIXIVApiHelper {
             append("sort", searchSort.toString())
             append("filter", "for_ios")
             if (searchDuration != null) append("duration", searchDuration.toString())
+            append("search_ai_type", aiType.toString())
         }, true) {
         }
         val sr = SearchResult(-1, listOf(), key, page)
@@ -144,7 +151,8 @@ object PIXIVApiHelper {
                         CRestriction.entries[it.xRestrict],
                         it.illustAIType > 1,
                         "${it.user.name}(${it.user.id})",
-                        Instant.parse(it.createDate).toEpochMilliseconds()
+                        Instant.parse(it.createDate).toEpochMilliseconds(),
+                        it.type == "ugoira"
                     )
                 )
             }
@@ -228,6 +236,7 @@ object PIXIVApiHelper {
         info.likeCount = detail.totalBookmarks
         info.time = Instant.parse(detail.createDate).toEpochMilliseconds()
         info.ai = detail.illustAIType > 1
+        info.isAnimation = detail.type == "ugoira"
         info.restriction = CRestriction.entries[detail.xRestrict]
 
         val illustWidth = detail.width
@@ -277,7 +286,7 @@ object PIXIVApiHelper {
         userId: String,
         type: String = "",
         offset: Int = 0
-    ): Pair<List<SearchItemData>, String?> {
+    ): SearchResult {
         val pms = Parameters.build {
             append("user_id", userId)
             append("filter", "for_ios")
@@ -285,15 +294,22 @@ object PIXIVApiHelper {
             append("offset", offset.toString())
         }
         val r = apiRequest("/v1/user/illusts", pms, true)
-        if (r.isFailure) return Pair(listOf(), null)
-        val body = r.getOrNull() ?: return Pair(listOf(), null)
-        val illusts = body["illusts"]?.jsonArray?.mapNotNull {
-            try {
-                joToPixivSearchItem(it.jsonObject)
-            } catch (_: Exception) { null }
-        } ?: listOf()
-        val nextUrl = body.getAsString("next_url").ifEmpty { null }
-        return Pair(illusts, nextUrl)
+        val body = r.getOrNull() ?: return SearchResult(
+            -1, listOf(), userId, -1
+        )
+        val illusts: List<ArtworkDetailData> = body["illusts"]?.runCatching {
+            NetHelper.json.decodeFromJsonElement(
+                ListSerializer<ArtworkDetailData>(serializer()),
+                this
+            )
+        }?.getOrNull() ?: listOf()
+        val nextUrl = body.getAsString("next_url")
+        return SearchResult(
+            -1,
+            illusts.map { it.toSearchItem() },
+            userId,
+            "offset=(\\d+)".toRegex().find(nextUrl)?.groupValues?.last()?.toInt() ?: -1
+        )
     }
 
     @Deprecated("Use userIllusts() which fetches full illust list in one App API call")

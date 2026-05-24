@@ -23,10 +23,16 @@ class SearchConfigs {
             "搜索模式", PixivSearchRestriction.entries.toList()
         ) { it.lowerStr() })
 
+    val pixivHideAI = StateWithUI(
+        mutableStateOf(false), UIType.SwitchUI(
+            "不显示ai内容"
+        )
+    )
+
     //因要适配p站的软件api里的offset，page会从0开始，但不会在调用这个函数前增加，需要注意。
     var searchFunction : suspend (key: String, page: Int, extra: HashMap<String, Any>) -> SearchResult = {key, page, extra ->
         if (searchTarget.realValue == 0) NHWebHelper.search(key, page + 1) else
-            PIXIVApiHelper.searchIllust(key, page,)
+            PIXIVApiHelper.searchIllust(key, page, aiType = if (pixivHideAI.value) 1 else 0)
     }
 
     var clearList by mutableStateOf(false)

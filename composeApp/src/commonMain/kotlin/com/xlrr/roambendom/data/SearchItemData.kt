@@ -13,7 +13,8 @@ data class SearchItemData(
     var restriction: CRestriction = CRestriction.R18,
     var ai: Boolean = false,
     var author: String = "",
-    var time: Long = 0L
+    var time: Long = 0L,
+    var isAnimation: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
         if (other is SearchItemData) {
@@ -49,6 +50,7 @@ data class SearchItemData(
         cp.author = art.authors.firstOrNull() ?: ""
         cp.restriction = art.restriction
         cp.ai = art.ai
+        cp.isAnimation = art.isAnimation
         return cp
     }
 

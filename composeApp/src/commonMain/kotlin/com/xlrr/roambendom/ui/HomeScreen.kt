@@ -64,7 +64,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
     Box() {
         ItemInfoCardWithShared(
             it.thumb,
-            if (it.pageCount > 0) it.pageCount.toString() else "null",
+            it.pageCount,
             it.title,
             it.restriction,
             it.lang.let { x ->
@@ -74,6 +74,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
                 if (it.ai) Text("*有AI参与的作品")
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
+            it.isAnimation,
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },
@@ -228,7 +229,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                     }
                 }
             )
-            if (viewModel.loading || (viewModel.spm.loading && viewModel.spm.content.isEmpty())) {
+            if (viewModel.loading || viewModel.spm.isFullLoading()) {
                 CenterCircular()
             }
             if (viewModel.spm.content.isEmpty() && viewModel.spm.error != null) {

@@ -1,8 +1,13 @@
 package com.xlrr.roambendom.data.pixiv.search
 
+import com.xlrr.roambendom.data.CLanguage
+import com.xlrr.roambendom.data.CRestriction
+import com.xlrr.roambendom.data.CSources
+import com.xlrr.roambendom.data.SearchItemData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlin.time.Instant
 
 @Serializable
 data class ArtworkDetailData(
@@ -51,7 +56,23 @@ data class ArtworkDetailData(
     val request: JsonElement? = null,
     @SerialName("restriction_attributes")
     val restrictionAttributes: List<String> = listOf()
-)
+) {
+    companion object {
+        fun ArtworkDetailData.toSearchItem() = SearchItemData(
+            id.toString(),
+            CSources.PIXIV,
+            title,
+            pageCount,
+            CLanguage.Unknown,
+            imageUrls.squareMedium,
+            CRestriction.entries[xRestrict],
+            illustAIType > 1,
+            "${user.name}(${user.id})",
+            Instant.parse(createDate).toEpochMilliseconds(),
+            type == "ugoira"
+        )
+    }
+}
 @Serializable
 data class ImageUrls (
     @SerialName("square_medium")

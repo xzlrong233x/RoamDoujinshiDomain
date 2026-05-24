@@ -3,6 +3,8 @@ package com.xlrr.roambendom.model.search
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateSet
+import com.xlrr.roambendom.config.LocalPlatformForUI
+import com.xlrr.roambendom.config.UIEnablePlatform
 import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.model.RequestRefreshModel
 import kotlin.coroutines.cancellation.CancellationException
@@ -38,6 +40,15 @@ class SearchParameterModel(
     fun reset() {
         error = null
         _complete = false
+    }
+
+    @Composable
+    fun isFullLoading() : Boolean {
+        return (if (LocalPlatformForUI.current == UIEnablePlatform.DESKTOP) true else content.isEmpty()) && loading
+    }
+
+    fun isFullLoading(ty: UIEnablePlatform) : Boolean {
+        return (if (ty == UIEnablePlatform.DESKTOP) true else content.isEmpty()) && loading
     }
 
     override suspend fun refresh() { //纯他妈叠石山

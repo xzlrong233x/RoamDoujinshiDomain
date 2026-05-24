@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme.typography
@@ -111,9 +110,9 @@ fun CenterCircular(width: Dp = 48.dp) {
 fun CardLabel(
     label: String,
     modifier: Modifier = Modifier,
-    fontStyle: TextStyle = typography.labelSmall,
-    shape: Shape = CircleShape,
-    sufColor: Color = Color(0.7f, 0.7f, 0.7f, 0.7f),
+    fontStyle: TextStyle = typography.labelMedium,
+    shape: Shape = RoundedCornerShape(30),
+    sufColor: Color = Color(0.286f, 0.286f, 0.286f, 0.702f),
     fontColor: Color = Color.White
 ) {
     Surface(
@@ -156,11 +155,12 @@ private fun RowOrColumn(modifier: Modifier, or: Boolean = true,
 @Composable
 fun ItemInfoCardWithShared(
     url: String,
-    page: String,
+    page: Int,
     title: String,
     restriction: CRestriction?,
     extraText: String? = null,
     extraComposer: @Composable (ColumnScope.() -> Unit) = {},
+    isAnimation: Boolean = false,
     onclick: () -> Unit = {},
     toColumn: Boolean = true,
     imgLabel: String? = null
@@ -195,12 +195,11 @@ fun ItemInfoCardWithShared(
                     }
                     DefaultErrorHandleImage(url, mod)
                     FlowColumn(
-                        Modifier.align(Alignment.TopEnd), verticalArrangement = Arrangement.spacedBy(4.dp),
+                        Modifier.align(Alignment.TopEnd).padding(2.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
                         itemHorizontalAlignment = Alignment.End
                     ) {
-                        page.toIntOrNull()?.let {
-                            CardLabel("P${it}")
-                        }
+                        if (page > 1) CardLabel("P${page}")
+                        if (isAnimation) CardLabel("动图")
                     }
                 }
                 Column(modifier = if (toColumn) Modifier else Modifier.padding(PaddingValues(start = 4.dp))) {

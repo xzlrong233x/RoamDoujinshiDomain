@@ -1,4 +1,4 @@
-package com.xlrr.roambendom.data.pixiv
+package com.xlrr.roambendom.data.pixiv.search
 
 import com.xlrr.roambendom.utils.camelToSnack
 

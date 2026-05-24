@@ -53,7 +53,8 @@ fun SearchSettingDialog(onDismiss: () -> Unit, searchParameterModel: SearchParam
                 Column(Modifier.padding(pd).fillMaxSize()) {
                     CalUI(cfg.searchTarget)
                     if (cfg.searchTarget.value == 1) {
-                        CalUI(cfg.pixivSearchRestriction)
+                        //CalUI(cfg.pixivSearchRestriction)
+                        CalUI(cfg.pixivHideAI)
                     }
                 }
             }

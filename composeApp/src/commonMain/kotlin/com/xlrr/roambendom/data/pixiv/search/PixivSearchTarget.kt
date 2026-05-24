@@ -1,6 +1,5 @@
-package com.xlrr.roambendom.data.pixiv
+package com.xlrr.roambendom.data.pixiv.search
 
-import androidx.compose.ui.util.fastJoinToString
 import com.xlrr.roambendom.utils.camelToSnack
 
 enum class PixivSearchTarget {

@@ -29,7 +29,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
     Box(modifier) {
         ItemInfoCardWithShared(
             it.thumb,
-            if (it.pageCount > 0) it.pageCount.toString() else "null",
+            it.pageCount,
             it.title,
             it.restriction,
             it.lang.let { x ->
@@ -44,6 +44,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
                     Icon(painterResource(Res.drawable.delete_icon), "delete icon")
                 }
             },
+            it.isAnimation,
             imgLabel = it.thumb,
             onclick = {
                 GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
