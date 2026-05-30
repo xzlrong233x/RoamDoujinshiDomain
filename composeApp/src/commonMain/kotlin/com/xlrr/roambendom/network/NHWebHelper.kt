@@ -100,7 +100,7 @@ object NHWebHelper {
      * @param key 关键字，必须没被url编码
      * @param page 页码
      * */
-    suspend fun search(key: String, page: Int = 1): SearchResult {
+    suspend fun search(key: String, page: Int = 1, sortType: NHSearchSortType = NHSearchSortType.DATE): SearchResult {
         fun result(total: Int, lis: List<SearchItemData>): SearchResult {
             return SearchResult(
                 total,
@@ -110,7 +110,7 @@ object NHWebHelper {
             )
         }
         if (key.isNotEmpty()) {
-            val sh = searchNH(key, page)
+            val sh = searchNH(key, page, sortType)
             val total = sh?.total ?: 0
             return result(total, sh?.result?.map {
                 SearchItemData(

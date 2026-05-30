@@ -11,6 +11,7 @@ import com.xlrr.roambendom.data.pixiv.search.PixivSearchTarget
 import com.xlrr.roambendom.data.pixiv.search.PixivSort
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import com.xlrr.roambendom.utils.PixivTokenUtil.pixivToken
+import com.xlrr.roambendom.utils.TimeUtil
 import com.xlrr.roambendom.utils.decryptSP
 import com.xlrr.roambendom.utils.getAsInt
 import com.xlrr.roambendom.utils.getAsString
@@ -118,6 +119,7 @@ object PIXIVApiHelper {
         searchTarget: PixivSearchTarget = PixivSearchTarget.PartialMatchForTags,
         searchSort: PixivSort = PixivSort.DateDesc,
         searchDuration: PixivSearchDuration? = null,
+        timeRange: Pair<Long,Long>? = null,
         aiType: Int = 1
     ) : SearchResult {
         val data = apiRequest("/v1/search/illust", Parameters.build {
@@ -127,6 +129,10 @@ object PIXIVApiHelper {
             append("sort", searchSort.toString())
             append("filter", "for_ios")
             if (searchDuration != null) append("duration", searchDuration.toString())
+            if (timeRange != null) {
+                append("start_date", TimeUtil.formatTime(timeRange.first, TimeUtil.PIXIV_PARAM_FORMATTER))
+                append("end_date", TimeUtil.formatTime(timeRange.second, TimeUtil.PIXIV_PARAM_FORMATTER))
+            }
             append("search_ai_type", aiType.toString())
         }, true) {
         }

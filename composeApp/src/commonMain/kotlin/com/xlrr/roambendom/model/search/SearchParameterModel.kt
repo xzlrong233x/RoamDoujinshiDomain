@@ -44,11 +44,11 @@ class SearchParameterModel(
 
     @Composable
     fun isFullLoading() : Boolean {
-        return (if (LocalPlatformForUI.current == UIEnablePlatform.DESKTOP) true else content.isEmpty()) && loading
+        return isFullLoading(LocalPlatformForUI.current)
     }
 
     fun isFullLoading(ty: UIEnablePlatform) : Boolean {
-        return (if (ty == UIEnablePlatform.DESKTOP) true else content.isEmpty()) && loading
+        return ((if (ty == UIEnablePlatform.DESKTOP) _refreshing else false) || content.isEmpty()) && loading
     }
 
     override suspend fun refresh() { //纯他妈叠石山

@@ -8,6 +8,6 @@ enum class NHSearchSortType {
     POPULAR_MONTH;
 
     override fun toString(): String {
-        return super.toString().lowercase()
+        return super.toString().lowercase().replace('_', '-')
     }
 }

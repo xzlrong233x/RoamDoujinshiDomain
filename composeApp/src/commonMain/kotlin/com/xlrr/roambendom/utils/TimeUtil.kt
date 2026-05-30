@@ -1,5 +1,6 @@
 package com.xlrr.roambendom.utils
 
+import androidx.compose.material3.SelectableDates
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -7,6 +8,7 @@ import kotlinx.datetime.format.DateTimeFormat
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 object TimeUtil {
@@ -25,6 +27,16 @@ object TimeUtil {
         }
     }
 
+    val PIXIV_PARAM_FORMATTER by lazy {
+        LocalDateTime.Format {
+            year()
+            char('-')
+            monthNumber()
+            char('-')
+            day()
+        }
+    }
+
     val COMMON_TIME_FORMATTER by lazy {
         LocalDateTime.Format {
             year()
@@ -39,6 +51,11 @@ object TimeUtil {
             char(':')
             second()
         }
+    }
+
+    val DATE_PICK_RANGE = object : SelectableDates {
+        override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= Clock.System.now().toEpochMilliseconds()
+        override fun isSelectableYear(year: Int): Boolean = year <= Clock.System.now().toLocalDateTime(TimeZone.UTC).year
     }
 
     fun formatTime(time: Long, pt: DateTimeFormat<LocalDateTime>) : String {
