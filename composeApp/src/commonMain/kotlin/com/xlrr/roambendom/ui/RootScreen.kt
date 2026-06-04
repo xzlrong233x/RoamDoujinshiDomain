@@ -264,7 +264,7 @@ private class SearchSuggestionsService(
         }
         else if (s == CSources.NHENTAI) {
             return GlobalData.historyData.requestTokens(q).map {
-                SuggestionItem(it)
+                SuggestionItem(it, clickType = SuggestionClickType.History)
             }
         }
         return listOf()
@@ -672,7 +672,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             }, Modifier.clickable {
                                 exp = it.addition
                                 when (it.clickType) {
-                                    is SuggestionClickType.Default -> {
+                                    is SuggestionClickType.Default, SuggestionClickType.History -> {
                                         searchText.edit {
                                             replace(0, length, it.key)
                                         }
@@ -696,7 +696,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                                 }
                             } else null, trailingContent = if (it.trailing.isNotEmpty()) {
                                 { Text(it.trailing) }
-                            } else if (it.clickType is SuggestionClickType.Default) {
+                            } else if (it.clickType is SuggestionClickType.History) {
                                 { IconButton({ GlobalData.historyData.removeSearchToken(it.key)}) {
                                     Icon(painterResource(Res.drawable.delete_icon), null)
                                 } }

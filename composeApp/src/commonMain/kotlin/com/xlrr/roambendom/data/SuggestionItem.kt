@@ -12,6 +12,7 @@ data class SuggestionItem(
 
 sealed class SuggestionClickType {
     object Default: SuggestionClickType()
+    object History: SuggestionClickType()
     data class Replacement(
         val text: String,
         val start: Int,

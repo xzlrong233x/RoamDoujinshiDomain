@@ -102,11 +102,14 @@ private fun ChooseContent(
             }
             if (!loading) {
                 item("INFOS") {
-                    Text("是否可以访问网页: ${pxResult.canRequestWebsite}")
-                    Text("账号是否可用: ${pxResult.isUserSigned}")
-                    Text("是否显示可能包含敏感内容的作品: ${pxResult.canReadSensitive}")
-                    Text("是否显示浏览限制作品（R-18）: ${pxResult.canReadR18}")
-                    Text("是否显示猎奇向作品（R-18G）: ${pxResult.canReadR18G}")
+                    if (pxResult.isUserSigned) {
+                        Text("已登录")
+                    } else {
+                        Text("您尚未登录，未登录会使大多P站功能不可用，您可以通过下面的按钮选择登录方式")
+                        Button({GlobalData.nav.push(Routes.Auth.Choose())}) {
+                            Text("选择登录方式")
+                        }
+                    }
                 }
             }
         }

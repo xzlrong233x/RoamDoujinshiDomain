@@ -64,7 +64,7 @@ data class ArtworkDetailData(
             title,
             pageCount,
             CLanguage.Unknown,
-            imageUrls.squareMedium,
+            imageUrls.medium,
             width,
             height,
             CRestriction.entries[xRestrict],

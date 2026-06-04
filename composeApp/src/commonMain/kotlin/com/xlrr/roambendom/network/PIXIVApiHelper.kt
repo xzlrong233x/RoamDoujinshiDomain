@@ -79,7 +79,8 @@ object PIXIVApiHelper {
         useGet: Boolean = false,
         builder: HttpRequestBuilder.() -> Unit = {}
     ) : Result<JsonObject> {
-        PixivTokenUtil.verifyToken(decryptSP(ConfigUtil.pixivRToken.value))
+        if (ConfigUtil.pixivRToken.value.isNotEmpty())
+            PixivTokenUtil.verifyToken(decryptSP(ConfigUtil.pixivRToken.value))
         val url = post.split("/").filter { it.isNotEmpty() }
             .joinToString("/", prefix = "https://$appApiPrefix/")
         try {
@@ -266,7 +267,7 @@ object PIXIVApiHelper {
                     // App API 无单图宽高，用作品整体宽高作为默认
                     "${mp.imageUrls.large}[w${illustWidth}h${illustHeight}]{${mp.imageUrls.original ?: ""}}"
                 }
-                info.thumbUrls = detail.metaPages.map { it.imageUrls.squareMedium }
+                info.thumbUrls = detail.metaPages.map { it.imageUrls.medium }
             } else {
                 // 单页作品: meta_single_page
                 val original = detail.metaSinglePage.originalImageURL
@@ -274,7 +275,7 @@ object PIXIVApiHelper {
                 if (large.isNotEmpty()) {
                     info.pageUrls = listOf("$large[w${illustWidth}h${illustHeight}]{$original}")
                 }
-                info.thumbUrls = listOf(detail.imageUrls.squareMedium)
+                info.thumbUrls = listOf(detail.imageUrls.medium)
             }
         }
         return info
@@ -484,7 +485,9 @@ object PIXIVApiHelper {
             }
             result.canRequestWebsite = website.status == HttpStatusCode.OK
             if (result.canRequestWebsite) {
-                result.isUserSigned = accountEx.body<JsonObject>()["error"]?.jsonPrimitive?.booleanOrNull == false
+                result.isUserSigned = apiRequest("/v1/illust/detail", Parameters.build {
+                    append("illust_id", "34844544")
+                }, true).isSuccess
                 if (result.isUserSigned && viewSetting != null) {
                     result.canReadSensitive = viewSetting.select("*[name=\"sensitive_view_setting\"]")
                         .hasAttr("checked")
