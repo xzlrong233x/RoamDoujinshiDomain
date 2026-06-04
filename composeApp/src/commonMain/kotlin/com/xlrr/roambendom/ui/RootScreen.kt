@@ -11,8 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.*
@@ -42,6 +44,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
@@ -225,16 +228,33 @@ private class SearchSuggestionsService(
     val coroutineScope: CoroutineScope
 ) {
     val list: SnapshotStateList<SuggestionItem> = SnapshotStateList()
+    val nhTags = listOf(
+        "tag", "artist", "parody", "character", "group", "language", "category", "title", "jtitle",
+    )
+    val nhNumTag = listOf(
+        "favorites","pages",
+    )
+    val nhDateTag = listOf("uploaded")
     private var job: Job? = null
         set(value) {
             field?.cancel()
             field = value
         }
 
-    suspend fun webSuggest(q: String, curScreen: Any): List<SuggestionItem> {
-        if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
+    private fun curSource(curScreen: Any) : CSources? {
+        return if ((GlobalData.homeContentSelection == HomeSelection.PIXIV
                     && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                    && curScreen.searchModel.configs.searchTarget.value == 1)) {
+                    && curScreen.searchModel.configs.searchTarget.value == 1)) CSources.PIXIV
+        else if ((GlobalData.homeContentSelection == HomeSelection.NH
+                    && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
+                    && curScreen.searchModel.configs.searchTarget.value == 0)) {
+            CSources.NHENTAI
+        } else null
+    }
+
+    suspend fun webSuggest(q: String, curScreen: Any): List<SuggestionItem> {
+        val s = curSource(curScreen)
+        if (s == CSources.PIXIV) {
             return PIXIVApiHelper.keywordSuggestion(q).map {
                 SuggestionItem(
                     it.tagName,
@@ -242,9 +262,7 @@ private class SearchSuggestionsService(
                 )
             }
         }
-        else if ((GlobalData.homeContentSelection == HomeSelection.NH
-                    && curScreen !is Routes.Root.Search) || (curScreen is Routes.Root.Search
-                    && curScreen.searchModel.configs.searchTarget.value == 0)) {
+        else if (s == CSources.NHENTAI) {
             return GlobalData.historyData.requestTokens(q).map {
                 SuggestionItem(it)
             }
@@ -285,18 +303,85 @@ private class SearchSuggestionsService(
         return listOf()
     }
 
-    suspend fun suggest(q: String, curScreen: Any) {
+    suspend fun nhTermSuggest(q: String, curScreen: Any, textRange: TextRange) : List<SuggestionItem> {
+        if (curSource(curScreen) != CSources.NHENTAI) return listOf()
+        val n = textRange.start
+        var tmp = -2
+        var pair: Pair<Int, Int>
+        val ls = " ".toRegex().findAll(q.replace("\".*?\"".toRegex()) {
+            "*".repeat(it.value.length)
+        }).toList()
+        for (i in 0..<ls.size) {
+            tmp = -1
+            if (ls[i].range.first >= n) {
+                tmp = i
+                break
+            }
+        }
+        pair = when (tmp) {
+            0 -> Pair(0, ls[tmp].range.first)
+            -1 -> Pair(ls.last().range.first + 1, q.length)
+            -2 -> Pair(0, q.length)
+            else -> Pair(ls[tmp - 1].range.first + 1, ls[tmp].range.first)
+        }
+        val selectChunk = q.substring(pair.first, pair.second)
+        val lis: ArrayList<SuggestionItem> = arrayListOf()
+        fun fastReplacement(text: String, selection: TextRange? = null) = SuggestionClickType.Replacement(
+            text,
+            pair.first,
+            pair.second,
+            selection
+        )
+        when (selectChunk.count { it == ':' }) {
+            0 -> {
+                nhTags.forEach {
+                    val txt = if ("title" in it) "$it:\"\"" else "$it:"
+                    if (selectChunk in it) lis.add(SuggestionItem(
+                        "$it: ...", addition = true, clickType = fastReplacement(
+                            txt,
+                            if ("title" in it) TextRange(pair.first + txt.length - 1) else null
+                        )
+                    ))
+                }
+                nhNumTag.forEach { if (selectChunk in it) lis.add(SuggestionItem(
+                    "$it: N", addition = true, clickType = fastReplacement("$it:",)
+                )) }
+                nhDateTag.forEach { if (selectChunk in it) lis.add(SuggestionItem(
+                    "$it: Nd", addition = true, clickType = fastReplacement("$it:",)
+                )) }
+            }
+            1 -> {
+                val (f1, f2) = selectChunk.split(':')
+                if (f1.isNotEmpty()) {
+                    if (f1 == "language") {
+                        listOf("chinese", "japanese", "english", "translated").filter { it.contains(f2) }.forEach {
+                            lis.add(SuggestionItem(
+                                it, trailing = "语言标签", addition = true, clickType = fastReplacement("$f1:$it ")
+                            ))
+                        }
+                    }
+                    // TODO：其他的标签，优化代码
+                }
+            }
+            else -> Unit
+        }
+        return lis
+    }
+
+    suspend fun suggest(q: String, curScreen: Any, textRange: TextRange? = null) {
         val lis = ArrayList<SuggestionItem>()
         lis.addAll(suggestID(q))
         lis.addAll(webSuggest(q, curScreen))
+        if (textRange != null) {
+            lis.addAll(nhTermSuggest(q, curScreen, textRange))
+        }
         list.clear()
         list.addAll(lis)
     }
 
-    fun reload(text: String, curScreen: Any) {
-        // TODO: 支持一些复杂的解析
+    fun reload(text: String, curScreen: Any, textRange: TextRange? = null) {
         job = coroutineScope.launch {
-            suggest(text, curScreen)
+            suggest(text, curScreen, textRange)
         }
     }
 
@@ -324,28 +409,27 @@ val SpecialSerializedRegex = "([npa])(\\d+)".toRegex()
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RootSearchBar(
-    modifier: Modifier, query: String, onQueryChange: (String) -> Unit,expanded: Boolean,
+    modifier: Modifier, query: TextFieldState, onContentChange: (TextFieldState) -> Unit, expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit, onSearch: (String) -> Unit, enabled: Boolean, freq: FocusRequester,
     placeholder: String,
     colors: TextFieldColors = inputFieldColors(),
     leadingIcon: @Composable (() -> Unit)? = null, trailingIcon: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    LaunchedEffect(query.text, query.selection) {
+        onContentChange(query)
+    }
     val fM = LocalFocusManager.current
     DockedSearchBar(
         inputField = {
             val interactionSource = remember { MutableInteractionSource() }
-
             val focused = interactionSource.collectIsFocusedAsState().value
-
             val textColor =
                 LocalTextStyle.current.color.takeOrElse {
                     colors.textColor(enabled, isError = false, focused = focused)
                 }
-
             BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
+                query,
                 modifier =
                     modifier
                         .sizeIn(
@@ -362,53 +446,53 @@ fun RootSearchBar(
                             false
                         },
                 enabled = enabled,
-                singleLine = true,
+                //inputTransformation = InputTransformation {onQueryChange(originalText.toString())},
+                lineLimits = TextFieldLineLimits.SingleLine,
                 textStyle = LocalTextStyle.current.merge(TextStyle(color = textColor)),
                 cursorBrush = SolidColor(colors.cursorColor(isError = false)),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+                onKeyboardAction = KeyboardActionHandler { onSearch(query.text.toString()) },
                 interactionSource = interactionSource,
-                decorationBox =
-                    @Composable { innerTextField ->
-                        TextFieldDefaults.DecorationBox(
-                            value = query,
-                            innerTextField = innerTextField,
-                            enabled = enabled,
-                            singleLine = true,
-                            visualTransformation = VisualTransformation.None,
-                            interactionSource = interactionSource,
-                            placeholder = { Text(placeholder) },
-                            leadingIcon =
-                                leadingIcon?.let { leading ->
-                                    { Box(Modifier.offset(x = 4.dp)) { leading() } }
-                                },
-                            trailingIcon =
-                                trailingIcon?.let { trailing ->
-                                    { Box(Modifier.offset(x = (-4).dp)) { trailing() } }
-                                },
-                            shape = CircleShape,
-                            colors = colors,
-                            contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(),
-                            container = {
-                                val containerColor =
-                                    animateColorAsState(
-                                        targetValue =
-                                            colors.containerColor(
-                                                enabled = enabled,
-                                                isError = false,
-                                                focused = focused,
-                                            ),
-                                        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
-                                    )
-                                Box(
-                                    Modifier.drawWithCache {
-                                        val outline = CircleShape.createOutline(size, layoutDirection, this)
-                                        onDrawBehind { drawOutline(outline, color = containerColor.value) }
-                                    }
-                                )
+                decorator = TextFieldDecorator {
+                    TextFieldDefaults.DecorationBox(
+                        value = query.text.toString(),
+                        innerTextField = it,
+                        enabled = enabled,
+                        singleLine = true,
+                        visualTransformation = VisualTransformation.None,
+                        interactionSource = interactionSource,
+                        placeholder = { Text(placeholder) },
+                        leadingIcon =
+                            leadingIcon?.let { leading ->
+                                { Box(Modifier.offset(x = 4.dp)) { leading() } }
                             },
-                        )
-                    },
+                        trailingIcon =
+                            trailingIcon?.let { trailing ->
+                                { Box(Modifier.offset(x = (-4).dp)) { trailing() } }
+                            },
+                        shape = CircleShape,
+                        colors = colors,
+                        contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(),
+                        container = {
+                            val containerColor =
+                                animateColorAsState(
+                                    targetValue =
+                                        colors.containerColor(
+                                            enabled = enabled,
+                                            isError = false,
+                                            focused = focused,
+                                        ),
+                                    animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                                )
+                            Box(
+                                Modifier.drawWithCache {
+                                    val outline = CircleShape.createOutline(size, layoutDirection, this)
+                                    onDrawBehind { drawOutline(outline, color = containerColor.value) }
+                                }
+                            )
+                        },
+                    )
+                }
             )
         },
         expanded = expanded,
@@ -524,12 +608,9 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
             .fillMaxWidth().offset {
                 IntOffset(0, topBarState.toolbarOffsetHeightPx.toInt())
             }, Alignment.Center) {
-            RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText.text.toString(),
+            RootSearchBar(Modifier.widthIn(0.dp, 1200.dp), searchText,
                 {
-                    searchText.edit {
-                        replace(0, length, it)
-                    }
-                    suggestionsService.reload(it, curScreen)
+                    suggestionsService.reload(it.text.toString(), curScreen, it.selection)
                 },
                 exp && suggestionsService.list.isNotEmpty(),
                 {
@@ -589,7 +670,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             {
                                 Text(it.key)
                             }, Modifier.clickable {
-                                exp = false
+                                exp = it.addition
                                 when (it.clickType) {
                                     is SuggestionClickType.Default -> {
                                         searchText.edit {
@@ -598,12 +679,27 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                                         screenSearch(searchText.text.toString(), ss, curScreen, fM)
                                     }
                                     is SuggestionClickType.Custom -> it.clickType.click()
+                                    is SuggestionClickType.Replacement -> {
+                                        searchText.edit {
+                                            replace(it.clickType.start, it.clickType.end, it.clickType.text)
+                                            freq.requestFocus()
+                                            if (it.clickType.afterSelection != null) {
+                                                selection = it.clickType.afterSelection
+                                            }
+                                        }
+                                    }
                                 }
                                 suggestionsService.clear()
                             }.animateItem(), supportingContent = if (it.extra.isNotEmpty()) {
                                 {
                                     Text(it.extra)
                                 }
+                            } else null, trailingContent = if (it.trailing.isNotEmpty()) {
+                                { Text(it.trailing) }
+                            } else if (it.clickType is SuggestionClickType.Default) {
+                                { IconButton({ GlobalData.historyData.removeSearchToken(it.key)}) {
+                                    Icon(painterResource(Res.drawable.delete_icon), null)
+                                } }
                             } else null
                         )
                     }

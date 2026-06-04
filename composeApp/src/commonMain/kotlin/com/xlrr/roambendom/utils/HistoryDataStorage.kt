@@ -59,6 +59,10 @@ class HistoryDataStorage {
         save()
     }
 
+    fun removeSearchToken(k: String): Boolean {
+        return content.searchTokens.remove(k).also { save() }
+    }
+
     fun clearSearchToken() {
         content.searchTokens.clear()
         save()
