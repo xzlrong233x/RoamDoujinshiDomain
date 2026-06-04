@@ -10,6 +10,8 @@ data class SearchItemData(
     var pageCount: Int = -1,
     var lang: CLanguage = CLanguage.Unknown,
     var thumb: String = "",
+    var width: Int = 0,
+    var height: Int = 0,
     var restriction: CRestriction = CRestriction.R18,
     var ai: Boolean = false,
     var author: String = "",
@@ -25,15 +27,15 @@ data class SearchItemData(
 
     override fun hashCode(): Int {
         var result = pageCount
-        result = 31 * result + ai.hashCode()
         result = 31 * result + id.hashCode()
-        result = 31 * result + title.hashCode()
         result = 31 * result + lang.hashCode()
         //result = 31 * result + thumb.hashCode()
         result = 31 * result + source.hashCode()
         result = 31 * result + restriction.hashCode()
         result = 31 * result + author.hashCode()
         result = 31 * result + time.hashCode()
+        result = 31 * result + width.hashCode()
+        result = 31 * result + height.hashCode()
         return result
     }
 

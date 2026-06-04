@@ -65,6 +65,8 @@ data class ArtworkDetailData(
             pageCount,
             CLanguage.Unknown,
             imageUrls.squareMedium,
+            width,
+            height,
             CRestriction.entries[xRestrict],
             illustAIType > 1,
             "${user.name}(${user.id})",

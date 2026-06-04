@@ -29,6 +29,8 @@ private fun unzipNHItem(ele: Element) : SearchItemData {
         -1,
         lang,
         dealWithUrl(thumb),
+        0,
+        0
     )
 }
 
@@ -120,6 +122,8 @@ object NHWebHelper {
                     it.numPages,
                     CLanguage.languageDetect(it.tagIds),
                     it.thumbnail.connectWithCdn(true),
+                    it.thumbnailWidth,
+                    it.thumbnailHeight,
                     ai = it.tagIds.contains(145703),
                     restriction = if (it.tagIds.any {n -> n in CRestriction.nhNonHTag})
                         CRestriction.Normal else CRestriction.R18

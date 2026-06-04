@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.IntSize
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
@@ -32,6 +33,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
             it.pageCount,
             it.title,
             it.restriction,
+            if (it.width <= 0 || it.height <= 0) null else IntSize(it.width, it.height),
             it.lang.let { x ->
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },

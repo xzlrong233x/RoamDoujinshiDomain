@@ -3,6 +3,7 @@ package com.xlrr.roambendom.network
 import coil3.PlatformContext
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
+import coil3.request.crossfade
 import coil3.size.Size
 import com.fleeksoft.ksoup.Ksoup
 import com.fleeksoft.ksoup.nodes.Document
@@ -24,13 +25,14 @@ fun HttpRequestBuilder.defaultHeader() {
     header("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0")
 }
 
-fun defaultImageRequest(url: String, context: PlatformContext, originalSize: Boolean = true) : ImageRequest {
+fun defaultImageRequest(url: String, context: PlatformContext, crossfade: Boolean = false, originalSize: Boolean = true) : ImageRequest {
     return Regex("https://[it]\\d.nhentai.net")
         .replace(url, "").let {
             ImageRequest.Builder(context)
                 .diskCacheKey(it)
                 .memoryCacheKey(it)
                 .data(url)
+                .crossfade(crossfade)
                 .run {
                     if (originalSize) size(Size.ORIGINAL) else this
                 }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,6 +68,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
             it.pageCount,
             it.title,
             it.restriction,
+            if (it.width <= 0 || it.height <= 0) null else IntSize(it.width, it.height),
             it.lang.let { x ->
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },

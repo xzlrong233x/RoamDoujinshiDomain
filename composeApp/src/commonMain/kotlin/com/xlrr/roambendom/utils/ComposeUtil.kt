@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.network.ImageOkHttpInterceptor
 import com.xlrr.roambendom.network.defaultImageRequest
+import com.xlrr.roambendom.painter.TextPlaceholderPainter
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.Res
@@ -124,16 +126,37 @@ fun CardLabel(
 }
 
 @Composable
-fun DefaultErrorHandleImage(url: String, modifier: Modifier) {
-    AsyncImage(
-        model = defaultImageRequest(url, LocalPlatformContext.current),
-        filterQuality = FilterQuality.Medium,
-        contentDescription = null,
-        modifier = modifier.clip(RoundedCornerShape(12.dp)).widthIn(128.dp).fillMaxWidth(),
-        placeholder = painterResource(Res.drawable.loading_jpg),
-        error = painterResource(Res.drawable.empty_page),
-        contentScale = ContentScale.FillWidth
-    )
+fun DefaultErrorHandleImage(url: String, modifier: Modifier, size: IntSize? = null) {
+    val txtM = rememberTextMeasurer()
+    val loading = remember(size) {
+        if (size != null) TextPlaceholderPainter(size.toSize(), "loading...", txtM)
+        else null
+    }
+    val error = remember(size) {
+        if (size != null) TextPlaceholderPainter(size.toSize(), "empty", txtM)
+        else null
+    }
+    if (loading != null && error != null) {
+        AsyncImage(
+            model = defaultImageRequest(url, LocalPlatformContext.current, true),
+            filterQuality = FilterQuality.Medium,
+            contentDescription = null,
+            modifier = modifier.clip(RoundedCornerShape(12.dp)).widthIn(128.dp).fillMaxWidth(),
+            placeholder = loading,
+            error = error,
+            contentScale = ContentScale.FillWidth
+        )
+    } else {
+        AsyncImage(
+            model = defaultImageRequest(url, LocalPlatformContext.current),
+            filterQuality = FilterQuality.Medium,
+            contentDescription = null,
+            modifier = modifier.clip(RoundedCornerShape(12.dp)).widthIn(128.dp).fillMaxWidth(),
+            placeholder = painterResource(Res.drawable.loading_jpg),
+            error = painterResource(Res.drawable.empty_page),
+            contentScale = ContentScale.FillWidth
+        )
+    }
 }
 
 @Composable
@@ -158,6 +181,7 @@ fun ItemInfoCardWithShared(
     page: Int,
     title: String,
     restriction: CRestriction?,
+    size: IntSize? = null,
     extraText: String? = null,
     extraComposer: @Composable (ColumnScope.() -> Unit) = {},
     isAnimation: Boolean = false,
@@ -193,7 +217,7 @@ fun ItemInfoCardWithShared(
                             resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                         )
                     }
-                    DefaultErrorHandleImage(url, mod)
+                    DefaultErrorHandleImage(url, mod, size)
                     FlowColumn(
                         Modifier.align(Alignment.TopEnd).padding(2.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
                         itemHorizontalAlignment = Alignment.End

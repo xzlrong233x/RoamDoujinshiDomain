@@ -71,7 +71,6 @@ object PixivTokenUtil {
         if (accessToken == "" || Clock.System.now() >= passTime) {
             return false
         }
-        println("header -> $accessToken")
         header("Authorization", "Bearer $accessToken")
         return true
     }
