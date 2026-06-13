@@ -2,16 +2,15 @@ package com.xlrr.roambendom.network
 
 import com.fleeksoft.ksoup.nodes.Element
 import com.xlrr.roambendom.data.*
-import com.xlrr.roambendom.data.nh.NHCdn
-import com.xlrr.roambendom.data.nh.NHGallery
-import com.xlrr.roambendom.data.nh.NHGalleryTagType
-import com.xlrr.roambendom.data.nh.NHSearchLike
-import com.xlrr.roambendom.data.nh.NHSearchSortType
-import io.ktor.client.call.body
+import com.xlrr.roambendom.data.nh.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.request
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.io.IOException
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.random.Random
 
 private const val prefix: String = "https://nhentai.net"
@@ -58,11 +57,17 @@ object NHWebHelper {
     /**
      * refer to [api docs](https://nhentai.net/api/v2/docs#/)
     * */
-    suspend inline fun <reified T> api(vararg post: String, block: HttpRequestBuilder.() -> Unit = {}) : Result<T> {
-        val resp = NetHelper.client.get {
+    suspend inline fun <reified T> api(vararg post: String, form: JsonObject = JsonObject(mapOf()), met: HttpMethod = HttpMethod.Get, block: HttpRequestBuilder.() -> Unit = {}) : Result<T> {
+        val resp = NetHelper.client.request {
+            method = if (form.isEmpty()) HttpMethod.Get else HttpMethod.Post
+            if (met != HttpMethod.Get) method = met
             url(API_PREFIX)
             url {
                 appendPathSegments(*post)
+            }
+            if (!form.isEmpty()) {
+                contentType(ContentType.Application.Json)
+                setBody(form)
             }
             block()
         }
@@ -149,6 +154,15 @@ object NHWebHelper {
         val works = doc.body().select(".gallery")
         var tot = -1
         return result(tot, works.map { unzipNHItem(it) })
+    }
+
+    suspend fun searchTags(query: String, type: String = "tag", limit: Int = 10): List<NHTagSearchItem> {
+        val res = api<List<NHTagSearchItem>>("tags", "search", form = buildJsonObject {
+            put("query", query)
+            put("type", type)
+            put("limit", limit)
+        })
+        return res.getOrNull() ?: listOf()
     }
 
     suspend fun artwork(id: String): ArtworkInfo {

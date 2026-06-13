@@ -64,6 +64,7 @@ import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.nav.shouldShowTrailingIcon
+import com.xlrr.roambendom.network.NHWebHelper
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.ui.detailScreen.DetailScreen
 import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
@@ -72,6 +73,7 @@ import com.xlrr.roambendom.utils.LocalWindowSize
 import com.xlrr.roambendom.utils.MthUtil
 import com.xlrr.roambendom.utils.pushAuthorSearch
 import com.xlrr.roambendom.utils.pushDetail
+import com.xlrr.roambendom.utils.quotationMarksIf
 import io.ktor.util.reflect.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -82,6 +84,7 @@ import org.jetbrains.compose.resources.painterResource
 import roambendom.composeapp.generated.resources.*
 import kotlin.math.abs
 import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.milliseconds
 
 private data class NavItem(
     val label: String,
@@ -154,7 +157,7 @@ private class TopAppBarOffsetState(
             var rest = ANIMATION_DURATION
             var c = 0
             while (rest > 0) {
-                delay(ANIMATION_DELAY)
+                delay(ANIMATION_DELAY.milliseconds)
                 if (c >= 5) break
                 val dt = (end - toolbarOffsetHeightPx) / (rest) * ANIMATION_DELAY
                 rest -= ANIMATION_DELAY
@@ -181,7 +184,7 @@ private class TopAppBarOffsetState(
                 if (abs(newV) !in minUpPx..maxUpPx) {
                     break
                 }
-                delay(ANIMATION_DELAY)
+                delay(ANIMATION_DELAY.milliseconds)
             }
         } // 我不认为有那么好
     }
@@ -235,6 +238,20 @@ private class SearchSuggestionsService(
         "favorites","pages",
     )
     val nhDateTag = listOf("uploaded")
+    val nhOps = listOf(
+        "",
+        ">=",
+        "<=",
+        ">",
+        "<",
+    )
+    val nhInch = listOf(
+        "h",
+        "d",
+        "w",
+        "m",
+        "y"
+    )
     private var job: Job? = null
         set(value) {
             field?.cancel()
@@ -311,9 +328,9 @@ private class SearchSuggestionsService(
         val ls = " ".toRegex().findAll(q.replace("\".*?\"".toRegex()) {
             "*".repeat(it.value.length)
         }).toList()
-        for (i in 0..<ls.size) {
+        for ((i, element) in ls.withIndex()) {
             tmp = -1
-            if (ls[i].range.first >= n) {
+            if (element.range.first >= n) {
                 tmp = i
                 break
             }
@@ -326,41 +343,120 @@ private class SearchSuggestionsService(
         }
         val selectChunk = q.substring(pair.first, pair.second)
         val lis: ArrayList<SuggestionItem> = arrayListOf()
-        fun fastReplacement(text: String, selection: TextRange? = null) = SuggestionClickType.Replacement(
-            text,
-            pair.first,
-            pair.second,
-            selection
-        )
+        fun additionSuggestion(key: String, click: String, begin: Int? = null, end: Int? = null): SuggestionItem {
+            val bs = pair.first + click.length
+            return SuggestionItem(
+                key,
+                addition = true,
+                clickType = SuggestionClickType.Replacement(
+                    click,
+                    pair.first,
+                    pair.second,
+                    if (begin != null) if (end != null) TextRange(
+                        bs + begin,
+                        bs + end
+                    ) else TextRange(bs + begin) else null
+                )
+            )
+        }
         when (selectChunk.count { it == ':' }) {
             0 -> {
                 nhTags.forEach {
-                    val txt = if ("title" in it) "$it:\"\"" else "$it:"
-                    if (selectChunk in it) lis.add(SuggestionItem(
-                        "$it: ...", addition = true, clickType = fastReplacement(
-                            txt,
-                            if ("title" in it) TextRange(pair.first + txt.length - 1) else null
-                        )
+                    if (selectChunk in it) lis.add(additionSuggestion(
+                        "$it: ...",
+                        if ("title" in it) "$it:\"\"" else "$it:",
+                        if ("title" in it) -1 else 0
                     ))
                 }
-                nhNumTag.forEach { if (selectChunk in it) lis.add(SuggestionItem(
-                    "$it: N", addition = true, clickType = fastReplacement("$it:",)
-                )) }
-                nhDateTag.forEach { if (selectChunk in it) lis.add(SuggestionItem(
-                    "$it: Nd", addition = true, clickType = fastReplacement("$it:",)
-                )) }
+                nhNumTag.forEach { if (selectChunk in it) lis.add(additionSuggestion("$it: N", "$it:")) }
+                nhDateTag.forEach { if (selectChunk in it) lis.add(additionSuggestion("$it: Nd", "$it:")) }
             }
             1 -> {
                 val (f1, f2) = selectChunk.split(':')
+                var f2Removed = f2.replace("\"","")
+                for (op in nhOps) {
+                    if (f2.startsWith(op) && op.isNotEmpty()) {
+                        f2Removed = f2.removePrefix(op)
+                        break
+                    }
+                }
                 if (f1.isNotEmpty()) {
-                    if (f1 == "language") {
-                        listOf("chinese", "japanese", "english", "translated").filter { it.contains(f2) }.forEach {
-                            lis.add(SuggestionItem(
-                                it, trailing = "语言标签", addition = true, clickType = fastReplacement("$f1:$it ")
-                            ))
+                    when (f1) {
+                        "language" -> {
+                            listOf("chinese", "japanese", "english", "translated").filter { it.contains(f2) }.forEach {
+                                lis.add(
+                                    additionSuggestion(
+                                        it,
+                                        "$f1:$it "
+                                    ).copy(trailing = "语言标签")
+                                )
+                            }
+                        }
+                        in nhTags if !f1.contains("title") -> {
+                            val tgs = NHWebHelper.searchTags(f2Removed, f1)
+                            tgs.forEach {
+                                lis.add(
+                                    additionSuggestion(
+                                        "${it.name} (${it.count})",
+                                        "$f1:${it.name.quotationMarksIf()} "
+                                    ).copy(extra = it.description.orEmpty(), trailing = it.type)
+                                )
+                            }
+                        }
+                        in nhNumTag, in nhDateTag -> {
+                            val fl = f1 in nhDateTag
+                            val fl2 = f2Removed.matches("\\d+[hdwmy]".toRegex())
+                            val fl3 = f2Removed.matches("\\d+".toRegex())
+                            nhOps.forEachIndexed { index, string ->
+                                if (fl2 && fl) {
+                                    if (string.isNotEmpty()) {
+                                        lis.add(additionSuggestion(
+                                            "${string}$f2Removed",
+                                            "${f1}:${string}$f2Removed",
+                                            -f2Removed.length,
+                                            -1
+                                        ))
+                                    }
+                                } else if (fl && fl3 && string.isNotEmpty()) {
+                                    lis.add(additionSuggestion(
+                                        "${string}$f2Removed${nhInch[index]}",
+                                        "${f1}:${string}$f2Removed${nhInch[index]}",
+                                        -f2Removed.length - 1,
+                                        -1
+                                    ))
+                                } else if (!fl && fl3 && f2.startsWith(string)) {
+                                    lis.add(additionSuggestion(
+                                        "${string}$f2Removed",
+                                        "${f1}:${string}$f2Removed",
+                                        -f2Removed.length,
+                                        0
+                                    ))
+                                } else if (fl && f2.isEmpty()) {
+                                    lis.add(additionSuggestion(
+                                        "${string}5${nhInch[index]}",
+                                        "${f1}:${string}5${nhInch[index]}",
+                                        -2,
+                                        -1
+                                    ))
+                                } else if (!fl && fl3) {
+                                    lis.add(additionSuggestion(
+                                        "${string}$f2Removed",
+                                        "${f1}:${string}$f2Removed",
+                                        -f2Removed.length,
+                                        0
+                                    ))
+                                }
+                                else if (!fl) {
+                                    lis.add(additionSuggestion(
+                                        "${string}5",
+                                        "${f1}:${string}5",
+                                        -1,
+                                        0
+                                    ))
+                                }
+                            }
                         }
                     }
-                    // TODO：其他的标签，优化代码
                 }
             }
             else -> Unit
@@ -616,7 +712,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 {
                     exp = it
                     if (it) {
-                        suggestionsService.reload(searchText.text.toString(), curScreen)
+                        suggestionsService.reload(searchText.text.toString(), curScreen, searchText.selection)
                     }
                 },
                 {
@@ -692,7 +788,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                                 suggestionsService.clear()
                             }.animateItem(), supportingContent = if (it.extra.isNotEmpty()) {
                                 {
-                                    Text(it.extra)
+                                    Text(it.extra, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             } else null, trailingContent = if (it.trailing.isNotEmpty()) {
                                 { Text(it.trailing) }

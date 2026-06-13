@@ -25,3 +25,5 @@ fun String.camelToSnack(): String = replace("([a-z])([A-Z])".toRegex()) {matchRe
         matchResult.value
     }
 }.lowercase()
+
+fun String.quotationMarksIf() = if (this.contains(" ")) "\"${this}\"" else this
