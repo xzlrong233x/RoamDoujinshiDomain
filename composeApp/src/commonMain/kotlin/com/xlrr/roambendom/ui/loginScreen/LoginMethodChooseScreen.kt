@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.nav.Routes
-import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.ui.RootBarHeight
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.PixivTokenUtil
@@ -116,6 +115,7 @@ fun TotalAuthScreen(modifier: Modifier) {
         }
         when (val cur = GlobalData.nav.backStack.last()) {
             is Routes.Auth.Choose -> LoginMethodChooseScreen(modifier, scope)
+            is Routes.Auth.Wait -> DesktopWaitScreen()
         }
     }
 }

@@ -80,7 +80,7 @@ object PIXIVApiHelper {
         builder: HttpRequestBuilder.() -> Unit = {}
     ) : Result<JsonObject> {
         if (ConfigUtil.pixivRToken.value.isNotEmpty())
-            PixivTokenUtil.verifyToken(decryptSP(ConfigUtil.pixivRToken.value))
+            PixivTokenUtil.verifyToken(ConfigUtil.pixivRToken.value)
         val url = post.split("/").filter { it.isNotEmpty() }
             .joinToString("/", prefix = "https://$appApiPrefix/")
         try {

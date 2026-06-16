@@ -49,8 +49,8 @@ sealed class Routes {
             var callback: ((String, MutableState<Boolean>) -> Unit)? = null,
             val called: MutableState<Boolean> = mutableStateOf(false)
         ) : Auth()
+        data object Wait : Auth()
     }
-    data object TokenForm : Routes()
 }
 
 fun Routes.Root.SearchLike.shouldShowTrailingIcon() : Boolean {

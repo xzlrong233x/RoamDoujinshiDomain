@@ -1,0 +1,49 @@
+package com.xlrr.roambendom.ui.loginScreen
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.network.PIXIVApiHelper
+import com.xlrr.roambendom.utils.GlobalData
+import com.xlrr.roambendom.utils.PixivTokenUtil
+import com.xlrr.roambendom.utils.decryptSP
+import kotlinx.coroutines.launch
+import java.awt.TextField
+
+@Composable
+fun DesktopWaitScreen() {
+    val txt = rememberTextFieldState()
+    val ss = rememberCoroutineScope()
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column {
+            Text("您需要在打开的浏览器登录pixiv账号，然后在这个页面输入从控制台获得的code。如果您不了解相关操作，请使用Token登录。",
+                Modifier.widthIn(max = 524.dp))
+            OutlinedTextField(txt, label = {Text("code")})
+            TextButton({
+                ss.launch {
+                    PixivTokenUtil.handleCode(txt.text.toString())
+                    val flag = ConfigUtil.pixivRToken.value.isNotEmpty()
+                            && PixivTokenUtil.verifyToken(decryptSP(ConfigUtil.pixivRToken.value))
+                    if (flag) {
+                        GlobalData.nav.defaultBack()
+                    }
+                    GlobalData.nav.defaultBack()
+                }
+            }, enabled = txt.text.isNotEmpty()) {
+                Text("确定")
+            }
+        }
+    }
+}
