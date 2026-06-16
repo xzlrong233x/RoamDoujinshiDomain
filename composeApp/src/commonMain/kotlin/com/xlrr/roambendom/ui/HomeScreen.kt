@@ -77,7 +77,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             it.isAnimation,
-            onclick = {
+            onClick = {
                 GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },
             imgLabel = it.thumb,

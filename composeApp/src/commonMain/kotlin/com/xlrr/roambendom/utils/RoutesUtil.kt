@@ -21,16 +21,18 @@ fun Navigator.pushAuthorSearch(userId: String, userName: String) {
                     SearchResult(-1, listOf(), k, p)
                 }
             }
-        }, "${userName.ifEmpty { userId }}的作品"
-    ))
+        }
+    ) { "${userName.ifEmpty { userId }}的作品" })
 }
 
 fun Navigator.pushRecommend(detail: PIXIVDetailModel) {
     push(Routes.Root.FixedSearch(
-        detail.recommendModel, detail.content?.title?.let {
+        detail.recommendModel
+    ) {
+        detail.content?.title?.let {
             "${it}的推荐作品"
         } ?: "推荐"
-    ))
+    })
 }
 
 fun Navigator.pushDetail(id: String, source: CSources) {

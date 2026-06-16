@@ -8,6 +8,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +100,46 @@ actual fun CtrlPullToRefreshBox(
     ContextMenuArea({listOf(
         ContextMenuItem("刷新", onRefresh)
     )}) {
-        Box(modifier, contentAlignment,content = content)
+        val al = arrayListOf<CommandData>()
+        al.add(CommandData("刷新", onRefresh))
+        al.addAll(LocalPublicCommandItem.current)
+        CompositionLocalProvider(LocalPublicCommandItem provides al) {
+            Box(modifier, contentAlignment,content = content)
+        }
+    }
+}
+
+@Composable
+actual fun CommandBox(
+    modifier: Modifier,
+    privateCommands: List<CommandData>,
+    contentAlignment: Alignment,
+    publicCommands: List<CommandData>,
+    content: @Composable BoxScope.((Boolean) -> Unit) -> Unit
+) {
+    val public = LocalPublicCommandItem.current.toTypedArray()
+    val list = listOf(
+        *publicCommands.toTypedArray(),
+        *public
+    )
+    ContextMenuArea(
+        {
+            val al = arrayListOf<CommandData>()
+            al.addAll(privateCommands)
+            al.addAll(list)
+            al.map { ContextMenuItem(
+                it.label,
+                it.enabled(),
+                it.click,
+            ) }
+        }
+    ) {
+        CompositionLocalProvider(
+            LocalPublicCommandItem provides list
+        ) {
+            Box(modifier = modifier, contentAlignment = contentAlignment) {
+                content {}
+            }
+        }
     }
 }

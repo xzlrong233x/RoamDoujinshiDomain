@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.getFormatVersionString
+import com.xlrr.roambendom.manager.SearchTokenManager
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CenterFlowRow
 import com.xlrr.roambendom.utils.GlobalData
@@ -42,7 +43,7 @@ fun SettingScreen(modifier: Modifier) {
             }
             Spacer(Modifier.height(18.dp))
             var size by remember {
-                mutableStateOf(GlobalData.historyData.requestTokens("").size)
+                mutableStateOf(SearchTokenManager.requestHistory("").size)
             }
             CenterFlowRow(Modifier.fillMaxWidth()) {
                 Text("搜索关键词记录")
@@ -51,7 +52,7 @@ fun SettingScreen(modifier: Modifier) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text("已有${size}条", style = MaterialTheme.typography.labelMedium)
-                    Button({ GlobalData.historyData.clearSearchToken(); size = 0}, enabled = size > 0) {
+                    Button({ SearchTokenManager.clear(); size = 0}, enabled = size > 0) {
                         Text("清除所有")
                     }
                 }

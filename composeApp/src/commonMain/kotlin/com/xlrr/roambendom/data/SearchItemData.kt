@@ -1,5 +1,6 @@
 package com.xlrr.roambendom.data
 
+import com.xlrr.roambendom.data.storage.ShortInfoItem
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -61,6 +62,24 @@ data class SearchItemData(
             return fillSelf(art)
         }
         return copy()
+    }
+
+    fun toShortInfo(): ShortInfoItem {
+        val flag = CRestriction.entries.indexOf(restriction) * 1000 +
+                CLanguage.entries.indexOf(lang) * 100 +
+                (if (isAnimation) 1 else 0) * 10 + (if (ai) 1 else 0)
+        return ShortInfoItem(
+            id,
+            source,
+            title,
+            pageCount,
+            thumb,
+            width,
+            height,
+            author,
+            time,
+            flag,
+        )
     }
 
     fun uid() : String {

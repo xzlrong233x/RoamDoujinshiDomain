@@ -8,6 +8,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.funny.data_saver.core.DataSaverInterface
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.manager.DetailCacheManager
+import com.xlrr.roambendom.manager.FavoriteDataManager
+import com.xlrr.roambendom.manager.HistoryDataManager
+import com.xlrr.roambendom.manager.SearchTokenManager
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.ui.HomeSelection
@@ -35,8 +39,6 @@ object GlobalData {
         return _hideRailCount > 0
     }
 
-    val historyData = HistoryDataStorage()
-
     var cacheDir = "image_cache".toPath()
         private set
 
@@ -52,7 +54,11 @@ object GlobalData {
         if (dataPath.isNotEmpty()) {
             dataDir = dataPath.toPath()
         }
-        historyData.init(dataDir.toString())
+        //historyData.init(dataDir.toString())
+        DetailCacheManager.init(dataDir.toString())
+        HistoryDataManager.init(dataDir.toString())
+        SearchTokenManager.init(dataDir.toString())
+        FavoriteDataManager.init(dataDir.toString())
         dataSaver = dataSaverArg
         ConfigUtil.init(dataSaverArg)
         PixivTokenUtil.reload()

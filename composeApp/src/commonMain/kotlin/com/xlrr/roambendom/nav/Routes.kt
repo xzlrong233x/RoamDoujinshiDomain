@@ -1,14 +1,18 @@
 package com.xlrr.roambendom.nav
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import com.xlrr.roambendom.data.ArtworkInfo
+import com.xlrr.roambendom.manager.FavoriteDataManager
+import com.xlrr.roambendom.model.FavoriteScreenModel
 import com.xlrr.roambendom.model.detail.BaseDetailModel
 import com.xlrr.roambendom.model.search.SearchParameterModel
 
 sealed class Routes {
     sealed class Root(
-        val headerTitle: String = ""
+        val headerTitle: () -> String = { "" },
+        val endCompose: @Composable () -> Unit = {},
     ) : Routes() {
         companion object {
             val Default = Home
@@ -21,14 +25,19 @@ sealed class Routes {
             val searchModel: SearchParameterModel,
             val canChangeSettings: Boolean,
             val clearInput: (() -> Boolean)? = null,
-            title: String = ""
+            title: () -> String = { "" }
         ) : Root(title)
         class Search(
             searchModel: SearchParameterModel
         ) : SearchLike(searchModel, true)
         class History(searchParameterModel: SearchParameterModel, clearFunc: () -> Boolean)
             : SearchLike(searchParameterModel, false, clearFunc)
-        class FixedSearch(searchParameterModel: SearchParameterModel, title: String)
+        class Favorite(
+            val path: String = "/"
+        ) : FixedSearch(FavoriteScreenModel(path), {
+            "收藏：${FavoriteDataManager.content.folderInfo[path]?.name}"
+        })
+        open class FixedSearch(searchParameterModel: SearchParameterModel, title: () -> String)
             : SearchLike(searchParameterModel, false, title = title)
         data object Settings : Root()
     }
@@ -38,10 +47,6 @@ sealed class Routes {
     sealed class Auth : Routes() {
         data class Choose(
             var callback: ((String, MutableState<Boolean>) -> Unit)? = null,
-            val called: MutableState<Boolean> = mutableStateOf(false)
-        ) : Auth()
-        data class PasswordLogin(
-            val callback: (String, MutableState<Boolean>) -> Unit,
             val called: MutableState<Boolean> = mutableStateOf(false)
         ) : Auth()
     }

@@ -38,6 +38,7 @@ import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.CRestriction
 import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
+import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.PIXIVDetailModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.UrlWithSize
@@ -272,7 +273,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
     LaunchedEffect(details.loading) {
         if (!details.loading && details.error == null) {
             details.content?.let {
-                GlobalData.historyData.addItem(details.searchItemData.fillSelfIfDefective(it), true)
+                HistoryDataManager.addItem(details.searchItemData.fillSelfIfDefective(it), true)
             }
         }
     }
@@ -350,6 +351,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                         "read in artwork view screen"
                                     )
                                 }
+                                LoveButton(details.searchItemData, details.content)
                             }
                         }
                         item("Title") {

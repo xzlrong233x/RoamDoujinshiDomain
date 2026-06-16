@@ -2,7 +2,7 @@ package com.xlrr.roambendom.utils
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,11 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +47,15 @@ import roambendom.composeapp.generated.resources.loading_jpg
 import kotlin.math.min
 import kotlin.math.round
 
+data class CommandData(
+    var label: String,
+    var click: () -> Unit,
+    var enabled: () -> Boolean = { true },
+)
+
+
 val LocalWindowSize = compositionLocalOf { DpSize.Zero }
+val LocalPublicCommandItem = compositionLocalOf { listOf<CommandData>() }
 
 @Composable
 fun WindowSizeBox(modifier: Modifier,content: @Composable () -> Unit) {
@@ -97,6 +101,15 @@ expect fun CtrlPullToRefreshBox(
         )
     },
     content: @Composable BoxScope.() -> Unit,
+)
+
+@Composable
+expect fun CommandBox(
+    modifier: Modifier,
+    privateCommands: List<CommandData>,
+    contentAlignment: Alignment = Alignment.TopStart,
+    publicCommands: List<CommandData> = listOf(),
+    content: @Composable BoxScope.((Boolean) -> Unit) -> Unit
 )
 
 @Composable
@@ -185,7 +198,8 @@ fun ItemInfoCardWithShared(
     extraText: String? = null,
     extraComposer: @Composable (ColumnScope.() -> Unit) = {},
     isAnimation: Boolean = false,
-    onclick: () -> Unit = {},
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
     toColumn: Boolean = true,
     imgLabel: String? = null
 ) {
@@ -196,7 +210,10 @@ fun ItemInfoCardWithShared(
     ) {
         with(LocalSharedTransitionScope.current) {
             RowOrColumn(
-                Modifier.clickable(onClick = onclick).padding(6.dp).fillMaxSize()
+                Modifier.combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                ).padding(6.dp).fillMaxSize()
                     .sharedBounds(
                         rememberSharedContentState("$title$url".hashCode().toString()),
                         LocalAnimatedVisibilityScope.current,

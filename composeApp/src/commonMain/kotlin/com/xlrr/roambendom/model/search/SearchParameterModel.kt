@@ -9,7 +9,7 @@ import com.xlrr.roambendom.data.SearchItemData
 import com.xlrr.roambendom.model.RequestRefreshModel
 import kotlin.coroutines.cancellation.CancellationException
 
-class SearchParameterModel(
+open class SearchParameterModel(
     var key: String,
     var configs: SearchConfigs = SearchConfigs()
 ) : RequestRefreshModel<SnapshotStateSet<SearchItemData>>({mutableStateSetOf()}) {
@@ -59,7 +59,7 @@ class SearchParameterModel(
         _refreshing = false
     }
 
-    suspend fun request(clearAfterGet: Boolean = false) {
+    open suspend fun request(clearAfterGet: Boolean = false) {
         _loading = true
         try {
             if (configs.clearList) content.clear()

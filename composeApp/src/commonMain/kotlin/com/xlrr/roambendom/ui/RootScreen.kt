@@ -60,6 +60,9 @@ import com.xlrr.roambendom.data.SearchResult
 import com.xlrr.roambendom.data.SuggestionClickType
 import com.xlrr.roambendom.data.SuggestionItem
 import com.xlrr.roambendom.data.pixiv.KeywordSuggestionItem
+import com.xlrr.roambendom.manager.HistoryDataManager
+import com.xlrr.roambendom.manager.SearchTokenManager
+import com.xlrr.roambendom.model.FavoriteScreenModel
 import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
@@ -107,7 +110,7 @@ private val navItems: List<NavItem> = listOf(
         { GlobalData.nav.replace(Routes.Root.History(
             SearchParameterModel("").config {
                 searchFunction = {k, p, e ->
-                    val l = GlobalData.historyData.search(k)
+                    val l = HistoryDataManager.search(k)
                     SearchResult(
                         l.size,
                         MthUtil.calWindow(p+1, 30, l.size)
@@ -118,6 +121,16 @@ private val navItems: List<NavItem> = listOf(
                 }
             }
         ) { true })}
+    ),
+    NavItem(
+        "收藏",
+        Res.drawable.favorite_icon,
+        {it is Routes.Root.Favorite},
+        {
+            GlobalData.nav.push(
+                Routes.Root.Favorite()
+            )
+        }
     ),
     NavItem(
         "设置",
@@ -280,7 +293,7 @@ private class SearchSuggestionsService(
             }
         }
         else if (s == CSources.NHENTAI) {
-            return GlobalData.historyData.requestTokens(q).map {
+            return SearchTokenManager.requestHistory(q).map {
                 SuggestionItem(it, clickType = SuggestionClickType.History)
             }
         }
@@ -372,8 +385,9 @@ private class SearchSuggestionsService(
                 nhDateTag.forEach { if (selectChunk in it) lis.add(additionSuggestion("$it: Nd", "$it:")) }
             }
             1 -> {
-                val (f1, f2) = selectChunk.split(':')
+                var (f1, f2) = selectChunk.split(':')
                 var f2Removed = f2.replace("\"","")
+                f1 = f1.removePrefix("-")
                 for (op in nhOps) {
                     if (f2.startsWith(op) && op.isNotEmpty()) {
                         f2Removed = f2.removePrefix(op)
@@ -627,11 +641,11 @@ private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: Foc
         }
         if (curScreen is Routes.Root.Search
             && curScreen.searchModel.configs.searchTarget.realValue == 0) {
-            GlobalData.historyData.addSearchToken(it)
+            SearchTokenManager.add(it)
         }
     } else {
         if (GlobalData.homeContentSelection == HomeSelection.NH) {
-            GlobalData.historyData.addSearchToken(it)
+            SearchTokenManager.add(it)
         }
         GlobalData.nav.push(
             Routes.Root.Search(
@@ -678,12 +692,23 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 drawerCaller()
             }
             CtrlAnimatedVisibility(
-                !should && curScreen is Routes.Root && curScreen.headerTitle.isNotEmpty(),
+                !should && curScreen is Routes.Root && curScreen.headerTitle().isNotEmpty(),
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                Text(if (curScreen is Routes.Root) curScreen.headerTitle else "", maxLines = 1,
+                Text(if (curScreen is Routes.Root) curScreen.headerTitle() else "", maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
+            }
+            CtrlAnimatedVisibility(
+                !should && curScreen is Routes.Root,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(Modifier.weight(1f), Alignment.CenterEnd) {
+                    if (curScreen is Routes.Root) {
+                        curScreen.endCompose()
+                    }
+                }
             }
         }
     }
@@ -793,7 +818,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             } else null, trailingContent = if (it.trailing.isNotEmpty()) {
                                 { Text(it.trailing) }
                             } else if (it.clickType is SuggestionClickType.History) {
-                                { IconButton({ GlobalData.historyData.removeSearchToken(it.key)}) {
+                                { IconButton({ SearchTokenManager.remove(it.key)}) {
                                     Icon(painterResource(Res.drawable.delete_icon), null)
                                 } }
                             } else null
@@ -1022,6 +1047,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                     is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
                     is Routes.Root.History -> HistoryScreen(Modifier.padding(it), x.searchModel)
+                    is Routes.Root.Favorite -> FavoriteScreen(modifier.padding(it), x.searchModel as FavoriteScreenModel, x.path)
                     is Routes.Root.FixedSearch -> SearchScreen(Modifier.padding(it), x.searchModel)
                 }
             }

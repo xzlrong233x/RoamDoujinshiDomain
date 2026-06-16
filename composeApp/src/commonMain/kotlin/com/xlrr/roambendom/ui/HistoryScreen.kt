@@ -13,6 +13,7 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
@@ -48,7 +49,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
             },
             it.isAnimation,
             imgLabel = it.thumb,
-            onclick = {
+            onClick = {
                 GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },
             toColumn = orColumn
@@ -68,7 +69,7 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                     Text("历史", style = MaterialTheme.typography.headlineMedium)
                     Button({
-                        GlobalData.historyData.removeAll()
+                        HistoryDataManager.removeAll()
                         ss.launch {
                             searchParameterModel.reload()
                         }
@@ -82,7 +83,7 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
                     with(LocalSharedTransitionScope.current) {
                         ShowHistoryItem(it, Modifier.animateItem(),{ s ->
                             spm.content.remove(it)
-                            GlobalData.historyData.remove(s)
+                            HistoryDataManager.remove(s)
                         }, false)
                     }
                 }
@@ -92,7 +93,7 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
                     with(LocalSharedTransitionScope.current) {
                         ShowHistoryItem(it, Modifier.animateItem(),{s ->
                             spm.content.remove(it)
-                            GlobalData.historyData.remove(s)
+                            HistoryDataManager.remove(s)
                         }, true)
                     }
                 }

@@ -25,6 +25,9 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.LocalPlatformForUI
 import com.xlrr.roambendom.config.UIEnablePlatform
 import com.xlrr.roambendom.data.ArtworkInfo
+import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.manager.FavoriteDataManager
+import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.BaseDetailModel
 import com.xlrr.roambendom.model.detail.NHDetailModel
 import com.xlrr.roambendom.model.detail.PIXIVDetailModel
@@ -32,6 +35,10 @@ import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.love_btn_icon
+import roambendom.composeapp.generated.resources.loved_btn_icon
 
 class DetailViewModel() : ViewModel() {
     var content: ArtworkInfo? by mutableStateOf(null)
@@ -39,6 +46,27 @@ class DetailViewModel() : ViewModel() {
 
 // 我使用SelectionContainer的时候，曾遇到过一个关于select range的报错，不过我难以复现。
 
+@Composable
+fun LoveButton(searchItemData: SearchItemData, artworkInfo: ArtworkInfo?) {
+    val loved by remember {
+        derivedStateOf {
+            FavoriteDataManager.content.favorites.find { it.uid == searchItemData.uid() } != null
+        }
+    }
+    IconButton({
+        if (!loved) FavoriteDataManager.addItem(
+           if (artworkInfo == null)
+               searchItemData
+           else
+               searchItemData.fillSelf(artworkInfo)
+        ) else FavoriteDataManager.removeItem(searchItemData.uid())
+    }, Modifier.padding(top = 12.dp)) {
+        Icon(
+            painterResource(if (loved) Res.drawable.loved_btn_icon else Res.drawable.love_btn_icon),
+            contentDescription = null
+        )
+    }
+}
 
 @Composable
 fun NHDetail(details: NHDetailModel) {
@@ -48,7 +76,7 @@ fun NHDetail(details: NHDetailModel) {
             DetailBox() {
                 Row(Modifier.fillMaxWidth()) {
                     val url = details.searchItemData.thumb.ifEmpty { details.content?.thumbUrls?.first() }
-                    if (url != null && url.isNotEmpty()) {
+                    if (!url.isNullOrEmpty()) {
                         DefaultErrorHandleImage(
                             url,
                             Modifier.sharedBounds(
@@ -119,7 +147,7 @@ fun NHDetail(details: NHDetailModel) {
                             if (details.content == null) {
                                 return@Button
                             }
-                            GlobalData.historyData.addItem(
+                            HistoryDataManager.addItem(
                                 details.searchItemData.fillSelf(details.content!!),
                                 true
                             )
@@ -129,12 +157,7 @@ fun NHDetail(details: NHDetailModel) {
                             enabled = details.isSuccessful()) {
                             Text("阅读")
                         }
-//                    IconButton({loved = !loved}, ) {
-//                        Icon(
-//                            painterResource(if (loved) Res.drawable.loved_btn_icon else Res.drawable.love_btn_icon),
-//                            contentDescription = null
-//                        )
-//                    } 类似收藏的功能，还没想好怎么做。
+                        LoveButton(details.searchItemData, details.content)
                     }
                 }
             }
@@ -159,7 +182,7 @@ fun NHDetail(details: NHDetailModel) {
 @Composable
 fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
     LaunchedEffect(Unit) {
-        if (!detailModel.searchItemData.isDefective()) GlobalData.historyData.addItem(detailModel.searchItemData)
+        if (!detailModel.searchItemData.isDefective()) HistoryDataManager.addItem(detailModel.searchItemData)
         detailModel.reloadIfEmpty()
     }
     val co = rememberCoroutineScope()
