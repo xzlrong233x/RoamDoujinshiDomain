@@ -351,7 +351,11 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                         "read in artwork view screen"
                                     )
                                 }
-                                LoveButton(details.searchItemData, details.content)
+                                LoveButton(
+                                    details.searchItemData,
+                                    details.content,
+                                    Modifier
+                                )
                             }
                         }
                         item("Title") {

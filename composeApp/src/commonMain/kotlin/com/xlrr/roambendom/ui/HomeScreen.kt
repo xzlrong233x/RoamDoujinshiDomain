@@ -1,6 +1,5 @@
 package com.xlrr.roambendom.ui
 
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,7 +8,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
@@ -26,7 +24,6 @@ import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
-import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -38,24 +35,25 @@ enum class HomeSelection {
 class HomeViewModel() : ViewModel() {
     var local: HomeSelection by mutableStateOf(HomeSelection.NH)
     var error: Throwable? by mutableStateOf(null)
-    private var _loading by mutableStateOf(false)
     var loading by mutableStateOf(false)
     var tempLeave by mutableStateOf(false)  //这个变量主要是为了标记是否是暂时离开（即Home被压在栈下）
-    var pixivResult: PixivTestResult = PixivTestResult()
     val spm = SearchParameterModel("")
+    val pixivSPM = SearchParameterModel("").config {
+        searchFunction = PIXIVApiHelper.nextUrlSearchFunction { key, offset, viewed ->
+            PIXIVApiHelper.illustRecommend(offset, viewed)
+        }
+    }
 
     suspend fun reload() {
         if (local == HomeSelection.NH) {
             spm.reload()
         } else {
-            loading = true
-            pixivResult = PIXIVApiHelper.testPixivRequest()
-            loading = false
+            pixivSPM.reload()
         }
     }
 
     fun clear() {
-        pixivResult = PixivTestResult()
+        pixivSPM.clear()
         spm.clear()
     }
 }
@@ -189,70 +187,169 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         }
     }
     val ss = rememberCoroutineScope()
-    Scaffold(
-        modifier.fillMaxSize(),
-        floatingActionButton = {
-            if (showBtn) { //TODO: 先占位，以后再改
-                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-Float.MAX_VALUE) } }) {
-                    Text("UP")
-                }
-            }
-        }) {pd ->
-        CtrlPullToRefreshBox(
-            viewModel.spm.loading && viewModel.spm.refreshing,
-            {ss.launch { viewModel.spm.refresh() }},
-            Modifier.fillMaxSize().padding(pd),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            ChooseContent(
-                small && !ConfigUtil.forceGrid.value, modifier.fillMaxWidth(),
-                viewModel.spm,
-                viewModel.loading || viewModel.spm.loading,
-                viewModel.local,
-                viewModel.pixivResult,
-                {
-                    Box {
-                        SingleChoiceSegmentedButtonRow {
-                            HomeSelection.entries.forEachIndexed { index, selection ->
-                                SegmentedButton(
-                                    viewModel.local == selection,
-                                    {
-                                        viewModel.local = selection
-                                        if (selection == HomeSelection.PIXIV) {
-                                            viewModel.spm.reset()
-                                        }
-                                    },
-                                    SegmentedButtonDefaults.itemShape(
-                                        index = index,
-                                        count = 2
-                                    ),
-                                ) {
-                                    Text(selection.toString())
-                                }
+    val curSpm = if (viewModel.local == HomeSelection.NH) viewModel.spm else viewModel.pixivSPM
+    StandardSearchLikeWithUp(
+        curSpm,
+        modifier
+    ) {
+        SearchContent(
+            Modifier,
+            curSpm,
+            StaggeredGridCells.Fixed(
+                ceil(LocalWindowSize.current.width.value / 216f)
+                    .coerceIn(1f, max(6f, LocalWindowSize.current.width.value / 216 - 2)).toInt()
+            ),
+            small && !ConfigUtil.forceGrid.value,
+            {
+                Column {
+                    SingleChoiceSegmentedButtonRow {
+                        HomeSelection.entries.forEachIndexed { index, selection ->
+                            SegmentedButton(
+                                viewModel.local == selection,
+                                {
+                                    viewModel.local = selection
+                                    if (selection == HomeSelection.PIXIV) {
+                                        viewModel.spm.reset()
+                                    }
+                                },
+                                SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = 2
+                                ),
+                            ) {
+                                Text(selection.toString())
                             }
                         }
                     }
-                }
-            )
-            if (viewModel.loading || viewModel.spm.isFullLoading()) {
-                CenterCircular()
-            }
-            if (viewModel.spm.content.isEmpty() && viewModel.spm.error != null) {
-                viewModel.spm.error?.let {
-                    CenterColumnInfo {
-                        Text("错误：${it.message}")
-                        Button({
-                            ss.launch {
-                                viewModel.reload()
-                            }
-                        }) {
-                            Text("点我重载")
+                    if (viewModel.local == HomeSelection.PIXIV
+                        && viewModel.pixivSPM.content.isEmpty()
+                        && viewModel.pixivSPM.completed) {
+                        Text("您尚未登录，未登录会使大多P站功能不可用，您可以通过下面的按钮选择登录方式")
+                        Button({GlobalData.nav.push(Routes.Auth.Choose())}) {
+                            Text("选择登录方式")
                         }
                     }
                 }
-            }
-        }
+            },
+            { spm ->
+                if (viewModel.local == HomeSelection.NH) {
+                    item("popular") {
+                        Text("热门", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    items(spm.content.distinct().subList(0, 5), { "popular${it.id}" }) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it, false)
+                        }
+                    }
+                    item("lastest") {
+                        Text("最新", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    items(spm.content.distinct().subList(5, spm.content.size), { "lasest${it.id}" }) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it, false)
+                        }
+                    }
+                } else {
+                    items(spm.content.distinct(), {it.id}) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it, true)
+                        }
+                    }
+                }
+            },
+            {spm ->
+                if (viewModel.local == HomeSelection.NH) {
+                    item("popular", span = StaggeredGridItemSpan.FullLine) {
+                        Text("热门", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    items(spm.content.distinct().subList(0, 5), { "popular${it.id}" }) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it)
+                        }
+                    }
+                    item("lastest", span = StaggeredGridItemSpan.FullLine) {
+                        Text("最新", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    items(spm.content.distinct().subList(5, spm.content.size), { "lasest${it.id}" }) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it)
+                        }
+                    }
+                } else {
+                    items(spm.content.distinct(), {it.id}) {
+                        with(LocalSharedTransitionScope.current) {
+                            ShowSearchItem(it, true)
+                        }
+                    }
+                }
+            },
+            ss = ss
+        )
     }
+//    Scaffold(
+//        modifier.fillMaxSize(),
+//        floatingActionButton = {
+//            if (showBtn) { //TODO: 先占位，以后再改
+//                FloatingActionButton({ ss.launch { GlobalData.forListState?.scrollBy(-Float.MAX_VALUE) } }) {
+//                    Text("UP")
+//                }
+//            }
+//        }) {pd ->
+//        CtrlPullToRefreshBox(
+//            viewModel.spm.loading && viewModel.spm.refreshing,
+//            {ss.launch { viewModel.spm.refresh() }},
+//            Modifier.fillMaxSize().padding(pd),
+//            contentAlignment = Alignment.TopCenter
+//        ) {
+//            ChooseContent(
+//                small && !ConfigUtil.forceGrid.value, modifier.fillMaxWidth(),
+//                viewModel.spm,
+//                viewModel.loading || viewModel.spm.loading,
+//                viewModel.local,
+//                viewModel.pixivResult,
+//                {
+//                    Box {
+//                        SingleChoiceSegmentedButtonRow {
+//                            HomeSelection.entries.forEachIndexed { index, selection ->
+//                                SegmentedButton(
+//                                    viewModel.local == selection,
+//                                    {
+//                                        viewModel.local = selection
+//                                        if (selection == HomeSelection.PIXIV) {
+//                                            viewModel.spm.reset()
+//                                        }
+//                                    },
+//                                    SegmentedButtonDefaults.itemShape(
+//                                        index = index,
+//                                        count = 2
+//                                    ),
+//                                ) {
+//                                    Text(selection.toString())
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            )
+//            if (viewModel.loading || viewModel.spm.isFullLoading()) {
+//                CenterCircular()
+//            }
+//            if (viewModel.spm.content.isEmpty() && viewModel.spm.error != null) {
+//                viewModel.spm.error?.let {
+//                    CenterColumnInfo {
+//                        Text("错误：${it.message}")
+//                        Button({
+//                            ss.launch {
+//                                viewModel.reload()
+//                            }
+//                        }) {
+//                            Text("点我重载")
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
 }
 
 @Preview

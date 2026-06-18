@@ -23,6 +23,7 @@ import io.ktor.http.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -97,23 +98,8 @@ object PIXIVApiHelper {
     }
 
     fun joToPixivSearchItem(n: JsonObject) : SearchItemData {
-        return SearchItemData(
-            n.getAsString("id"),
-            CSources.PIXIV,
-            n.getAsString("title"),
-            n.getAsInt("page_count"),
-            CLanguage.Unknown,
-            n["image_urls"]?.jsonObject?.getAsString("square_medium") ?: "",
-            n.getAsInt("width"),
-            n.getAsInt("height"),
-            CRestriction.entries[n.getAsInt("x_restrict")],
-            n.getAsInt("illust_ai_type") > 1,
-            n["user"]?.jsonObject?.let { n ->
-                "${n.getAsString("name")}(${n.getAsString("id")})"
-            } ?: "",
-            Instant.parse(n.getAsString("create_date")).toEpochMilliseconds(),
-            n.getAsString("type") == "ugoira"
-        )
+        val detail = NetHelper.json.decodeFromJsonElement<ArtworkDetailData>(n)
+        return detail.toSearchItem()
     }
 
     suspend fun searchIllust(
@@ -323,6 +309,85 @@ object PIXIVApiHelper {
         )
     }
 
+    fun nextUrlSearchFunction(
+        requestFunction: suspend (key: String, offset: Int, viewed: List<String>)
+            -> Pair<List<SearchItemData>, String?>,
+    ) : suspend (key: String, page: Int, extra: HashMap<String, Any>) -> SearchResult = {k, p, e ->
+        val nextUrl = e["next_url"] as? String
+        var view: List<String> = listOf()
+        var off = p
+        if (nextUrl != null) {
+            if (nextUrl.isEmpty()) {
+                SearchResult(
+                    -1, listOf(), k, p+1
+                )
+            }
+            val url = nextUrl.toHttpUrl()
+            off = url.queryParameter("offset")?.toInt() ?: 0
+            view = url.queryParameterNames.mapNotNull {
+                if (it.matches("viewed\\[\\d+]".toRegex())) {
+                    url.queryParameter(it)
+                } else null
+            }
+        }
+        val (its , next) = requestFunction(
+            k, off, view
+        )
+        if (next != null)
+            e["next_url"] = next
+        else if (e["next_url"] != null) {
+            e["next_url"] = ""
+        }
+        SearchResult(
+            -1,
+            its,
+            k,
+            off+1
+        )
+    }
+
+    private fun noOffsetByViewedPair(r: Result<JsonObject>): Pair<List<SearchItemData>, String?> {
+        val body = r.getOrNull() ?: return Pair(listOf(), null)
+        val illusts = body["illusts"]?.jsonArray?.mapNotNull {
+            try {
+                joToPixivSearchItem(it.jsonObject)
+            } catch (_: Exception) { null }
+        } ?: listOf()
+        val nextUrl = body.getAsString("next_url").ifEmpty { null }
+        return Pair(illusts, nextUrl)
+    }
+
+    suspend fun illustRelated(
+        illustId: String,
+        offset: Int = 0,
+        viewed: List<String> = listOf(),
+        seedIllustIds: List<String> = listOf()
+    ): Pair<List<SearchItemData>, String?> {
+        val pms = Parameters.build {
+            append("illust_id", illustId)
+            append("filter", "for_ios")
+            append("offset", offset.toString())
+            seedIllustIds.forEach { append("seed_illust_ids[]", it) }
+            viewed.forEach { append("viewed[]", it) }
+        }
+        val r = apiRequest("/v2/illust/related", pms, true)
+        return noOffsetByViewedPair(r)
+    }
+
+    suspend fun illustRecommend(
+        offset: Int = 0,
+        viewed: List<String> = listOf()
+    ): Pair<List<SearchItemData>, String?> {
+        val pms = Parameters.build {
+            append("filter", "for_ios")
+            append("content_type", "")
+            append("offset", offset.toString())
+            viewed.forEach { append("viewed[]", it) }
+        }
+        val r = apiRequest("v1/illust/recommended", pms, true)
+        return noOffsetByViewedPair(r)
+    }
+
     @Deprecated("Use userIllusts() which fetches full illust list in one App API call")
     suspend fun userAllWorks(id: String) : UserAllWorkData {
         val std = requestStandard<JsonObject>("/ajax/user/${id}/profile/all") {
@@ -356,35 +421,6 @@ object PIXIVApiHelper {
             parameter("is_first_page", 0)
         }
         return std.body.jsonObject["works"]?.jsonObject?.map { joToPixivSearchItem(it.value.jsonObject) } ?: listOf()
-    }
-
-    // 使用 App API /v2/illust/related 获取相关作品
-    // 替代旧的 recommendWork + recommendWorkInfo 两步流程
-    // next_url 中通过 viewed[] 参数确定翻页
-    // 难以评价，能用就行
-    suspend fun illustRelated(
-        illustId: String,
-        offset: Int = 0,
-        viewed: List<String> = listOf(),
-        seedIllustIds: List<String> = listOf()
-    ): Pair<List<SearchItemData>, String?> {
-        val pms = Parameters.build {
-            append("illust_id", illustId)
-            append("filter", "for_ios")
-            append("offset", offset.toString())
-            seedIllustIds.forEach { append("seed_illust_ids[]", it) }
-            viewed.forEach { append("viewed[]", it) }
-        }
-        val r = apiRequest("/v2/illust/related", pms, true)
-        if (r.isFailure) return Pair(listOf(), null)
-        val body = r.getOrNull() ?: return Pair(listOf(), null)
-        val illusts = body["illusts"]?.jsonArray?.mapNotNull {
-            try {
-                joToPixivSearchItem(it.jsonObject)
-            } catch (_: Exception) { null }
-        } ?: listOf()
-        val nextUrl = body.getAsString("next_url").ifEmpty { null }
-        return Pair(illusts, nextUrl)
     }
 
     @Deprecated("Use illustRelated() which fetches related illusts in one App API call")

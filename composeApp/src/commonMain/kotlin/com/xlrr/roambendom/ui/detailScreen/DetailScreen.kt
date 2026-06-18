@@ -47,7 +47,11 @@ class DetailViewModel() : ViewModel() {
 // 我使用SelectionContainer的时候，曾遇到过一个关于select range的报错，不过我难以复现。
 
 @Composable
-fun LoveButton(searchItemData: SearchItemData, artworkInfo: ArtworkInfo?) {
+fun LoveButton(
+    searchItemData: SearchItemData,
+    artworkInfo: ArtworkInfo?,
+    modifier: Modifier = Modifier
+) {
     val loved by remember {
         derivedStateOf {
             FavoriteDataManager.content.favorites.find { it.uid == searchItemData.uid() } != null
@@ -60,10 +64,10 @@ fun LoveButton(searchItemData: SearchItemData, artworkInfo: ArtworkInfo?) {
            else
                searchItemData.fillSelf(artworkInfo)
         ) else FavoriteDataManager.removeItem(searchItemData.uid())
-    }, Modifier.padding(top = 12.dp)) {
+    }, modifier) {
         Icon(
             painterResource(if (loved) Res.drawable.loved_btn_icon else Res.drawable.love_btn_icon),
-            contentDescription = null
+            null,
         )
     }
 }
@@ -157,7 +161,11 @@ fun NHDetail(details: NHDetailModel) {
                             enabled = details.isSuccessful()) {
                             Text("阅读")
                         }
-                        LoveButton(details.searchItemData, details.content)
+                        LoveButton(
+                            details.searchItemData,
+                            details.content,
+                            Modifier.padding(top = 12.dp)
+                        )
                     }
                 }
             }
