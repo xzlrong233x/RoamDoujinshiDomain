@@ -17,8 +17,6 @@ import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import kotlin.math.ceil
-import kotlin.math.max
 
 @Composable
 private fun LoadingIndexer(spm: SearchParameterModel, ss: CoroutineScope) {

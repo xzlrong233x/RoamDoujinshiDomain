@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.*
@@ -12,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalSharedTransitionScope
@@ -23,14 +21,7 @@ import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
-import com.xlrr.roambendom.utils.GlobalData
-import com.xlrr.roambendom.utils.ItemInfoCardWithShared
-import com.xlrr.roambendom.utils.LocalWindowSize
-import com.xlrr.roambendom.utils.MaxSize
-import com.xlrr.roambendom.utils.TimeUtil
-import com.xlrr.roambendom.utils.defaultStaggeredGridCell
-import kotlin.math.ceil
-import kotlin.math.max
+import com.xlrr.roambendom.utils.*
 
 enum class HomeSelection {
     NH,
