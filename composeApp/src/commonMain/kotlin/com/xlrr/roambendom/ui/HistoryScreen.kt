@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
@@ -62,9 +63,11 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
     val ss = rememberCoroutineScope()
     val mx = LocalWindowSize.current.width
     StandardSearchLikeWithUp(searchParameterModel, modifier) {
-        SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
-            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value,
+        SearchContent(
+            modifier,
+            searchParameterModel,
+            defaultStaggeredGridCell(LocalWindowSize.current.width),
+            mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value,
             header = {
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                     Text("历史", style = MaterialTheme.typography.headlineMedium)

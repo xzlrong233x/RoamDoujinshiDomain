@@ -224,9 +224,11 @@ fun FavoriteScreen(modifier: Modifier, searchParameterModel: FavoriteScreenModel
                 { showAskMaker = true }
             )
         )) {
-            SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
-                ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-            ), false,
+            SearchContent(
+                modifier,
+                searchParameterModel,
+                defaultStaggeredGridCell(LocalWindowSize.current.width),
+                false,
                 header = {},
                 gridMain = {spm ->
                     items(searchParameterModel.folderInfos.toList(), {it.first}) {

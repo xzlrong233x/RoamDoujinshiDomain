@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalSharedTransitionScope
@@ -25,7 +26,9 @@ import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.ItemInfoCardWithShared
 import com.xlrr.roambendom.utils.LocalWindowSize
+import com.xlrr.roambendom.utils.MaxSize
 import com.xlrr.roambendom.utils.TimeUtil
+import com.xlrr.roambendom.utils.defaultStaggeredGridCell
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -116,10 +119,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         SearchContent(
             modifier,
             curSpm,
-            StaggeredGridCells.Fixed(
-                ceil(LocalWindowSize.current.width.value / 216f)
-                    .coerceIn(1f, max(6f, LocalWindowSize.current.width.value / 216 - 2)).toInt()
-            ),
+            defaultStaggeredGridCell(LocalWindowSize.current.width),
             small && !ConfigUtil.forceGrid.value && viewModel.local == HomeSelection.NH,
             {
                 Column(Modifier.fillMaxWidth()) {

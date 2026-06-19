@@ -259,10 +259,13 @@ fun SearchScreen(modifier: Modifier, searchParameterModel: SearchParameterModel)
     val ss = rememberCoroutineScope()
     val mx = LocalWindowSize.current.width
     StandardSearchLikeWithUp(searchParameterModel, modifier) {
-        SearchContent(modifier, searchParameterModel, StaggeredGridCells.Fixed(
-            ceil(mx.value / 216f).coerceIn(1f, max(6f, mx.value / 216 - 2)).toInt()
-        ), mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value
+        SearchContent(
+            modifier,
+            searchParameterModel,
+            defaultStaggeredGridCell(LocalWindowSize.current.width),
+            mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value
                 && searchParameterModel.configs.searchTarget.realValue == 0,
-            ss = ss)
+            ss = ss
+        )
     }
 }
