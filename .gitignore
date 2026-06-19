@@ -25,3 +25,7 @@ composeApp/config.properties
 composeApp/src/main
 composeApp/data
 composeApp/release
+plugin/ech-request/target
+plugin/ech-request/Cargo.lock
+composeApp/src/jvmMain/resources/native/
+composeApp/src/androidMain/jniLibs

@@ -12,7 +12,6 @@ import io.github.vinceglb.filekit.FileKit
 
 fun main() {
     FileKit.init("RoamBenDom")
-
     application {
         Window(
             onCloseRequest = ::exitApplication,

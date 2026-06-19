@@ -9,10 +9,10 @@ import com.xlrr.roambendom.data.pixiv.search.ArtworkDetailData.Companion.toSearc
 import com.xlrr.roambendom.data.pixiv.search.PixivSearchDuration
 import com.xlrr.roambendom.data.pixiv.search.PixivSearchTarget
 import com.xlrr.roambendom.data.pixiv.search.PixivSort
+import com.xlrr.roambendom.third.EchRequestRustClass
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import com.xlrr.roambendom.utils.PixivTokenUtil.pixivToken
 import com.xlrr.roambendom.utils.TimeUtil
-import com.xlrr.roambendom.utils.decryptSP
 import com.xlrr.roambendom.utils.getAsInt
 import com.xlrr.roambendom.utils.getAsString
 import io.ktor.client.call.*
@@ -20,6 +20,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
@@ -470,19 +471,9 @@ object PIXIVApiHelper {
     suspend fun recommendArtwork(id: String, limit: Int = 18) = recommendWork(id, "illust", limit)
 
     suspend fun requestTokenWithCode(code: String, codeVerifier: String) : Pair<String, String> {
-        val res = NetHelper.client.submitForm(authToken, Parameters.build {
-            append("client_id", PixivTokenUtil.CLIENT_ID)
-            append("client_secret", PixivTokenUtil.CLIENT_SECRET)
-            append("code", code)
-            append("code_verifier", codeVerifier)
-            append("grant_type", "authorization_code")
-            append("include_policy", "true")
-            append("redirect_uri", redirectUrl)
-        }) {
-            pixivOSHeader()
-        }
         try {
-            res.body<JsonObject>().let {
+            val s = "\\{.+\\}".toRegex().find(EchRequestRustClass.requestOAuthToken(code, codeVerifier))?.value ?: ""
+            NetHelper.json.decodeFromString<JsonObject>(s).let {
                 return Pair(it.getAsString("access_token"),it.getAsString("refresh_token"))
             }
         } catch (e: Exception) {
@@ -491,16 +482,9 @@ object PIXIVApiHelper {
     }
 
     suspend fun requestTokenWithToken(refToken: String): Pair<String, Instant> {
-        val res = NetHelper.client.submitForm(authToken, Parameters.build {
-            append("client_id", PixivTokenUtil.CLIENT_ID)
-            append("client_secret", PixivTokenUtil.CLIENT_SECRET)
-            append("grant_type", "refresh_token")
-            append("refresh_token", refToken)
-        }) {
-            pixivOSHeader()
-        }
         try {
-            res.body<JsonObject>().let {
+            val s = "\\{.+\\}".toRegex().find(EchRequestRustClass.refreshOAuthToken(refToken))?.value ?: ""
+            NetHelper.json.decodeFromString<JsonObject>(s).let {
                 return Pair(it.getAsString("access_token"), Clock.System.now() + it.getAsInt("expires_in").seconds)
             }
         } catch (e: Exception) {

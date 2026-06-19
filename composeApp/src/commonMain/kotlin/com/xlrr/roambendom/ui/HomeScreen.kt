@@ -193,15 +193,15 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
         modifier
     ) {
         SearchContent(
-            Modifier,
+            modifier,
             curSpm,
             StaggeredGridCells.Fixed(
                 ceil(LocalWindowSize.current.width.value / 216f)
                     .coerceIn(1f, max(6f, LocalWindowSize.current.width.value / 216 - 2)).toInt()
             ),
-            small && !ConfigUtil.forceGrid.value,
+            small && !ConfigUtil.forceGrid.value && viewModel.local == HomeSelection.NH,
             {
-                Column {
+                Column(Modifier.fillMaxWidth()) {
                     SingleChoiceSegmentedButtonRow {
                         HomeSelection.entries.forEachIndexed { index, selection ->
                             SegmentedButton(
