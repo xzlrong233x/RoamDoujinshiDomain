@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.LocalPlatformForUI
@@ -188,7 +187,7 @@ fun NHDetail(details: NHDetailModel) {
 }
 
 @Composable
-fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier, details: DetailViewModel = viewModel { DetailViewModel() }) {
+fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) {
         if (!detailModel.searchItemData.isDefective()) HistoryDataManager.addItem(detailModel.searchItemData)
         detailModel.reloadIfEmpty()

@@ -20,7 +20,6 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
@@ -476,7 +475,7 @@ object PIXIVApiHelper {
             NetHelper.json.decodeFromString<JsonObject>(s).let {
                 return Pair(it.getAsString("access_token"),it.getAsString("refresh_token"))
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return Pair("","")
         }
     }
@@ -487,7 +486,7 @@ object PIXIVApiHelper {
             NetHelper.json.decodeFromString<JsonObject>(s).let {
                 return Pair(it.getAsString("access_token"), Clock.System.now() + it.getAsInt("expires_in").seconds)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return Pair("", Clock.System.now())
         }
     }

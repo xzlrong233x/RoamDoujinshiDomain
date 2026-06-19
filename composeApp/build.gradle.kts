@@ -63,10 +63,9 @@ val sdkDir: String = run {
     val propsFile = file("../local.properties")
     val fromProps = if (propsFile.exists()) {
         propsFile.readLines()
-            .firstOrNull { it.trimStart().startsWith("sdk.dir") }
-            ?.substringAfter("=")
-            ?.trim()
-            ?.let { it.replace("\\:", ":").replace("\\\\", "\\") } // 反转义
+                .firstOrNull { it.trimStart().startsWith("sdk.dir") }
+                ?.substringAfter("=")
+                ?.trim()?.replace("\\:", ":")?.replace("\\\\", "\\") // 反转义
     } else null
     fromProps
         ?: System.getenv("ANDROID_HOME")

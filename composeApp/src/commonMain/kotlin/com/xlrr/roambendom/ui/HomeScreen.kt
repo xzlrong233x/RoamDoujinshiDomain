@@ -41,7 +41,7 @@ class HomeViewModel() : ViewModel() {
     var tempLeave by mutableStateOf(false)  //这个变量主要是为了标记是否是暂时离开（即Home被压在栈下）
     val spm = SearchParameterModel("")
     val pixivSPM = SearchParameterModel("").config {
-        searchFunction = PIXIVApiHelper.nextUrlSearchFunction { key, offset, viewed ->
+        searchFunction = PIXIVApiHelper.nextUrlSearchFunction { _, offset, viewed ->
             PIXIVApiHelper.illustRecommend(offset, viewed)
         }
     }
@@ -105,13 +105,6 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             } else {
                 viewModel.clear()
             }
-        }
-    }
-    val showBtn by remember(GlobalData.forListState) {
-        derivedStateOf {
-            GlobalData.forListState != null
-                    && GlobalData.forListState?.scrollIndicatorState?.scrollOffset?.let { it > 0 } == true
-                    && viewModel.local == HomeSelection.NH
         }
     }
     val ss = rememberCoroutineScope()
