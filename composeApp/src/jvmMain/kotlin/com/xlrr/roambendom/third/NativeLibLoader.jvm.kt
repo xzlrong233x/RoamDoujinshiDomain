@@ -3,6 +3,7 @@ package com.xlrr.roambendom.third
 import java.io.File
 
 actual fun loadEchRequestLibrary() { //TODO：优化AI代码（？
+    // 至少可以发现在资源中的dll不可通过loadLibrary加载
     val osName = System.getProperty("os.name").lowercase()
     val libName = when {
         osName.contains("win")  -> "ech_request.dll"

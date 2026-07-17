@@ -62,7 +62,7 @@ object DetailCacheManager : LoadFileManager("detail_cache.json") {
     }
 
     fun remove(id: String, source: CSources): Boolean {
-        return !list.runCatching { remove(id, source) }.isSuccess.also { save() }
+        return list.runCatching { removeIf { it.id == id && it.source == source } }.isSuccess.also { save() }
     }
 
     override fun writeTo(buffer: Sink) {

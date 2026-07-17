@@ -818,7 +818,13 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                             } else null, trailingContent = if (it.trailing.isNotEmpty()) {
                                 { Text(it.trailing) }
                             } else if (it.clickType is SuggestionClickType.History) {
-                                { IconButton({ SearchTokenManager.remove(it.key)}) {
+                                { IconButton(
+                                    {
+                                        SearchTokenManager.remove(it.key)
+                                        suggestionsService.list.remove(it)
+                                        freq.requestFocus()
+                                    }
+                                ) {
                                     Icon(painterResource(Res.drawable.delete_icon), null)
                                 } }
                             } else null

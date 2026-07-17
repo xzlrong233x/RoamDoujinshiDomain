@@ -114,7 +114,10 @@ actual fun CommandBox(
                         {
                             Text(it.label)
                         },
-                        Modifier.clickable(it.enabled(),onClick = it.click)
+                        Modifier.clickable(it.enabled(),onClick = {
+                            it.click()
+                            opened = false
+                        })
                     )
 
                 }
@@ -123,7 +126,10 @@ actual fun CommandBox(
                         {
                             Text(it.label)
                         },
-                        Modifier.clickable(it.enabled(),onClick = it.click)
+                        Modifier.clickable(it.enabled(),onClick = {
+                            it.click()
+                            opened = false
+                        })
                     )
                 }
             }

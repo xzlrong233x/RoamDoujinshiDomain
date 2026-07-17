@@ -122,23 +122,25 @@ actual fun CommandBox(
         *publicCommands.toTypedArray(),
         *public
     )
-    ContextMenuArea(
-        {
-            val al = arrayListOf<CommandData>()
-            al.addAll(privateCommands)
-            al.addAll(list)
-            al.map { ContextMenuItem(
-                it.label,
-                it.enabled(),
-                it.click,
-            ) }
-        }
-    ) {
-        CompositionLocalProvider(
-            LocalPublicCommandItem provides list
+    Box(modifier) {
+        ContextMenuArea(
+            {
+                val al = arrayListOf<CommandData>()
+                al.addAll(privateCommands)
+                al.addAll(list)
+                al.map { ContextMenuItem(
+                    it.label,
+                    it.enabled(),
+                    it.click,
+                ) }
+            }
         ) {
-            Box(modifier = modifier, contentAlignment = contentAlignment) {
-                content {}
+            CompositionLocalProvider(
+                LocalPublicCommandItem provides list
+            ) {
+                Box(contentAlignment = contentAlignment) {
+                    content {}
+                }
             }
         }
     }
