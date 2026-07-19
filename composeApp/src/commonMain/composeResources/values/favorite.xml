@@ -1,0 +1,11 @@
+<resources>
+    <string name="delete_command">Delete</string>
+    <string name="move_to_command">Move to</string>
+    <string name="delete_folder_command">Delete folder</string>
+    <string name="delete_folder_with_content_command">Delete folder with content</string>
+    <string name="prev_path_info">%s (Prev path)</string>
+    <string name="add_folder_command">Add folder</string>
+    <string name="folder_name_label">Folder Name</string>
+    <string name="folder_path_label">Folder Path</string>
+    <string name="favorite_with_info">Favorite: %s</string>
+</resources>

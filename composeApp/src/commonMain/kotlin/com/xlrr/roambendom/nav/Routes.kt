@@ -8,10 +8,14 @@ import com.xlrr.roambendom.manager.FavoriteDataManager
 import com.xlrr.roambendom.model.FavoriteScreenModel
 import com.xlrr.roambendom.model.detail.BaseDetailModel
 import com.xlrr.roambendom.model.search.SearchParameterModel
+import com.xlrr.roambendom.utils.StringOrResource
+import com.xlrr.roambendom.utils.orResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.favorite_with_info
 
 sealed class Routes {
     sealed class Root(
-        val headerTitle: () -> String = { "" },
+        val headerTitle: () -> StringOrResource = { StringOrResource.EMPTY },
         val endCompose: @Composable () -> Unit = {},
     ) : Routes() {
         companion object {
@@ -25,7 +29,7 @@ sealed class Routes {
             val searchModel: SearchParameterModel,
             val canChangeSettings: Boolean,
             val clearInput: (() -> Boolean)? = null,
-            title: () -> String = { "" }
+            title: () -> StringOrResource = { StringOrResource.EMPTY },
         ) : Root(title)
         class Search(
             searchModel: SearchParameterModel
@@ -35,14 +39,15 @@ sealed class Routes {
         class Favorite(
             val path: String = "/"
         ) : FixedSearch(FavoriteScreenModel(path), {
-            "收藏：${FavoriteDataManager.content.folderInfo[path]?.name}"
+            Res.string.favorite_with_info.orResource(FavoriteDataManager.content.folderInfo[path]?.name.toString()) //favorite_with_info
         })
-        open class FixedSearch(searchParameterModel: SearchParameterModel, title: () -> String)
+        open class FixedSearch(searchParameterModel: SearchParameterModel, title: () -> StringOrResource)
             : SearchLike(searchParameterModel, false, title = title)
         data object Settings : Root()
     }
     data class Artwork(
-        val artworkInfo: ArtworkInfo
+        val artworkInfo: ArtworkInfo,
+        val pageChange: (Int) -> Unit = {},
     ) : Routes()
     sealed class Auth : Routes() {
         data class Choose(

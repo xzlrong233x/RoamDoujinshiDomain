@@ -1,0 +1,8 @@
+<resources>
+    <string name="need_proxy">需要代理</string>
+    <string name="proxy_reason">因技术问题，该方式需要您开启代理以访问pixiv</string>
+    <string name="entre_token">输入Token</string>
+    <string name="account_login">账号登录</string>
+    <string name="i_know">我已知晓</string>
+    <string name="desktop_login_info">您需要在打开的浏览器登录pixiv账号，然后在这个页面输入从控制台获得的code。如果您不了解相关操作，请使用Token登录。</string>
+</resources>

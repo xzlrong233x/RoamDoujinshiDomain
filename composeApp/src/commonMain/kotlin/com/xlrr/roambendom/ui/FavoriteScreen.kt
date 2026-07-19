@@ -24,8 +24,20 @@ import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.add_folder_command
+import roambendom.composeapp.generated.resources.ai_warn
+import roambendom.composeapp.generated.resources.cancel
+import roambendom.composeapp.generated.resources.delete_command
+import roambendom.composeapp.generated.resources.delete_folder_command
+import roambendom.composeapp.generated.resources.delete_folder_with_content_command
 import roambendom.composeapp.generated.resources.folder_icon
+import roambendom.composeapp.generated.resources.folder_name_label
+import roambendom.composeapp.generated.resources.folder_path_label
+import roambendom.composeapp.generated.resources.move_to_command
+import roambendom.composeapp.generated.resources.prev_path_info
+import roambendom.composeapp.generated.resources.save
 
 @Composable
 private fun ShowFavoriteItem(
@@ -39,11 +51,11 @@ private fun ShowFavoriteItem(
         modifier,
         listOf(
             CommandData(
-                "删除",
+                Res.string.delete_command.orResource(),
                 { deleteFunc(it.uid()) }
             ),
             CommandData(
-                "移动到",
+                Res.string.move_to_command.orResource(),
                 { preToNewFolder(it.uid()) },
                 moveEnable
             )
@@ -59,7 +71,7 @@ private fun ShowFavoriteItem(
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },
             {
-                if (it.ai) Text("*有AI参与的作品")
+                if (it.ai) Text(stringResource(Res.string.ai_warn))
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             it.isAnimation,
@@ -84,11 +96,11 @@ private fun ShowFolderItem(
 ) {
     CommandBox(modifier, listOf(
         CommandData(
-            "删除文件夹",
+            Res.string.delete_folder_command.orResource(),
             { deleteFolder(toPath, false) }
         ),
         CommandData(
-            "删除文件夹及内容",
+            Res.string.delete_folder_with_content_command.orResource(),
             { deleteFolder(toPath, true) }
         )
     )) {
@@ -141,12 +153,12 @@ private fun MakeFolderAsk(
                 },
                 enabled = nowPath.isNotEmpty() && folderName.isNotEmpty() && pathName.isNotEmpty()
             ) {
-                Text("保存")
+                Text(stringResource(Res.string.save))
             }
         }, text = {
             Column {
-                OutlinedTextField(pathName, { pathName = it }, label = { Text("文件夹路径") })
-                OutlinedTextField(folderName, { folderName = it }, label = { Text("文件夹名称") })
+                OutlinedTextField(pathName, { pathName = it }, label = { Text(stringResource(Res.string.folder_name_label)) })
+                OutlinedTextField(folderName, { folderName = it }, label = { Text(stringResource(Res.string.folder_path_label)) })
             }
         })
     }
@@ -160,7 +172,7 @@ fun PrepareMoveItemAsk(uid: String, favoriteScreenModel: FavoriteScreenModel, on
             TextButton(
                 onDismiss
             ) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
         }, text = {
             val p = FavoriteDataManager.parent(favoriteScreenModel.path)
@@ -170,7 +182,7 @@ fun PrepareMoveItemAsk(uid: String, favoriteScreenModel: FavoriteScreenModel, on
                     item {
                         ListItem(
                             {
-                                Text("${item.name} (上一级)")
+                                Text(stringResource(Res.string.prev_path_info).format(item.name))
                             },
                             Modifier.clickable {
                                 FavoriteDataManager.moveItem(uid, p)
@@ -217,7 +229,7 @@ fun FavoriteScreen(modifier: Modifier, searchParameterModel: FavoriteScreenModel
     StandardSearchLikeWithUp(searchParameterModel, modifier) {
         CommandBox(Modifier, listOf(), publicCommands = listOf(
             CommandData(
-                "添加文件夹",
+                Res.string.add_folder_command.orResource(),
                 { showAskMaker = true }
             )
         )) {

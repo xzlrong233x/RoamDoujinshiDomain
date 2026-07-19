@@ -1,0 +1,16 @@
+<resources>
+    <string name="page">页数：%s</string>
+    <string name="love_count">喜好数：%s</string>
+    <string name="language">语言：%s</string>
+    <string name="tags">标签</string>
+    <string name="groups">团体</string>
+    <string name="artists">作者</string>
+    <string name="load_ori">加载原图</string>
+    <string name="load_all">全部加载</string>
+    <string name="load_more">加载更多</string>
+    <string name="ai_gen">AI生成</string>
+    <string name="favorite_count">收藏数：%s</string>
+    <string name="load_recommend">加载推荐</string>
+    <string name="read">阅读</string>
+    <string name="read_from">阅读（从第%s页开始）</string>
+</resources>

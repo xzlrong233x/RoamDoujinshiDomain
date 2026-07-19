@@ -1,0 +1,28 @@
+<resources>
+    <string name="nav_name">导航</string>
+    <string name="nothing">空空如也</string>
+    <string name="search_no_more">没有更多了，页数：%s</string>
+    <string name="error_info">错误：%s</string>
+    <string name="click_reload">点我重载</string>
+    <string name="cancel">取消</string>
+    <string name="save">保存</string>
+    <string name="confirm">确定</string>
+    <string name="clear_all">清空</string>
+    <string name="ai_warn">*有AI参与的作品</string>
+    <string name="home_label">首页</string>
+    <string name="history_label">历史</string>
+    <string name="favorite_label">收藏</string>
+    <string name="setting_label">设置</string>
+    <string name="refresh">刷新</string>
+    <string name="now_sys_lang">cn</string>
+    <string name="animated_artworks_label">动图</string>
+
+    <string name="author_artworks">%s的作品</string>
+    <string name="recommend_with_author">%s的推荐作品</string>
+    <string name="signal_recommend_label">推荐</string>
+
+    <string name="pixiv_artwork_id">P站作品ID</string>
+    <string name="nhentai_artwork_id">N站作品ID</string>
+    <string name="pixiv_user_id">P站用户ID</string>
+    <string name="language_tag_label">语言标签</string>
+</resources>

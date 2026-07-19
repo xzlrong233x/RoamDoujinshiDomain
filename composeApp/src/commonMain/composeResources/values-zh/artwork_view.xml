@@ -1,0 +1,12 @@
+<resources>
+    <string name="turn_page_mode">翻页模式</string>
+    <string name="default_mode">默认</string>
+    <string name="manga_mode">日漫</string>
+    <string name="turn_page_direction">翻页方向</string>
+    <string name="vertical_page">上下</string>
+    <string name="horizontal_page">左右</string>
+    <string name="double_page_mode">双页模式</string>
+    <string name="adaptive_image">一屏一页</string>
+    <string name="hide_indexer">禁用指示器</string>
+    <string name="invalid_content">无效的作品内容</string>
+</resources>

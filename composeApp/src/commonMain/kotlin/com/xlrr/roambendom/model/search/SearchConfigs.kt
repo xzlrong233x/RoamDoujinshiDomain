@@ -12,27 +12,38 @@ import com.xlrr.roambendom.data.pixiv.PixivSearchRestriction
 import com.xlrr.roambendom.data.pixiv.lowerStr
 import com.xlrr.roambendom.network.NHWebHelper
 import com.xlrr.roambendom.network.PIXIVApiHelper
+import com.xlrr.roambendom.utils.StringOrResource
+import com.xlrr.roambendom.utils.orResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.hide_ai_content
+import roambendom.composeapp.generated.resources.search_target
+import roambendom.composeapp.generated.resources.selection_nh_label
+import roambendom.composeapp.generated.resources.selection_pixiv_label
+import roambendom.composeapp.generated.resources.sort_method
 
 class SearchConfigs {
     val searchTarget = TempChangeConfig(
         0, UIType.SingleSegmentedButton(
-        "搜索目标", listOf("NH","PIXIV")
+            Res.string.search_target.orResource(), listOf(
+                Res.string.selection_nh_label.orResource(),
+                Res.string.selection_pixiv_label.orResource()
+            )
     ))
 
     val nhSearchSort = StateWithUI(
         mutableStateOf(NHSearchSortType.DATE), UIType.DropStringSelectUI(
-            "排序方式", NHSearchSortType.entries.toList()
+            Res.string.sort_method.orResource(), NHSearchSortType.entries.toList()
         ) { it.toString() }
     )
 
     val pixivSearchRestriction = StateWithUI(
         mutableStateOf(PixivSearchRestriction.All), UIType.DropStringSelectUI(
-            "搜索模式", PixivSearchRestriction.entries.toList()
+            "搜索模式".orResource(), PixivSearchRestriction.entries.toList()
         ) { it.lowerStr() })
 
     val pixivHideAI = StateWithUI(
         mutableStateOf(false), UIType.SwitchUI(
-            "不显示ai内容"
+            Res.string.hide_ai_content.orResource()
         )
     )
 

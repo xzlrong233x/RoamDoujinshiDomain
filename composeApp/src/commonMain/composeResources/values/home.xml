@@ -1,0 +1,7 @@
+<resources>
+    <string name="pixiv_no_login_info">You haven't logged in pixiv, there will be many functions disabled if you don't log in pixiv, you can click follow bottom to choose log in method</string>
+    <string name="popular">Popular Now</string>
+    <string name="new_updates">New Uploads</string>
+    <string name="selection_nh_label">NH</string>
+    <string name="selection_pixiv_label">PIXIV</string>
+</resources>

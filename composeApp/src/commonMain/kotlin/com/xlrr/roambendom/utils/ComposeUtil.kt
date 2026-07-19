@@ -41,16 +41,19 @@ import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.painter.TextPlaceholderPainter
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.animated_artworks_label
 import roambendom.composeapp.generated.resources.empty_page
 import roambendom.composeapp.generated.resources.loading_jpg
+import roambendom.composeapp.generated.resources.refresh
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
 
 data class CommandData(
-    var label: String,
+    var label: StringOrResource,
     var click: () -> Unit,
     var enabled: () -> Boolean = { true },
 )
@@ -100,6 +103,11 @@ expect fun CtrlPullToRefreshBox(
             modifier = Modifier.align(Alignment.TopCenter),
             isRefreshing = isRefreshing,
             state = state,
+        )
+    },
+    additionalCommands: @Composable () -> List<CommandData> = {
+        listOf(
+            CommandData(Res.string.refresh.orResource(), onRefresh)
         )
     },
     content: @Composable BoxScope.() -> Unit,
@@ -242,7 +250,7 @@ fun ItemInfoCardWithShared(
                         itemHorizontalAlignment = Alignment.End
                     ) {
                         if (page > 1) CardLabel("P${page}")
-                        if (isAnimation) CardLabel("动图")
+                        if (isAnimation) CardLabel(stringResource(Res.string.animated_artworks_label)) // animated_artworks_label
                     }
                 }
                 Column(modifier = if (toColumn) Modifier else Modifier.padding(PaddingValues(start = 4.dp))) {

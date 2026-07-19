@@ -17,26 +17,32 @@ import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.click_reload
+import roambendom.composeapp.generated.resources.error_info
+import roambendom.composeapp.generated.resources.nothing
+import roambendom.composeapp.generated.resources.search_no_more
 
 @Composable
 private fun LoadingIndexer(spm: SearchParameterModel, ss: CoroutineScope) {
     Box(Modifier.fillMaxWidth(), Alignment.Center) {
         if (spm.error == null) {
             if (spm.completed) {
-                Text("没有更多了，页码${spm.page}")
+                Text(stringResource(Res.string.search_no_more).format(spm.page))
             } else {
                 CircularProgressIndicator()
             }
         } else {
             spm.error?.let {
                 CenterColumnInfo {
-                    Text("错误：${it.message}")
+                    Text(stringResource(Res.string.error_info).format(it.message))
                     Button({
                         ss.launch {
                             spm.reload()
                         }
                     }) {
-                        Text("点我重载")
+                        Text(stringResource(Res.string.click_reload))
                     }
                 }
             }
@@ -229,19 +235,19 @@ fun StandardSearchLikeWithUp(searchParameterModel: SearchParameterModel,
                 if (searchParameterModel.error != null) {
                     searchParameterModel.error?.let {
                         CenterColumnInfo {
-                            Text("错误：${it.message}")
+                            Text(stringResource(Res.string.error_info).format(it.message))
                             Button({
                                 ss.launch {
                                     searchParameterModel.reload()
                                 }
                             }) {
-                                Text("点我重载")
+                                Text(stringResource(Res.string.click_reload))
                             }
                         }
                     }
                 } else if (!searchParameterModel.loading) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("空空如也")
+                        Text(stringResource(Res.string.nothing))
                     }
                 }
             }

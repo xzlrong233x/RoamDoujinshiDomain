@@ -22,6 +22,13 @@ import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
 import com.xlrr.roambendom.utils.*
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.ai_warn
+import roambendom.composeapp.generated.resources.new_updates
+import roambendom.composeapp.generated.resources.pixiv_login_btn
+import roambendom.composeapp.generated.resources.pixiv_no_login_info
+import roambendom.composeapp.generated.resources.popular
 
 enum class HomeSelection {
     NH,
@@ -67,7 +74,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },
             {
-                if (it.ai) Text("*有AI参与的作品")
+                if (it.ai) Text(stringResource(Res.string.ai_warn))
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             it.isAnimation,
@@ -136,9 +143,9 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                     if (viewModel.local == HomeSelection.PIXIV
                         && viewModel.pixivSPM.content.isEmpty()
                         && viewModel.pixivSPM.completed) {
-                        Text("您尚未登录，未登录会使大多P站功能不可用，您可以通过下面的按钮选择登录方式")
+                        Text(stringResource(Res.string.pixiv_no_login_info))
                         Button({GlobalData.nav.push(Routes.Auth.Choose())}) {
-                            Text("选择登录方式")
+                            Text(stringResource(Res.string.pixiv_login_btn))
                         }
                     }
                 }
@@ -146,7 +153,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             { spm ->
                 if (viewModel.local == HomeSelection.NH) {
                     item("popular") {
-                        Text("热门", style = MaterialTheme.typography.headlineSmall)
+                        Text(stringResource(Res.string.popular), style = MaterialTheme.typography.headlineSmall)
                     }
                     items(spm.content.distinct().subList(0, 5), { "popular${it.id}" }) {
                         with(LocalSharedTransitionScope.current) {
@@ -154,7 +161,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                         }
                     }
                     item("lastest") {
-                        Text("最新", style = MaterialTheme.typography.headlineSmall)
+                        Text(stringResource(Res.string.new_updates), style = MaterialTheme.typography.headlineSmall)
                     }
                     items(spm.content.distinct().subList(5, spm.content.size), { "lasest${it.id}" }) {
                         with(LocalSharedTransitionScope.current) {
@@ -172,7 +179,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
             {spm ->
                 if (viewModel.local == HomeSelection.NH) {
                     item("popular", span = StaggeredGridItemSpan.FullLine) {
-                        Text("热门", style = MaterialTheme.typography.headlineSmall)
+                        Text(stringResource(Res.string.popular), style = MaterialTheme.typography.headlineSmall)
                     }
                     items(spm.content.distinct().subList(0, 5), { "popular${it.id}" }) {
                         with(LocalSharedTransitionScope.current) {
@@ -180,7 +187,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: HomeViewModel = viewMod
                         }
                     }
                     item("lastest", span = StaggeredGridItemSpan.FullLine) {
-                        Text("最新", style = MaterialTheme.typography.headlineSmall)
+                        Text(stringResource(Res.string.new_updates), style = MaterialTheme.typography.headlineSmall)
                     }
                     items(spm.content.distinct().subList(5, spm.content.size), { "lasest${it.id}" }) {
                         with(LocalSharedTransitionScope.current) {

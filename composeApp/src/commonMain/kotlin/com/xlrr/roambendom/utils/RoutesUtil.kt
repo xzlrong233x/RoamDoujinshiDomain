@@ -9,6 +9,10 @@ import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Navigator
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.PIXIVApiHelper
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.author_artworks
+import roambendom.composeapp.generated.resources.recommend_with_author
+import roambendom.composeapp.generated.resources.signal_recommend_label
 import kotlin.text.ifEmpty
 
 fun Navigator.pushAuthorSearch(userId: String, userName: String) {
@@ -22,7 +26,7 @@ fun Navigator.pushAuthorSearch(userId: String, userName: String) {
                 }
             }
         }
-    ) { "${userName.ifEmpty { userId }}的作品" })
+    ) { Res.string.author_artworks.orResource(userName.ifEmpty { userId }) }) //author_artworks
 }
 
 fun Navigator.pushRecommend(detail: PIXIVDetailModel) {
@@ -30,8 +34,8 @@ fun Navigator.pushRecommend(detail: PIXIVDetailModel) {
         detail.recommendModel
     ) {
         detail.content?.title?.let {
-            "${it}的推荐作品"
-        } ?: "推荐"
+            Res.string.recommend_with_author.orResource(it) //recommend_with_author
+        } ?: Res.string.signal_recommend_label.orResource() //signal_recommend_label
     })
 }
 

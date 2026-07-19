@@ -9,6 +9,8 @@ import androidx.compose.material.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +33,10 @@ import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.skiko.toBufferedImage
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.refresh
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.time.Duration.Companion.milliseconds
@@ -95,13 +100,16 @@ actual fun CtrlPullToRefreshBox(
     state: PullToRefreshState,
     contentAlignment: Alignment,
     indicator: @Composable (BoxScope.() -> Unit),
+    additionalCommands: @Composable () -> List<CommandData>,
     content: @Composable (BoxScope.() -> Unit)
 ) {
-    ContextMenuArea({listOf(
-        ContextMenuItem("刷新", onRefresh)
-    )}) {
+    val n = additionalCommands()
+    val me = n.map {
+        ContextMenuItem(it.label.getComposeOrString(), it.enabled(), it.click)
+    }
+    ContextMenuArea({me}) {
         val al = arrayListOf<CommandData>()
-        al.add(CommandData("刷新", onRefresh))
+        al.addAll(n)
         al.addAll(LocalPublicCommandItem.current)
         CompositionLocalProvider(LocalPublicCommandItem provides al) {
             Box(modifier, contentAlignment,content = content)
@@ -119,20 +127,21 @@ actual fun CommandBox(
 ) {
     val public = LocalPublicCommandItem.current.toTypedArray()
     val list = listOf(
+        *privateCommands.toTypedArray(),
         *publicCommands.toTypedArray(),
         *public
     )
+    val orr = list.map {
+        ContextMenuItem(
+            it.label.getComposeOrString(),
+            it.enabled(),
+            it.click,
+        )
+    }
     Box(modifier) {
         ContextMenuArea(
             {
-                val al = arrayListOf<CommandData>()
-                al.addAll(privateCommands)
-                al.addAll(list)
-                al.map { ContextMenuItem(
-                    it.label,
-                    it.enabled(),
-                    it.click,
-                ) }
+                orr
             }
         ) {
             CompositionLocalProvider(

@@ -1,0 +1,12 @@
+<resources>
+    <string name="turn_page_mode">Turn Page Mode</string>
+    <string name="default_mode">Default</string>
+    <string name="manga_mode">Manga</string>
+    <string name="turn_page_direction">Turn Page Direction</string>
+    <string name="vertical_page">Vertical</string>
+    <string name="horizontal_page">Horizontal</string>
+    <string name="double_page_mode">Double Page</string>
+    <string name="adaptive_image">Adaptive Image</string>
+    <string name="hide_indexer">Hide Indexer</string>
+    <string name="invalid_content">Invalid Content</string>
+</resources>

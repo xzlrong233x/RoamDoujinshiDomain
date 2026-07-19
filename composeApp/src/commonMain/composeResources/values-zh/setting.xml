@@ -1,0 +1,14 @@
+<resources>
+    <string name="setting_title">设置</string>
+    <string name="pixiv_login">登录P站</string>
+    <string name="pixiv_login_btn">选择登录方式</string>
+    <string name="search_key_history">搜索关键词记录</string>
+    <string name="search_key_count">已有%s条</string>
+    <string name="version">版本</string>
+    <string name="force_grid">强制使用网格布局</string>
+    <string name="pixiv_language">P站语言</string>
+    <string name="multithread_load">使用多线程加载图片</string>
+    <string name="progressive_load">使用流式显示</string>
+    <string name="disabled_history">禁用历史记录</string>
+    <string name="enable_volume_turn">启用音量键翻页</string>
+</resources>

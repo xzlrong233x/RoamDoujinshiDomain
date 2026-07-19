@@ -54,9 +54,16 @@ import net.engawapg.lib.zoomable.ZoomState
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.ai_gen
 import roambendom.composeapp.generated.resources.book
+import roambendom.composeapp.generated.resources.favorite_count
 import roambendom.composeapp.generated.resources.img_download_icon
+import roambendom.composeapp.generated.resources.load_all
+import roambendom.composeapp.generated.resources.load_more
+import roambendom.composeapp.generated.resources.load_ori
+import roambendom.composeapp.generated.resources.load_recommend
 
 @Composable
 fun ImageDialog(
@@ -124,7 +131,7 @@ fun ImageDialog(
                                     colors = ButtonDefaults.buttonColors().copy(
                                         Color.Gray.copy(alpha = 0.75f)
                                     )) {
-                                    Text("加载原图", color = Color.White)
+                                    Text(stringResource(Res.string.load_ori), color = Color.White)
                                 }
                             }
                         }
@@ -334,7 +341,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                         }
                                     }, Modifier.align(Alignment.BottomCenter)
                                 ) {
-                                    Text("查看全部")
+                                    Text(stringResource(Res.string.load_all))
                                 }
                             }
                         }
@@ -344,7 +351,12 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                     if (details.content == null) {
                                         return@IconButton
                                     }
-                                    GlobalData.nav.push(Routes.Artwork(details.content!!.copy()))
+                                    GlobalData.nav.push(Routes.Artwork(details.content!!.copy()) { i ->
+                                        HistoryDataManager.changeItemPage(
+                                            details.searchItemData.uid(),
+                                            i
+                                        )
+                                    })
                                 }, enabled = details.content?.ugoiraMetadata == null) {
                                     Icon(
                                         painterResource(Res.drawable.book),
@@ -381,7 +393,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                     )
                                 }
                                 if (moreBtn) {
-                                    Text("展示更多", Modifier.align(Alignment.End).clickable {
+                                    Text(stringResource(Res.string.load_more), Modifier.align(Alignment.End).clickable {
                                         showAllDes = true
                                     }, color = (if (isSystemInDarkTheme()) Color.White else Color.Black).copy(0.5f))
                                 }
@@ -399,7 +411,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                                 color = ct.restriction.getColor())
                                         }
                                         if (ct.ai) {
-                                            Text("AI生成", fontWeight = FontWeight.Bold)
+                                            Text(stringResource(Res.string.ai_gen), fontWeight = FontWeight.Bold)
                                         }
                                         ct.tags.forEach {
                                             if (!it.contains("R-18G*".toRegex())) Text("#$it")
@@ -420,7 +432,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                         item("LikeCount") {
                             SelectionContainer {
                                 Text(
-                                    "收藏数：${details.content!!.likeCount}",
+                                    stringResource(Res.string.favorite_count),
                                     Modifier.padding(6.dp, 2.dp)
                                 )
                             }
@@ -457,7 +469,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                 Button({
                                     GlobalData.nav.pushRecommend(details)
                                 }, Modifier.align(Alignment.Center).padding(vertical = 12.dp)) {
-                                    Text("查看推荐")
+                                    Text(stringResource(Res.string.load_recommend))
                                 }
                             } // TODO: 单页面加载。
                         }

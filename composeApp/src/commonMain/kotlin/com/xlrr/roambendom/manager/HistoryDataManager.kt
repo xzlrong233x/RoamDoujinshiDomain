@@ -20,7 +20,8 @@ object HistoryDataManager : LoadFileManager("history.json") {
     @Serializable
     data class HistoryItem(
         var time: Long,
-        var count: Int
+        var count: Int,
+        var from: Int = 0
     )
     val map: SnapshotStateMap<String, HistoryItem> = SnapshotStateMap()
 
@@ -53,6 +54,15 @@ object HistoryDataManager : LoadFileManager("history.json") {
             it.count++
         }
         DetailCacheManager.add(searchItemData.toShortInfo())
+        save()
+    }
+
+    fun changeItemPage(uid: String, now: Int) {
+        if (ConfigUtil.disableHistoryRecord.value) {
+            return
+        }
+        val it = map[uid] ?: return
+        it.from = now
         save()
     }
 

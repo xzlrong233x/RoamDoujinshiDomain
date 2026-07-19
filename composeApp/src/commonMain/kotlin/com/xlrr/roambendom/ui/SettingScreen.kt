@@ -18,6 +18,8 @@ import com.xlrr.roambendom.manager.SearchTokenManager
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CenterFlowRow
 import com.xlrr.roambendom.utils.GlobalData
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.*
 
 @Composable
 fun SettingScreen(modifier: Modifier) {
@@ -25,7 +27,7 @@ fun SettingScreen(modifier: Modifier) {
         Column(Modifier.widthIn(0.dp, 712.dp).fillMaxSize()
             .padding(6.dp, 0.dp).verticalScroll(rememberScrollState()),
             Arrangement.spacedBy(6.dp)) {
-            Text("设置", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(Res.string.setting_title), style = MaterialTheme.typography.headlineMedium)
             CalUI(ConfigUtil.forceGrid)
             CalUI(ConfigUtil.useMultithread)
             CalUI(ConfigUtil.streamDisplay)
@@ -34,10 +36,10 @@ fun SettingScreen(modifier: Modifier) {
             Spacer(Modifier.height(16.dp))
             CalUI(ConfigUtil.pixivLanguage)
             CenterFlowRow(Modifier.fillMaxWidth()) {
-                Text("P站Token")
+                Text(stringResource(Res.string.pixiv_login))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button({ GlobalData.nav.push(Routes.Auth.Choose())}) {
-                        Text("点我填写")
+                        Text(stringResource(Res.string.pixiv_login_btn))
                     }
                 }
             }
@@ -46,20 +48,20 @@ fun SettingScreen(modifier: Modifier) {
                 mutableStateOf(SearchTokenManager.requestHistory("").size)
             }
             CenterFlowRow(Modifier.fillMaxWidth()) {
-                Text("搜索关键词记录")
+                Text(stringResource(Res.string.search_key_history))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("已有${size}条", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(Res.string.search_key_count).format(size), style = MaterialTheme.typography.labelMedium)
                     Button({ SearchTokenManager.clear(); size = 0}, enabled = size > 0) {
-                        Text("清除所有")
+                        Text(stringResource(Res.string.clear_all))
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
             CenterFlowRow(Modifier.fillMaxWidth()) {
-                Text("版本")
+                Text(stringResource(Res.string.version))
                 Text(getFormatVersionString())
             }
         }

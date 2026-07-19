@@ -1,20 +1,22 @@
 package com.xlrr.roambendom.config
 
+import com.xlrr.roambendom.utils.StringOrResource
+
 sealed class UIType<T>(
     enablePlatform: UIEnablePlatform = UIEnablePlatform.ALL
 ) {
     var enabledPlatform = enablePlatform
         private set
     data class SwitchUI(
-        val label: String,
+        val label: StringOrResource,
         val onValueChange: (Boolean) -> Unit = {new -> }
     ): UIType<Boolean>()
     data class SingleSegmentedButton(
-        val label: String,
-        val choiceList: List<String>
+        val label: StringOrResource,
+        val choiceList: List<StringOrResource>
     ): UIType<Int>()
     data class DropStringSelectUI<T>(
-        val label: String,
+        val label: StringOrResource,
         val choiceList: List<T>,
         val strFunc: (T) -> String = {it.toString()}
     ): UIType<T>()

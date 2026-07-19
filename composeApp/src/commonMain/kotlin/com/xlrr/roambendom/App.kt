@@ -27,6 +27,9 @@ import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.WindowSizeBox
 import io.github.vinceglb.filekit.coil.addPlatformFileSupport
 import okhttp3.OkHttpClient
+import org.jetbrains.compose.resources.StringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.allStringResources
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -34,6 +37,7 @@ val LocalAnimatedVisibilityScope =
     compositionLocalOf<AnimatedVisibilityScope> { error("not provided") }
 @OptIn(ExperimentalSharedTransitionApi::class)
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope> { error("not provided") }
+val LocalStringResStorage = compositionLocalOf<Map<String, StringResource>> { error("not provided") }
 
 @Composable
 fun App() {
@@ -43,7 +47,10 @@ fun App() {
     ) {
         WindowSizeBox(Modifier.fillMaxWidth()) {
             SharedTransitionLayout {
-                CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this,
+                    LocalStringResStorage provides Res.allStringResources
+                ) {
                     MainContent()
                 }
             }

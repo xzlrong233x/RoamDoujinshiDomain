@@ -74,6 +74,8 @@ import com.xlrr.roambendom.utils.CtrlAnimatedVisibility
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.LocalWindowSize
 import com.xlrr.roambendom.utils.MthUtil
+import com.xlrr.roambendom.utils.StringOrResource
+import com.xlrr.roambendom.utils.orResource
 import com.xlrr.roambendom.utils.pushAuthorSearch
 import com.xlrr.roambendom.utils.pushDetail
 import com.xlrr.roambendom.utils.quotationMarksIf
@@ -83,14 +85,16 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.*
 import kotlin.math.abs
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.milliseconds
 
 private data class NavItem(
-    val label: String,
+    val label: StringOrResource,
     val icon: DrawableResource,
     val selected: (Any) -> Boolean,
     val onClick: () -> Unit,
@@ -98,13 +102,13 @@ private data class NavItem(
 
 private val navItems: List<NavItem> = listOf(
     NavItem(
-        "首页",
+        Res.string.home_label.orResource(),
         Res.drawable.home_icon,
         { it is Routes.Root.Home },
         { GlobalData.nav.replace(Routes.Root.Home)}
     ),
     NavItem(
-        "历史",
+        Res.string.history_label.orResource(),
         Res.drawable.history_icon,
         { it is Routes.Root.History },
         { GlobalData.nav.replace(Routes.Root.History(
@@ -123,7 +127,7 @@ private val navItems: List<NavItem> = listOf(
         ) { true })}
     ),
     NavItem(
-        "收藏",
+        Res.string.favorite_label.orResource(),
         Res.drawable.favorite_icon,
         {it is Routes.Root.Favorite},
         {
@@ -133,7 +137,7 @@ private val navItems: List<NavItem> = listOf(
         }
     ),
     NavItem(
-        "设置",
+        Res.string.setting_label.orResource(),
         Res.drawable.settings_icon,
         { it is Routes.Root.Settings },
         { GlobalData.nav.push(Routes.Root.Settings)}
@@ -306,25 +310,25 @@ private class SearchSuggestionsService(
             val type = rs.groupValues[1]
             val id = rs.groupValues[2]
             when (type) {
-                "a" -> return listOf(SuggestionItem(id, "P站作者ID", clickType = SuggestionClickType.Custom {
+                "a" -> return listOf(SuggestionItem(id, getString(Res.string.pixiv_user_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushAuthorSearch(id, "")
                 }))
-                "n" -> return listOf(SuggestionItem(id, "N站作品ID", clickType = SuggestionClickType.Custom {
+                "n" -> return listOf(SuggestionItem(id, getString(Res.string.nhentai_artwork_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushDetail(id, CSources.NHENTAI)
                 }))
-                "p" -> return listOf(SuggestionItem(id, "P站作品ID", clickType = SuggestionClickType.Custom {
+                "p" -> return listOf(SuggestionItem(id, getString(Res.string.pixiv_artwork_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushDetail(id, CSources.PIXIV)
                 }))
             }
         } else if (q.toIntOrNull() != null) {
             return listOf(
-                SuggestionItem(q, "N站作品ID", clickType = SuggestionClickType.Custom {
+                SuggestionItem(q, getString(Res.string.nhentai_artwork_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushDetail(q, CSources.NHENTAI)
                 }),
-                SuggestionItem(q, "P站作品ID", clickType = SuggestionClickType.Custom {
+                SuggestionItem(q, getString(Res.string.pixiv_artwork_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushDetail(q, CSources.PIXIV)
                 }),
-                SuggestionItem(q, "P站作者ID", clickType = SuggestionClickType.Custom {
+                SuggestionItem(q, getString(Res.string.pixiv_user_id), clickType = SuggestionClickType.Custom {
                     GlobalData.nav.pushAuthorSearch(q, "")
                 }),
 
@@ -402,7 +406,7 @@ private class SearchSuggestionsService(
                                     additionSuggestion(
                                         it,
                                         "$f1:$it "
-                                    ).copy(trailing = "语言标签")
+                                    ).copy(trailing = getString(Res.string.language_tag_label))
                                 )
                             }
                         }
@@ -696,7 +700,7 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
-                Text(if (curScreen is Routes.Root) curScreen.headerTitle() else "", maxLines = 1,
+                Text(if (curScreen is Routes.Root) curScreen.headerTitle().getComposeOrString() else "", maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             }
             CtrlAnimatedVisibility(
@@ -914,12 +918,13 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                 // 这里如果只填Modifier.fillMaxWidth(0.8f)的话，会在桌面端上出现最大化时弹出导航的问题
                 Column {
                     Spacer(Modifier.height(12.dp))
-                    Text("导航", modifier = Modifier.padding(16.dp),
+                    Text(
+                        stringResource(Res.string.nav_name), modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.titleLarge)
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     navItems.forEach {
                         NavigationDrawerItem(
-                            label = { Text(it.label) },
+                            label = { Text(it.label.getComposeOrString()) },
                             selected = it.selected(curScreen),
                             icon = { Icon(painterResource(it.icon), contentDescription = null) },
                             onClick = {
@@ -994,7 +999,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
                                                 contentDescription = null
                                             )
                                         },
-                                        label = { Text(it.label) }
+                                        label = { Text(it.label.getComposeOrString()) }
                                     )
                                 }
 

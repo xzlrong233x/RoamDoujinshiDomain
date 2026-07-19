@@ -1,0 +1,8 @@
+<resources>
+    <string name="need_proxy">Need Proxy</string>
+    <string name="proxy_reason">due to technology problem, this method need proxy</string>
+    <string name="entre_token">Entre Token</string>
+    <string name="account_login">Account Login</string>
+    <string name="i_know">I know</string>
+    <string name="desktop_login_info">you should log in pixiv in browser, and parse the code in field, if you don't know the info, use token login please</string>
+</resources>

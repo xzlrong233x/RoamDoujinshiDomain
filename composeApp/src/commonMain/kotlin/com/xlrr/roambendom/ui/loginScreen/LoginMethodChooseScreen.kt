@@ -18,6 +18,14 @@ import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.account_login
+import roambendom.composeapp.generated.resources.cancel
+import roambendom.composeapp.generated.resources.confirm
+import roambendom.composeapp.generated.resources.entre_token
+import roambendom.composeapp.generated.resources.need_proxy
+import roambendom.composeapp.generated.resources.proxy_reason
 
 @Composable
 fun ProxyAskAlert(enable: Boolean, cs: CoroutineScope, viewModel: LoginViewModel, dismiss: () -> Unit) {
@@ -26,10 +34,10 @@ fun ProxyAskAlert(enable: Boolean, cs: CoroutineScope, viewModel: LoginViewModel
             AskConfirmButton(viewModel, dismiss, cs)
         }, Modifier, {
             TextButton(dismiss) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
-        }, title = {Text("需要代理", style = MaterialTheme.typography.titleMedium)},
-            text = {Text("因技术问题，该方式需要您开启代理以访问pixiv")})
+        }, title = {Text(stringResource(Res.string.need_proxy), style = MaterialTheme.typography.titleMedium)},
+            text = {Text(stringResource(Res.string.proxy_reason))})
     }
 }
 
@@ -56,11 +64,11 @@ fun RefreshTokenAsk(enable: Boolean, dismiss: () -> Unit) {
                     }
                 }
             }, enabled = !loading) {
-                Text("确定")
+                Text(stringResource(Res.string.confirm))
             }
         }, Modifier, {
             TextButton(dismiss, enabled = !loading) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
         }, text = {
             OutlinedTextField(
@@ -68,7 +76,7 @@ fun RefreshTokenAsk(enable: Boolean, dismiss: () -> Unit) {
                 enabled = !loading,
                 placeholder = {Text("refresh_token")},
                 isError = err,
-            ) },title = {Text("输入Token")})
+            ) },title = {Text(stringResource(Res.string.entre_token))})
     }
 }
 
@@ -85,7 +93,7 @@ fun LoginMethodChooseScreen(modifier: Modifier, cs: CoroutineScope = rememberCor
                 pa = true
             }, Modifier.widthIn(Dp.Unspecified,256.dp).fillMaxWidth(0.85f).height(52.dp),
                 shape = RoundedCornerShape(16.dp)) {
-                Text("账号登录", style = MaterialTheme.typography.headlineSmall, modifier = Modifier)
+                Text(stringResource(Res.string.account_login), style = MaterialTheme.typography.headlineSmall, modifier = Modifier)
             }
             OutlinedButton({
                 pn = true

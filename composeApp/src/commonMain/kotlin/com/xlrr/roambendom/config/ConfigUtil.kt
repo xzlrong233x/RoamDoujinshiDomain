@@ -4,31 +4,40 @@ import androidx.compose.runtime.mutableStateOf
 import com.funny.data_saver.core.DataSaverInterface
 import com.funny.data_saver.core.ITypeConverter
 import com.funny.data_saver.core.mutableDataSaverStateOf
+import com.xlrr.roambendom.utils.StringOrResource
 import com.xlrr.roambendom.utils.decryptSP
 import com.xlrr.roambendom.utils.encryptSP
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.Res.string
+import roambendom.composeapp.generated.resources.disabled_history
+import roambendom.composeapp.generated.resources.enable_volume_turn
+import roambendom.composeapp.generated.resources.force_grid
+import roambendom.composeapp.generated.resources.multithread_load
+import roambendom.composeapp.generated.resources.pixiv_language
+import roambendom.composeapp.generated.resources.progressive_load
 
 object ConfigUtil {
     val forceGrid = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "强制使用网格布局"
+        StringOrResource.new(string.force_grid)
     ))
 
     val pixivLanguage = StateWithUI(mutableStateOf("ja"), UIType.DropStringSelectUI(
-        "P站语言",
+        StringOrResource.new(string.pixiv_language),
         listOf("zh","ja","en","kr")
     ))
     val pixivToken = StateWithUI(mutableStateOf(""), UIType.NoUI())
     val pixivRToken = StateWithUI(mutableStateOf(""), UIType.NoUI())
     val useMultithread = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "使用多线程加载图片"
+        StringOrResource.new(string.multithread_load)
     ))
     val streamDisplay = StateWithUI(mutableStateOf(true), UIType.SwitchUI(
-        "使用流式显示"
+        StringOrResource.new(string.progressive_load)
     ))
     val disableHistoryRecord = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "禁用历史记录"
+        StringOrResource.new(string.disabled_history)
     ))
     val enableVolumeTurn = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "启用音量键翻页"
+        StringOrResource.new(string.enable_volume_turn)
     ).setPlatform(UIEnablePlatform.ANDROID))
 
     fun init(dataSaver: DataSaverInterface) {

@@ -1,0 +1,14 @@
+<resources>
+    <string name="setting_title">Setting</string>
+    <string name="pixiv_login">Pixiv Login</string>
+    <string name="pixiv_login_btn">Choose</string>
+    <string name="search_key_history">Search Key History</string>
+    <string name="search_key_count">had %s history key</string>
+    <string name="version">Version</string>
+    <string name="force_grid">Force Using Grid Mode</string>
+    <string name="pixiv_language">Language of Pixiv</string>
+    <string name="multithread_load">Multithread Load Image</string>
+    <string name="progressive_load">Progressively Load Image</string>
+    <string name="disabled_history">Disabled History</string>
+    <string name="enable_volume_turn">Enable Turn With Volume</string>
+</resources>

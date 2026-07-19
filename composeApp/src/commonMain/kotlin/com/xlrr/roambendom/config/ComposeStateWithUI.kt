@@ -28,7 +28,7 @@ fun CalUI(config: StateWithUI<*>, enable: Boolean = true) {
 fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
     if (config.uiType !is UIType.SwitchUI) return
     CenterFlowRow(Modifier.fillMaxWidth()) {
-        Text(config.uiType.label)
+        Text(config.uiType.label.getComposeOrString())
         Spacer(Modifier.width(16.dp))
         Switch(
             config.value,
@@ -45,7 +45,7 @@ fun SwitchComposer(config: StateWithUI<Boolean>, enable: Boolean = true) {
 fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = true) {
     if (config.uiType !is UIType.SingleSegmentedButton) return
     CenterFlowRow(Modifier.fillMaxWidth()) {
-        Text(config.uiType.label)
+        Text(config.uiType.label.getComposeOrString())
         SingleChoiceSegmentedButtonRow() {
             config.uiType.choiceList.forEachIndexed { ind, str ->
                 SegmentedButton(
@@ -55,7 +55,7 @@ fun SingleSegmentedButtonComposer(config: StateWithUI<Int>, enable: Boolean = tr
                     ),
                     onClick = { config.value = ind },
                     selected = config.value == ind,
-                    label = { Text(str) },
+                    label = { Text(str.getComposeOrString()) },
                     enabled = enable
                 )
             }
@@ -75,7 +75,7 @@ fun <T> DropStringSelectUIComposer(config: StateWithUI<T>, enable: Boolean = fal
         }
     }
     CenterFlowRow(Modifier.fillMaxWidth()) {
-        Text(config.uiType.label)
+        Text(config.uiType.label.getComposeOrString())
         Box() {
             TextButton({exp = true}, enabled = enable) {
                 Text(config.uiType.strFunc(config.value))

@@ -1,0 +1,16 @@
+<resources>
+    <string name="page">Page: %s</string>
+    <string name="love_count">Love Count: %s</string>
+    <string name="language">Language: %s</string>
+    <string name="tags">Tags</string>
+    <string name="groups">Groups</string>
+    <string name="artists">Artists</string>
+    <string name="load_ori">Load Original</string>
+    <string name="load_all">Load All</string>
+    <string name="load_more">Load More</string>
+    <string name="ai_gen">AI Gen</string>
+    <string name="favorite_count">Favorite: %s</string>
+    <string name="load_recommend">Load Recommend</string>
+    <string name="read">Read</string>
+    <string name="read_from">Read: From p%s</string>
+</resources>

@@ -20,8 +20,16 @@ import com.xlrr.roambendom.utils.TimeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.cancel
+import roambendom.composeapp.generated.resources.click_reload
 import roambendom.composeapp.generated.resources.close_icon
+import roambendom.composeapp.generated.resources.confirm
+import roambendom.composeapp.generated.resources.save
+import roambendom.composeapp.generated.resources.select_time
+import roambendom.composeapp.generated.resources.select_time_range
+import roambendom.composeapp.generated.resources.time_range
 import kotlin.math.min
 
 @Composable
@@ -71,7 +79,7 @@ private fun DateSettingDialog(
             TextButton({
                 dialogStateTrans(0)
             }) {
-                Text("取消")
+                Text(stringResource(Res.string.cancel))
             }
             TextButton({
                 dialogStateTrans(0)
@@ -80,7 +88,7 @@ private fun DateSettingDialog(
                     dateRangePickerState.selectedEndDateMillis!!
                 )
             }, enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null) {
-                Text("保存")
+                Text(stringResource(Res.string.save))
             }
         }
     ) {pd ->
@@ -89,7 +97,7 @@ private fun DateSettingDialog(
             state = dateRangePickerState,
             title = {
                 Text(
-                    text = "选择日期范围"
+                    text = stringResource(Res.string.select_time_range) //select_time_range
                 )
             },
             showModeToggle = false,
@@ -115,7 +123,7 @@ private fun DateSelectButton(searchParameterModel: SearchParameterModel, dialogS
         }
         TextButton({dialogStateTrans(1)}) {
             if (b) {
-                Text("选择时间")
+                Text(stringResource(Res.string.select_time)) //select_time
             } else {
                 searchParameterModel.configs.dateRange.value.let {
                     Text("${
@@ -159,7 +167,7 @@ private fun NormalSettingDialog(
                         }
                     }
                 }) {
-                    Text("确定")
+                    Text(stringResource(Res.string.confirm))
                 }
             }
         }
@@ -170,7 +178,7 @@ private fun NormalSettingDialog(
                 //CalUI(cfg.pixivSearchRestriction)
                 CalUI(searchParameterModel.configs.pixivHideAI)
                 CenterFlowRow(Modifier.fillMaxWidth()) {
-                    Text("日期范围")
+                    Text(stringResource(Res.string.time_range)) //time_range
                     Spacer(Modifier.width(16.dp))
                     DateSelectButton(searchParameterModel, dialogStateTrans)
                 }

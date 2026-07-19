@@ -7,6 +7,9 @@ import androidx.compose.ui.Modifier
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.ui.loginScreen.TotalAuthScreen
 import com.xlrr.roambendom.utils.GlobalData
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.nothing
 
 
 @Composable
@@ -34,9 +37,9 @@ fun MainContent() {
     ) {
         when (it) {
             is Routes.Root -> RootScreen()
-            is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo)
+            is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo, pageChange =  it.pageChange)
             is Routes.Auth -> TotalAuthScreen(Modifier)
-            else -> Text("空空如也")
+            else -> Text(stringResource(Res.string.nothing))
         }
     }
 }

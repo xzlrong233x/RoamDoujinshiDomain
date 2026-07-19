@@ -1,0 +1,11 @@
+<resources>
+    <string name="delete_command">删除</string>
+    <string name="move_to_command">移动</string>
+    <string name="delete_folder_command">删除文件夹</string>
+    <string name="delete_folder_with_content_command">删除文件夹及其内容</string>
+    <string name="prev_path_info">%s (上一级)</string>
+    <string name="add_folder_command">添加文件夹</string>
+    <string name="folder_name_label">文件夹名称</string>
+    <string name="folder_path_label">文件夹路径</string>
+    <string name="favorite_with_info">收藏：%s</string>
+</resources>

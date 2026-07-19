@@ -1,0 +1,28 @@
+<resources>
+    <string name="nav_name">Navigation</string>
+    <string name="nothing">there is nothing</string>
+    <string name="search_no_more">no more, page: %s</string>
+    <string name="error_info">error: %s</string>
+    <string name="click_reload">reload</string>
+    <string name="cancel">cancel</string>
+    <string name="save">save</string>
+    <string name="confirm">confirm</string>
+    <string name="clear_all">Clear All</string>
+    <string name="ai_warn">*With AI</string>
+    <string name="home_label">Home</string>
+    <string name="history_label">History</string>
+    <string name="favorite_label">Favorite</string>
+    <string name="setting_label">Setting</string>
+    <string name="refresh">Refresh</string>
+    <string name="now_sys_lang">en</string>
+    <string name="animated_artworks_label">Ugoira</string>
+
+    <string name="author_artworks">The Artworks of %s</string>
+    <string name="recommend_with_author">The Recommended works of %s</string>
+    <string name="signal_recommend_label">Recommended</string>
+
+    <string name="pixiv_artwork_id">Pixiv Artwork ID</string>
+    <string name="nhentai_artwork_id">NH Artwork ID</string>
+    <string name="pixiv_user_id">Pixiv User ID</string>
+    <string name="language_tag_label">Language</string>
+</resources>

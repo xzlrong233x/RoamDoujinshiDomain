@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.utils
 
 import androidx.compose.material3.SelectableDates
+import androidx.compose.runtime.Composable
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -8,6 +9,9 @@ import kotlinx.datetime.format.DateTimeFormat
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.now_sys_lang
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -64,8 +68,12 @@ object TimeUtil {
             .format(pt)
     }
 
+    @Composable
     fun formatTime(time: Long) : String {
-        // TODO: 做语言判断
-        return formatTime(time, CN_TIME_FORMATTER_SIMPLE)
+        val lang = stringResource(Res.string.now_sys_lang)
+        if (lang == "cn") {
+            return formatTime(time, CN_TIME_FORMATTER_SIMPLE)
+        }
+        return formatTime(time, COMMON_TIME_FORMATTER)
     }
 }

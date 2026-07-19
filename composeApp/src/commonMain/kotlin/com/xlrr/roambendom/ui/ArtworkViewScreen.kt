@@ -53,6 +53,7 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
+import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
@@ -66,32 +67,39 @@ import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import net.engawapg.lib.zoomable.zoomableWithScroll
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.*
 import kotlin.math.min
 
 class ArtworkViewModel : ViewModel() {
     val turnPageMode = StateWithUI(
         mutableIntStateOf(0), UIType.SingleSegmentedButton(
-        "翻页模式",
-        listOf("经典", "日漫")
+        Res.string.turn_page_mode.orResource(),
+        listOf(
+            Res.string.default_mode.orResource(),
+            Res.string.manga_mode.orResource()
+        )
     ))
 
     val pageDirection = StateWithUI(
         mutableIntStateOf(0), UIType.SingleSegmentedButton(
-        "翻页方向",
-        listOf("左右", "上下")
+        Res.string.turn_page_direction.orResource(),
+        listOf(
+            Res.string.horizontal_page.orResource(),
+            Res.string.vertical_page.orResource()
+        )
     ))
 
     val twicePage = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "双页模式"
+        Res.string.double_page_mode.orResource(),
     ))
 
     val oneScreenOnePage = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "一屏一页"
+        Res.string.adaptive_image.orResource(),
     ))
 
     val hidePageIndexer = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
-        "禁用指示器"
+        Res.string.hide_indexer.orResource(),
     ))
 
     fun ifToLeft() : Boolean {
@@ -242,10 +250,10 @@ private fun ShowContent(
 
 @OptIn(ExperimentalZoomableApi::class)
 @Composable
-fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = viewModel { ArtworkViewModel() }) {
+fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = viewModel { ArtworkViewModel() }, pageChange: (Int) -> Unit) {
     if (artworkInfo.page < 1) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("无效的作品内容")
+            Text(stringResource(Res.string.invalid_content))
         }
         return
     }
@@ -313,6 +321,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
         if (!lockHide) hide = true
         else lockHide = false
         preload.preload(artworkInfo.pageUrls.map { UrlWithSize.parse(it).url }, pager.currentPage)
+        pageChange(pager.currentPage)
     }
     DisposableEffect(Unit) {
         GlobalData.hideStatusBar.tryEmit(true)
@@ -543,7 +552,7 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
             shape = RoundedCornerShape(12.dp),) {
             if (lis.isEmpty()) {
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("这里什么都没有")
+                    Text(stringResource(Res.string.nothing))
                 }
             } else {
                 LazyVerticalGrid(

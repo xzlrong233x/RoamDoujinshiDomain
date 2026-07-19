@@ -1,0 +1,8 @@
+<resources>
+    <string name="select_time_range">Select date range</string>
+    <string name="select_time">Select date</string>
+    <string name="time_range">date range</string>
+    <string name="search_target">Search Target</string>
+    <string name="sort_method">Sort Method</string>
+    <string name="hide_ai_content">Hide AI Content</string>
+</resources>

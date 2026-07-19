@@ -32,6 +32,8 @@ import coil3.request.ImageRequest
 import coil3.toBitmap
 import com.xlrr.roambendom.ugoira.MultiImagePackage
 import kotlinx.coroutines.launch
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.refresh
 
 @Composable
 actual fun Coil3SaveImageButton(
@@ -76,6 +78,7 @@ actual fun CtrlPullToRefreshBox(
     state: PullToRefreshState,
     contentAlignment: Alignment,
     indicator: @Composable (BoxScope.() -> Unit),
+    additionalCommands: @Composable () -> List<CommandData>,
     content: @Composable (BoxScope.() -> Unit)
 ) {
     PullToRefreshBox(
@@ -112,7 +115,7 @@ actual fun CommandBox(
                 privateCommands.forEach {
                     ListItem(
                         {
-                            Text(it.label)
+                            Text(it.label.getComposeOrString())
                         },
                         Modifier.clickable(it.enabled(),onClick = {
                             it.click()
@@ -124,7 +127,7 @@ actual fun CommandBox(
                 list.forEach {
                     ListItem(
                         {
-                            Text(it.label)
+                            Text(it.label.getComposeOrString())
                         },
                         Modifier.clickable(it.enabled(),onClick = {
                             it.click()

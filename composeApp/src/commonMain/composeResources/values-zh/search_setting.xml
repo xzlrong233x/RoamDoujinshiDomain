@@ -1,0 +1,8 @@
+<resources>
+    <string name="select_time_range">选择日期范围</string>
+    <string name="select_time">选择时间</string>
+    <string name="time_range">日期范围</string>
+    <string name="search_target">搜索目标</string>
+    <string name="sort_method">排序方式</string>
+    <string name="hide_ai_content">隐藏ai内容</string>
+</resources>

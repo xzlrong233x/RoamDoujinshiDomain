@@ -35,9 +35,19 @@ import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.artists
+import roambendom.composeapp.generated.resources.click_reload
+import roambendom.composeapp.generated.resources.error_info
+import roambendom.composeapp.generated.resources.groups
+import roambendom.composeapp.generated.resources.language
 import roambendom.composeapp.generated.resources.love_btn_icon
+import roambendom.composeapp.generated.resources.love_count
 import roambendom.composeapp.generated.resources.loved_btn_icon
+import roambendom.composeapp.generated.resources.page
+import roambendom.composeapp.generated.resources.read
+import roambendom.composeapp.generated.resources.tags
 
 class DetailViewModel() : ViewModel() {
     var content: ArtworkInfo? by mutableStateOf(null)
@@ -115,15 +125,15 @@ fun NHDetail(details: NHDetailModel) {
                                             style = typography.bodyLarge
                                         )
                                         if (it.page > 0) Text(
-                                            "页数：${it.page}",
+                                            stringResource(Res.string.page).format(it.page),
                                             style = typography.titleMedium
                                         )
                                         Text(
-                                            "语言：${it.language.toString().lowercase()}",
+                                            stringResource(Res.string.language).format(it.language.toString().lowercase()),
                                             style = typography.titleMedium
                                         )
                                         Text(
-                                            "喜好数量：${it.likeCount.toString().lowercase()}",
+                                            stringResource(Res.string.love_count).format(it.likeCount),
                                             style = typography.titleMedium
                                         )
                                         if (it.time > 0) {
@@ -154,11 +164,16 @@ fun NHDetail(details: NHDetailModel) {
                                 details.searchItemData.fillSelf(details.content!!),
                                 true
                             )
-                            GlobalData.nav.push(Routes.Artwork(details.content!!))
+                            GlobalData.nav.push(Routes.Artwork(details.content!!) { i ->
+                                HistoryDataManager.changeItemPage(
+                                    details.searchItemData.uid(),
+                                    i
+                                )
+                            })
                         }, shape = RoundedCornerShape(20),
                             modifier = Modifier.padding(top = 12.dp).width(128.dp).height(36.dp),
                             enabled = details.isSuccessful()) {
-                            Text("阅读")
+                            Text(stringResource(Res.string.read))
                         }
                         LoveButton(
                             details.searchItemData,
@@ -177,9 +192,9 @@ fun NHDetail(details: NHDetailModel) {
             ) {
                 Column(Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
-                    MultiCardTagBox("标签", details.content?.tags.orEmpty()) //TODO: 实现标签搜索
-                    MultiCardTagBox("作者", details.content?.authors.orEmpty())
-                    MultiCardTagBox("团体", details.content?.groups.orEmpty())
+                    MultiCardTagBox(stringResource(Res.string.tags), details.content?.tags.orEmpty()) //TODO: 实现标签搜索
+                    MultiCardTagBox(stringResource(Res.string.artists), details.content?.authors.orEmpty())
+                    MultiCardTagBox(stringResource(Res.string.groups), details.content?.groups.orEmpty())
                 }
             }
         }
@@ -204,13 +219,13 @@ fun DetailScreen(detailModel: BaseDetailModel, modifier: Modifier = Modifier) {
                 detailModel.error?.let {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("错误：${it.message}")
+                            Text(stringResource(Res.string.error_info).format(it.message))
                             Button({
                                 co.launch {
                                     detailModel.reloadIfEmpty()
                                 }
                             }) {
-                                Text("点我重载")
+                                Text(stringResource(Res.string.click_reload))
                             }
                         }
                     }

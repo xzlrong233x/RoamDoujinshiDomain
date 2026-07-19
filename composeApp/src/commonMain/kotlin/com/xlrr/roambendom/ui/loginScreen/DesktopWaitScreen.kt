@@ -20,6 +20,10 @@ import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import com.xlrr.roambendom.utils.decryptSP
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
+import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.confirm
+import roambendom.composeapp.generated.resources.desktop_login_info
 import java.awt.TextField
 
 @Composable
@@ -28,7 +32,8 @@ fun DesktopWaitScreen() {
     val ss = rememberCoroutineScope()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column {
-            Text("您需要在打开的浏览器登录pixiv账号，然后在这个页面输入从控制台获得的code。如果您不了解相关操作，请使用Token登录。",
+            Text(
+                stringResource(Res.string.desktop_login_info),
                 Modifier.widthIn(max = 524.dp))
             OutlinedTextField(txt, label = {Text("code")})
             TextButton({
@@ -42,7 +47,7 @@ fun DesktopWaitScreen() {
                     GlobalData.nav.defaultBack()
                 }
             }, enabled = txt.text.isNotEmpty()) {
-                Text("确定")
+                Text(stringResource(Res.string.confirm))
             }
         }
     }

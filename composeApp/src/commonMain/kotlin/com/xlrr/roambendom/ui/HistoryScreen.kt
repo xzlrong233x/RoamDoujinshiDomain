@@ -23,8 +23,12 @@ import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.ai_warn
+import roambendom.composeapp.generated.resources.clear_all
 import roambendom.composeapp.generated.resources.delete_icon
+import roambendom.composeapp.generated.resources.history_title
 
 @Composable
 private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
@@ -40,7 +44,7 @@ private fun ShowHistoryItem(it: SearchItemData, modifier: Modifier,
                 if (x != CLanguage.Unknown) x.toString().lowercase() else it.author.ifEmpty { null }
             },
             {
-                if (it.ai) Text("*有AI参与的作品")
+                if (it.ai) Text(stringResource(Res.string.ai_warn))
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
                 IconButton({
                     remove(it.uid())
@@ -70,14 +74,14 @@ fun HistoryScreen(modifier: Modifier, searchParameterModel: SearchParameterModel
             mx < SmallScreenDpLine && !ConfigUtil.forceGrid.value,
             header = {
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text("历史", style = MaterialTheme.typography.headlineMedium)
+                    Text(stringResource(Res.string.history_title), style = MaterialTheme.typography.headlineMedium)
                     Button({
                         HistoryDataManager.removeAll()
                         ss.launch {
                             searchParameterModel.reload()
                         }
                     }) {
-                        Text("清除所有记录")
+                        Text(stringResource(Res.string.clear_all))
                     }
                 }
             },

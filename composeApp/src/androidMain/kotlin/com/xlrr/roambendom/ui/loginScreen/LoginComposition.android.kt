@@ -4,11 +4,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import com.xlrr.roambendom.LocalStringResStorage
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.GlobalData
 import com.xlrr.roambendom.utils.PixivTokenUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 actual fun AskConfirmButton(viewModel: LoginViewModel, dismiss: () -> Unit, cs: CoroutineScope) {
@@ -27,6 +29,6 @@ actual fun AskConfirmButton(viewModel: LoginViewModel, dismiss: () -> Unit, cs: 
             viewModel.launchBrowser(pt)
         }
     }) {
-        Text("我已知晓")
+        LocalStringResStorage.current["i_know"]?.let{ Text(stringResource(it)) }
     }
 }
