@@ -7,7 +7,7 @@ import com.xlrr.roambendom.gif.MultiImagePlayer
 interface Platform {
     val name: String
 }
-const val VERSION = "1.2.0" //修改此处后需修改build.gradle
+const val VERSION = "1.2.5" //修改此处后需修改build.gradle
 expect fun getPlatform(): Platform
 expect fun getFormatVersionString(): String
 
