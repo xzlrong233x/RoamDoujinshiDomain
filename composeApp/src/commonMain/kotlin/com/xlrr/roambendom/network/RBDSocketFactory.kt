@@ -20,7 +20,9 @@ class RBDSocketFactory(val oriFactory: SSLSocketFactory) : SSLSocketFactory() {
         val socket = oriFactory.createSocket(s, host, port, autoClose) as? SSLSocket
         if (socket != null) {
             val sslParams = socket.sslParameters
-            if (host?.contains("pixiv.net") == true || host?.contains("pximg.net") == true) {
+            if (host?.contains("pixiv.net") == true
+                || host?.contains("pximg.net") == true
+                || host?.matches(Regex("[it]\\d\\.nhentai\\.net")) == true) {
                 sslParams.serverNames = listOf(SNIHostName("i.do.not.want.sni"))
             //部分手机在发现一个无sni请求时，似乎会通过某些手段获取ip的域名，并将其填回请求中再发送
             }

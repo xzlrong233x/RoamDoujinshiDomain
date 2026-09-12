@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use rustls::{ClientConfig, ClientConnection, KeyLogFile, RootCertStore, Stream};
 use rustls::client::{EchConfig, EchMode};
@@ -14,6 +15,11 @@ use hickory_resolver::proto::rr::rdata::svcb::{SvcParamKey, SvcParamValue};
 use hickory_resolver::proto::rr::{RData, RecordType};
 use hickory_resolver::TokioResolver;
 
+/// 连接 ECH public name 的超时
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
+/// 单次 socket 读写的超时
+const IO_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// HTTP 响应结构
 #[derive(Debug)]
 pub struct EchResponse {
@@ -23,6 +29,8 @@ pub struct EchResponse {
     pub headers: Vec<(String, String)>,
     /// 响应体原始字节
     pub body: Vec<u8>,
+    /// 实际连上的地址（多个候补时用来判断走的是哪条）
+    pub peer: SocketAddr,
 }
 
 impl EchResponse {
@@ -49,6 +57,8 @@ pub struct EchClient {
     tls_config: Arc<ClientConfig>,
     resolver: TokioResolver,
     ech_public_name: String,
+    /// 上次连接成功的地址，下次优先用它
+    preferred: Mutex<Option<IpAddr>>,
 }
 
 impl EchClient {
@@ -89,6 +99,7 @@ impl EchClient {
             tls_config: Arc::new(config),
             resolver,
             ech_public_name: ech_public_name.to_owned(),
+            preferred: Mutex::new(None),
         })
     }
 
@@ -99,19 +110,21 @@ impl EchClient {
     /// - `path`: 请求路径（如 `/api/v2/galleries/popular`）
     /// - `query`: URL 查询参数，传空切片表示无参数
     /// - `headers`: 额外的 HTTP 请求头，传空切片表示仅用默认头
+    /// - `candidates`: 额外的连接地址候补，传空切片表示只用 ECH public name 解析出的地址
     pub async fn get(
         &self,
         domain: &str,
         path: &str,
         query: &[(&str, &str)],
         headers: &[(&str, &str)],
+        candidates: &[IpAddr],
     ) -> Result<EchResponse, Box<dyn Error>> {
         let h: Vec<(String, String)> = headers
             .iter()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
         let request = self.build_request("GET", domain, path, query, &h, None)?;
-        self.send_request(domain, &request).await
+        self.send_request(domain, &request, candidates).await
     }
 
     /// 对目标域名发起 POST 请求（`application/x-www-form-urlencoded`）
@@ -136,20 +149,51 @@ impl EchClient {
             .collect::<Vec<_>>()
             .join("&");
 
+        self.post_body(
+            domain,
+            path,
+            query,
+            &body,
+            "application/x-www-form-urlencoded",
+            headers,
+            &[],
+        )
+        .await
+    }
+
+    /// 对目标域名发起 POST 请求，请求体已编码好，原样发送
+    ///
+    /// # 参数
+    /// - `body`: 请求体，不做任何编码
+    /// - `content_type`: 请求体的 Content-Type
+    /// - `candidates`: 额外的连接地址候补
+    /// - 其余同 [`EchClient::post`]
+    pub async fn post_body(
+        &self,
+        domain: &str,
+        path: &str,
+        query: &[(&str, &str)],
+        body: &str,
+        content_type: &str,
+        headers: &[(&str, &str)],
+        candidates: &[IpAddr],
+    ) -> Result<EchResponse, Box<dyn Error>> {
         let mut all_headers: Vec<(String, String)> = vec![
-            ("Content-Type".to_owned(), "application/x-www-form-urlencoded".to_owned()),
+            ("Content-Type".to_owned(), content_type.to_owned()),
             ("Content-Length".to_owned(), body.len().to_string()),
         ];
         all_headers.extend(headers.iter().map(|(k, v)| (k.to_string(), v.to_string())));
 
-        let request =
-            self.build_request("POST", domain, path, query, &all_headers, Some(&body))?;
-        self.send_request(domain, &request).await
+        let request = self.build_request("POST", domain, path, query, &all_headers, Some(body))?;
+        self.send_request(domain, &request, candidates).await
     }
 
     // ── 内部方法 ──
 
     /// 构造完整的 HTTP/1.1 请求报文
+    ///
+    /// 除 `Host` 与 `Connection` / `Accept-Encoding` 外全部请求头都由调用方给出，
+    /// 避免与调用方的同名头重复。
     fn build_request(
         &self,
         method: &str,
@@ -171,13 +215,7 @@ impl EchClient {
             format!("{path}?{qs}")
         };
 
-        let mut req = format!(
-            "{method} {full_path} HTTP/1.1\r\n\
-             Host: {domain}\r\n\
-             User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n\
-             Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n\
-             Accept-Language: en-US,en;q=0.5\r\n"
-        );
+        let mut req = format!("{method} {full_path} HTTP/1.1\r\nHost: {domain}\r\n");
 
         // 追加自定义请求头
         for (name, value) in headers {
@@ -197,22 +235,74 @@ impl EchClient {
     }
 
     /// 核心：建立 ECH 连接并发送 HTTP 请求
-    async fn send_request(&self, domain: &str, request: &str) -> Result<EchResponse, Box<dyn Error>> {
+    ///
+    /// 地址依次尝试：上次成功的地址 → ECH public name 解析出的地址（IPv4 优先）→ 候补地址。
+    ///
+    /// 候补地址由调用方给出：经测试只有"本来就在服务目标站点"的 Cloudflare IP 能用，
+    /// 别的 Cloudflare 边缘即使 ECH 握手成功，也会返回 Cloudflare 自己的错误页
+    async fn send_request(
+        &self,
+        domain: &str,
+        request: &str,
+        candidates: &[IpAddr],
+    ) -> Result<EchResponse, Box<dyn Error>> {
         let server_name: ServerName<'static> = domain
             .to_owned()
             .try_into()
             .map_err(|_| format!("invalid domain: {domain}"))?;
 
-        // 解析 ECH public name 的 IP（外层连接的 IP）
-        let addr_lookup = self.resolver.lookup_ip(&self.ech_public_name).await?;
-        let ip = addr_lookup
-            .iter()
-            .find(|ip| ip.is_ipv4())
-            .or_else(|| addr_lookup.iter().next())
-            .ok_or("no IP for ECH public name")?;
+        let mut addrs = self.candidate_addrs(candidates).await?;
+        // 上次成功的地址放最前：被封锁的地址要等一两分钟才恢复，换个地址更快
+        let preferred = *self.preferred.lock().unwrap();
+        if let Some(pos) = addrs.iter().position(|a| Some(a.ip()) == preferred) {
+            addrs.swap(0, pos);
+        }
 
-        let sock_addr = SocketAddr::new(ip, 443);
-        let mut sock = TcpStream::connect(sock_addr)?;
+        let mut last_err: Box<dyn Error> = "no address to try".into();
+        for sock_addr in addrs {
+            match self.exchange(sock_addr, server_name.clone(), request) {
+                Ok(response) => {
+                    *self.preferred.lock().unwrap() = Some(sock_addr.ip());
+                    return Ok(response);
+                }
+                Err(e) => last_err = e,
+            }
+        }
+
+        Err(last_err)
+    }
+
+    /// 候选连接地址：ECH public name 的解析结果（IPv4 优先）+ 调用方给的候补
+    async fn candidate_addrs(&self, candidates: &[IpAddr]) -> Result<Vec<SocketAddr>, Box<dyn Error>> {
+        let lookup = self.resolver.lookup_ip(&self.ech_public_name).await?;
+        let mut addrs: Vec<SocketAddr> = lookup
+            .iter()
+            .filter(|ip| ip.is_ipv4())
+            .chain(lookup.iter().filter(|ip| !ip.is_ipv4()))
+            .map(|ip| SocketAddr::new(ip, 443))
+            .collect();
+
+        for ip in candidates {
+            let addr = SocketAddr::new(*ip, 443);
+            if !addrs.contains(&addr) {
+                addrs.push(addr);
+            }
+        }
+
+        Ok(addrs)
+    }
+
+    /// 连上单个地址完成一次请求
+    fn exchange(
+        &self,
+        sock_addr: SocketAddr,
+        server_name: ServerName<'static>,
+        request: &str,
+    ) -> Result<EchResponse, Box<dyn Error>> {
+        // 没有超时的话服务端卡住会一直占着调用线程
+        let mut sock = TcpStream::connect_timeout(&sock_addr, CONNECT_TIMEOUT)?;
+        sock.set_read_timeout(Some(IO_TIMEOUT))?;
+        sock.set_write_timeout(Some(IO_TIMEOUT))?;
 
         let mut conn = ClientConnection::new(self.tls_config.clone(), server_name)?;
         let mut tls = Stream::new(&mut conn, &mut sock);
@@ -222,11 +312,11 @@ impl EchClient {
         let mut body = Vec::new();
         tls.read_to_end(&mut body)?;
 
-        Self::parse_http_response(&body)
+        Self::parse_http_response(&body, sock_addr)
     }
 
     /// 解析 HTTP 响应
-    fn parse_http_response(raw: &[u8]) -> Result<EchResponse, Box<dyn Error>> {
+    fn parse_http_response(raw: &[u8], peer: SocketAddr) -> Result<EchResponse, Box<dyn Error>> {
         let text = String::from_utf8_lossy(raw);
 
         // 分离 header 和 body
@@ -260,6 +350,7 @@ impl EchClient {
             status,
             headers,
             body,
+            peer,
         })
     }
 
