@@ -7,14 +7,8 @@ import com.funny.data_saver.core.mutableDataSaverStateOf
 import com.xlrr.roambendom.utils.StringOrResource
 import com.xlrr.roambendom.utils.decryptSP
 import com.xlrr.roambendom.utils.encryptSP
-import roambendom.composeapp.generated.resources.Res
+import roambendom.composeapp.generated.resources.*
 import roambendom.composeapp.generated.resources.Res.string
-import roambendom.composeapp.generated.resources.disabled_history
-import roambendom.composeapp.generated.resources.enable_volume_turn
-import roambendom.composeapp.generated.resources.force_grid
-import roambendom.composeapp.generated.resources.multithread_load
-import roambendom.composeapp.generated.resources.pixiv_language
-import roambendom.composeapp.generated.resources.progressive_load
 
 object ConfigUtil {
     val forceGrid = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
@@ -35,6 +29,9 @@ object ConfigUtil {
     ))
     val disableHistoryRecord = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         StringOrResource.new(string.disabled_history)
+    ))
+    val fastSafeMode = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
+        StringOrResource.new(string.fast_safe_mode)
     ))
     val enableVolumeTurn = StateWithUI(mutableStateOf(false), UIType.SwitchUI(
         StringOrResource.new(string.enable_volume_turn)
@@ -63,6 +60,7 @@ object ConfigUtil {
         useMultithread.state = mutableDataSaverStateOf(dataSaver, "use_multithread", false)
         streamDisplay.state = mutableDataSaverStateOf(dataSaver, "stream_display", true)
         disableHistoryRecord.state = mutableDataSaverStateOf(dataSaver, "disable_history_record", false)
+        fastSafeMode.state = mutableDataSaverStateOf(dataSaver, "fast_safe_mode", false)
         enableVolumeTurn.state = mutableDataSaverStateOf(dataSaver, "enable_volume_turn", false)
     }
 }

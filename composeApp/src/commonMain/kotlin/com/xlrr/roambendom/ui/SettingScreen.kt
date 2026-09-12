@@ -60,6 +60,8 @@ fun SettingScreen(modifier: Modifier) {
                 }
             }
             Spacer(Modifier.height(12.dp))
+            CalUI(ConfigUtil.fastSafeMode)
+            Spacer(Modifier.height(12.dp))
             CenterFlowRow(Modifier.fillMaxWidth()) {
                 Text(stringResource(Res.string.version))
                 Text(getFormatVersionString())

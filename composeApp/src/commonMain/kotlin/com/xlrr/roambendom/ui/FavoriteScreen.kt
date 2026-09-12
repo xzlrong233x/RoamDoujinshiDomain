@@ -157,8 +157,8 @@ private fun MakeFolderAsk(
             }
         }, text = {
             Column {
-                OutlinedTextField(pathName, { pathName = it }, label = { Text(stringResource(Res.string.folder_name_label)) })
-                OutlinedTextField(folderName, { folderName = it }, label = { Text(stringResource(Res.string.folder_path_label)) })
+                OutlinedTextField(pathName, { pathName = it }, label = { Text(stringResource(Res.string.folder_path_label)) })
+                OutlinedTextField(folderName, { folderName = it }, label = { Text(stringResource(Res.string.folder_name_label)) })
             }
         })
     }

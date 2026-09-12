@@ -1,11 +1,18 @@
 This is a Kotlin Multiplatform project targeting Android, Desktop (JVM).
 
+### Environment Require
+
+Rust + Android NDK + JDK 17~
+
+### Program Structure
+
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
     - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
     - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
       Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
       folder is the appropriate location.
+* [/plugin/ech-request](./plugin/ech-request) is direct connection solution of some websites.
 
 ### Build and Run Android Application
 

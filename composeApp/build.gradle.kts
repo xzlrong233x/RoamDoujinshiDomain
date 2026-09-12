@@ -117,8 +117,12 @@ if (ndkAvailable) {
     tasks.matching { it.name.startsWith("merge") && it.name.endsWith("JniLibFolders") }
         .configureEach { dependsOn(buildRustLibAndroid) }
 } else {
-    logger.warn("Android NDK 未安装，跳过 ech-request Android 交叉编译。")
-    logger.warn("请在 Android Studio → SDK Manager → SDK Tools 中安装 NDK (Side by side)。")
+    throw GradleException(
+        buildString {
+            appendLine("Android NDK 未安装，跳过 ech-request Android 交叉编译。")
+            appendLine("请在 Android Studio → SDK Manager → SDK Tools 中安装 NDK (Side by side)。")
+        }
+    )
 }
 
 // JVM desktop: 确保运行时原生库已就绪

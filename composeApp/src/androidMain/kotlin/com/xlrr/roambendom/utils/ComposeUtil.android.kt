@@ -2,7 +2,6 @@ package com.xlrr.roambendom.utils
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.DropdownMenu
@@ -32,8 +31,6 @@ import coil3.request.ImageRequest
 import coil3.toBitmap
 import com.xlrr.roambendom.ugoira.MultiImagePackage
 import kotlinx.coroutines.launch
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.refresh
 
 @Composable
 actual fun Coil3SaveImageButton(

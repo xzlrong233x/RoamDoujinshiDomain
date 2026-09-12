@@ -3,7 +3,9 @@ package com.xlrr.roambendom.ui
 import androidx.compose.animation.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.ui.loginScreen.TotalAuthScreen
 import com.xlrr.roambendom.utils.GlobalData
@@ -35,11 +37,17 @@ fun MainContent() {
             }
         }
     ) {
-        when (it) {
-            is Routes.Root -> RootScreen()
-            is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo, pageChange =  it.pageChange)
-            is Routes.Auth -> TotalAuthScreen(Modifier)
-            else -> Text(stringResource(Res.string.nothing))
+        CompositionLocalProvider(
+            LocalAnimatedVisibilityScope provides this
+        ) {
+            MessageHandleComposition {
+                when (it) {
+                    is Routes.Root -> RootScreen()
+                    is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo, pageChange = it.pageChange)
+                    is Routes.Auth -> TotalAuthScreen(Modifier)
+                    else -> Text(stringResource(Res.string.nothing))
+                }
+            }
         }
     }
 }

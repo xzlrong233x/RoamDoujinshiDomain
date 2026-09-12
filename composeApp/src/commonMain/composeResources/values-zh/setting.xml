@@ -10,5 +10,6 @@
     <string name="multithread_load">使用多线程加载图片</string>
     <string name="progressive_load">使用流式显示</string>
     <string name="disabled_history">禁用历史记录</string>
+    <string name="fast_safe_mode">安全模式</string>
     <string name="enable_volume_turn">启用音量键翻页</string>
 </resources>

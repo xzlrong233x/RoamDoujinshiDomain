@@ -10,5 +10,6 @@
     <string name="multithread_load">Multithread Load Image</string>
     <string name="progressive_load">Progressively Load Image</string>
     <string name="disabled_history">Disabled History</string>
+    <string name="fast_safe_mode">Safe Mode</string>
     <string name="enable_volume_turn">Enable Turn With Volume</string>
 </resources>

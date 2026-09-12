@@ -9,8 +9,6 @@ import androidx.compose.material.IconButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,18 +23,20 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.toBitmap
 import com.shakster.gifkt.GifEncoder
+import com.xlrr.roambendom.LocalStringResStorage
+import com.xlrr.roambendom.data.MessageData
 import com.xlrr.roambendom.gif.GifImage
+import com.xlrr.roambendom.manager.MessageManager
 import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
 import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
 import io.github.vinceglb.filekit.extension
+import io.github.vinceglb.filekit.name
+import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.io.buffered
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.skiko.toBufferedImage
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.refresh
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.time.Duration.Companion.milliseconds
@@ -47,6 +47,7 @@ actual fun Coil3SaveImageButton(
     icon: Painter
 ) {
     val den = LocalDensity.current
+    val txt = LocalStringResStorage.current
     val imgState = rememberAsyncImagePainter(imgRequest)
     val state = imgState.state.collectAsStateWithLifecycle()
     val ssio = rememberCoroutineScope { Dispatchers.IO }
@@ -63,20 +64,40 @@ actual fun Coil3SaveImageButton(
             }
             val img = (state.value as AsyncImagePainter.State.Success).result.image
             ssio.launch {
-                if (img is GifImage) {
-                    val enc = GifEncoder(file.sink().buffered())
-                    for (i in img.map) {
-                        enc.writeFrame(i.key.toComposeImageBitmap().toAwtImage(), i.value.milliseconds)
+                try {
+                    if (img is GifImage) {
+                        val enc = GifEncoder(file.sink().buffered())
+                        for (i in img.map) {
+                            enc.writeFrame(i.key.toComposeImageBitmap().toAwtImage(), i.value.milliseconds)
+                        }
+                        enc.close()
+                    } else {
+                        val awtImage = img.toBitmap().toBufferedImage()
+                        val rgbImage = BufferedImage(awtImage.width, awtImage.height, BufferedImage.TYPE_INT_RGB)
+                        val g = rgbImage.createGraphics()
+                        g.drawImage(awtImage, 0, 0, null)
+                        g.dispose()
+                        ImageIO.write(
+                            rgbImage,
+                            if (awtImage.type == BufferedImage.TYPE_INT_RGB) format else "PNG",
+                            file.file
+                        )
                     }
-                    enc.close()
-                } else {
-                    val awtImage = img.toBitmap().toBufferedImage()
-                    ImageIO.write(
-                        awtImage,
-                        if (awtImage.type == BufferedImage.TYPE_INT_RGB) format else "PNG",
-                        file.file
+                } catch (e: Exception) {
+                    MessageManager.addMessage(
+                        MessageData(
+                            txt["message_save_failed_title"]?.orResource() ?: "unknow".orResource(),
+                            txt["message_save_failed_content"]?.orResource(e.message.toString()) ?: "unknow".orResource(),
+                        )
                     )
+                    return@launch
                 }
+                MessageManager.addMessage(
+                    MessageData(
+                        txt["message_save_successful_title"]?.orResource() ?: "unknow".orResource(),
+                        txt["message_save_successful_content"]?.orResource(file.name, file.path) ?: "unknow".orResource(),
+                    )
+                )
             }
         }
     }
@@ -86,7 +107,7 @@ actual fun Coil3SaveImageButton(
 
         val fn = imgRequest.data.toString().split("/").last().split(".").first()
         val img = suc.result.image
-        launcher.launch(fn, if (img is GifImage) "gif" else "png")
+        launcher.launch(suggestedName = fn, defaultExtension = if (img is GifImage) "gif" else "png")
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)
     }

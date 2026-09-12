@@ -1,0 +1,6 @@
+<resources>
+    <string name="message_save_successful_title">Save Successfully</string>
+    <string name="message_save_successful_content">%s had been saved to %s</string>
+    <string name="message_save_failed_title">Save Failed</string>
+    <string name="message_save_failed_content">Error: %s</string>
+</resources>

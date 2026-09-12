@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.utils
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -42,11 +43,7 @@ import com.xlrr.roambendom.painter.TextPlaceholderPainter
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.animated_artworks_label
-import roambendom.composeapp.generated.resources.empty_page
-import roambendom.composeapp.generated.resources.loading_jpg
-import roambendom.composeapp.generated.resources.refresh
+import roambendom.composeapp.generated.resources.*
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -159,7 +156,13 @@ fun DefaultErrorHandleImage(url: String, modifier: Modifier, size: IntSize? = nu
         if (size != null) TextPlaceholderPainter(size.toSize(), "empty", txtM)
         else null
     }
-    if (loading != null && error != null) {
+    if (ConfigUtil.fastSafeMode.value) {
+        Image(
+            painterResource(Res.drawable.empty_page),
+            null
+        )
+    }
+    else if (loading != null && error != null) {
         AsyncImage(
             model = defaultImageRequest(url, LocalPlatformContext.current, true),
             filterQuality = FilterQuality.Medium,
