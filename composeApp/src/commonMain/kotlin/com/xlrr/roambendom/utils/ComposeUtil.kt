@@ -18,9 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -156,13 +159,7 @@ fun DefaultErrorHandleImage(url: String, modifier: Modifier, size: IntSize? = nu
         if (size != null) TextPlaceholderPainter(size.toSize(), "empty", txtM)
         else null
     }
-    if (ConfigUtil.fastSafeMode.value) {
-        Image(
-            painterResource(Res.drawable.empty_page),
-            null
-        )
-    }
-    else if (loading != null && error != null) {
+    if (loading != null && error != null) {
         AsyncImage(
             model = defaultImageRequest(url, LocalPlatformContext.current, true),
             filterQuality = FilterQuality.Medium,
@@ -247,7 +244,17 @@ fun ItemInfoCardWithShared(
                             resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds()
                         )
                     }
-                    DefaultErrorHandleImage(url, mod, size)
+                    DefaultErrorHandleImage(
+                        url,
+                        mod.drawWithContent {
+                            drawContent()
+                            if (ConfigUtil.fastSafeMode.value
+                                && (restriction == CRestriction.R18 || restriction == CRestriction.R18G)) {
+                                drawRect(Color.Black, size = drawContext.size)
+                            }
+                        },
+                        size
+                    )
                     FlowColumn(
                         Modifier.align(Alignment.TopEnd).padding(2.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
                         itemHorizontalAlignment = Alignment.End
