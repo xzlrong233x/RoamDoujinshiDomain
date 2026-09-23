@@ -13,7 +13,7 @@ object EchRequestRustClass {
     private external fun refreshOAuthTokenImpl(refreshToken: String): String
     private external fun requestOAuthTokenImpl(code: String, codeVerifier: String): String
     //无传参，url里需要自带
-    private external fun baseHttpGetImpl(url: String, candidates: String): String
+    private external fun baseHttpGetImpl(url: String, candidates: String, token: String): String
     private external fun baseHttpPostImpl(url: String, form: String, candidates: String): String
 
     // 公开 suspend 包装（在 IO 线程执行 JNI 调用，不阻塞 UI / 协程调度器）
@@ -30,10 +30,11 @@ object EchRequestRustClass {
      * @param candidates ECH 连接地址候补（逗号分隔的 IP）。
      *   cloudflare-ech.com 的IP被间歇性封锁，
      *   但经测试，直接指向源站点的cf IP也可以代替cloudflare-ech.com 的IP。
+     * @param token P站API的令牌，如果是app-api.pixiv.net域名就要用
      * @throws RuntimeException 非 2xx 响应（原生层抛出）
      * */
-    suspend fun baseHttpGet(url: String, candidates: String = ""): String =
-        withContext(Dispatchers.IO) { baseHttpGetImpl(url, candidates) }
+    suspend fun baseHttpGet(url: String, candidates: String = "", token: String = ""): String =
+        withContext(Dispatchers.IO) { baseHttpGetImpl(url, candidates, token) }
 
     /**
      * 通用 POST，返回响应体文本。

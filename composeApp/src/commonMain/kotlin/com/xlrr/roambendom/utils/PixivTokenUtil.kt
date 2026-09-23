@@ -2,12 +2,8 @@ package com.xlrr.roambendom.utils
 
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.network.PIXIVApiHelper
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.header
-import io.ktor.http.Parameters
-import io.ktor.http.URLBuilder
-import io.ktor.http.URLProtocol
-import kotlinx.coroutines.runBlocking
+import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -36,7 +32,8 @@ object PixivTokenUtil {
     private var codeChallenge: String =""
     const val CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
     const val CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
-    private var accessToken = ""
+    var accessToken = ""
+        private set
     private var passTime: Instant = Clock.System.now()
 
     fun genCodeChallenge() : String {

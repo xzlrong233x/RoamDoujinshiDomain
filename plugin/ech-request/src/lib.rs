@@ -19,6 +19,28 @@ const OAUTH_HOST: &str = "oauth.secure.pixiv.net";
 const OAUTH_PATH: &str = "/auth/token";
 const ECH_PUBLIC_NAME: &str = "cloudflare-ech.com";
 
+/// 通用请求用的浏览器 UA
+const BROWSER_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0";
+
+const PIXIV_API_HEADER: &[(&str, &str)] = &[
+    (
+        "user-agent",
+        "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)",
+    ),
+    ("app-os-version", "15.6"),
+    ("app-os", "ios"),
+    (
+        "accept",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    ),
+    ("accept-language", "en-US,en;q=0.5"),
+];
+const PIXIV_WEB_HEADER: &[(&str, &str)] = &[
+    ("user-agent", BROWSER_UA),
+    ("Referer", "https://www.pixiv.net/"),
+    ("accept", "*/*"),
+];
+
 // ── 应用层错误 ──
 
 #[derive(Debug)]
@@ -81,19 +103,7 @@ fn parse_https_url(url: &str) -> Result<(String, String), String> {
 fn do_oauth_request(form: &[(&str, &str)]) -> Result<String, String> {
     let (client, rt) = get_client()?;
 
-    let headers: &[(&str, &str)] = &[
-        (
-            "user-agent",
-            "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)",
-        ),
-        ("app-os-version", "15.6"),
-        ("app-os", "ios"),
-        (
-            "accept",
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        ),
-        ("accept-language", "en-US,en;q=0.5"),
-    ];
+    let headers: &[(&str, &str)] = PIXIV_API_HEADER;
 
     let response = rt
         .block_on(client.post(OAUTH_HOST, OAUTH_PATH, &[], form, headers))
@@ -103,9 +113,6 @@ fn do_oauth_request(form: &[(&str, &str)]) -> Result<String, String> {
 
     Ok(body)
 }
-
-/// 通用请求用的浏览器 UA
-const BROWSER_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0";
 
 /// 整个地址列表都失败后重试的次数
 const RETRY: usize = 2;
@@ -117,16 +124,53 @@ fn parse_ips(list: &str) -> Vec<IpAddr> {
         .collect()
 }
 
+/// 分析域名应当使用的HEADER，可以接收p站api的token，返回该域名对应的请求头列表。
+/// app-api.pixiv.net 会在基础 HEADER 之上追加 `Authorization: Bearer {accessToken}`。
+/// 失败返回 Err，调用方沿用原来的 HEADER。
+fn analyze_domain_header(domain: &str, token: Option<&str>) -> Result<Vec<(String, String)>, String> {
+    let base: &[(&str, &str)] = if domain.ends_with("app-api.pixiv.net") {
+        PIXIV_API_HEADER
+    } else if domain.ends_with("pixiv.net") {
+        PIXIV_WEB_HEADER
+    } else {
+        return Err(format!("unknown domain: {domain}"));
+    };
+
+    let mut headers: Vec<(String, String)> = base
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+    // 只有 app-api 需要带 access token
+    if domain.ends_with("app-api.pixiv.net") {
+        if let Some(token) = token.filter(|t| !t.is_empty()) {
+            headers.push(("Authorization".to_owned(), format!("Bearer {token}")));
+        }
+    }
+
+    Ok(headers)
+}
+
 /// 通用 HTTP 请求：`form` 为 `None` 时 GET，否则把 `form` 原样作为 JSON 请求体 POST。
 /// 非 2xx 一律视为失败（目前不跟随重定向），错误交给 JNI 抛异常。
 ///
 /// 连接被丢弃（超时）时会重试，HTTP 错误码不重试。
-fn do_http(url: &str, form: Option<&str>, candidates: &[IpAddr]) -> Result<String, String> {
+fn do_http(url: &str, form: Option<&str>, candidates: &[IpAddr], token: Option<&str>) -> Result<String, String> {
     let (client, rt) = get_client()?;
 
     let (domain, path) = parse_https_url(url)?;
 
-    let headers: &[(&str, &str)] = &[("user-agent", BROWSER_UA), ("accept", "*/*")];
+    let mut owned_headers: Vec<(String, String)> = vec![
+        ("user-agent".to_owned(), BROWSER_UA.to_owned()),
+        ("accept".to_owned(), "*/*".to_owned()),
+    ];
+    if let Ok(h) = analyze_domain_header(&domain, token) {
+        owned_headers = h;
+    }
+    let headers: Vec<(&str, &str)> = owned_headers
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
 
     let mut last_err = String::new();
     for _ in 0..RETRY {
@@ -134,10 +178,10 @@ fn do_http(url: &str, form: Option<&str>, candidates: &[IpAddr]) -> Result<Strin
             match form {
                 Some(body) => {
                     client
-                        .post_body(&domain, &path, &[], body, "application/json", headers, candidates)
+                        .post_body(&domain, &path, &[], body, "application/json", &headers, candidates)
                         .await
                 }
-                None => client.get(&domain, &path, &[], headers, candidates).await,
+                None => client.get(&domain, &path, &[], &headers, candidates).await,
             }
         });
 
@@ -228,13 +272,15 @@ pub extern "system" fn Java_com_xlrr_roambendom_third_EchRequestRustClass_baseHt
     _obj: JObject<'local>,
     url: JString<'local>,
     candidates: JString<'local>,
+    token: JString<'local>
 ) -> JString<'local> {
     unowned_env
         .with_env(|env| -> Result<JString<'local>, OAuthError> {
             let url: String = url.to_string();
             let candidates = parse_ips(&candidates.to_string());
+            let token: String = token.to_string();
 
-            let result = do_http(&url, None, &candidates).map_err(OAuthError)?;
+            let result = do_http(&url, None, &candidates, Some(&token)).map_err(OAuthError)?;
 
             Ok(JString::from_str(env, &result)?)
         })
@@ -256,7 +302,7 @@ pub extern "system" fn Java_com_xlrr_roambendom_third_EchRequestRustClass_baseHt
             let form: String = form.to_string();
             let candidates = parse_ips(&candidates.to_string());
 
-            let result = do_http(&url, Some(&form), &candidates).map_err(OAuthError)?;
+            let result = do_http(&url, Some(&form), &candidates, None).map_err(OAuthError)?;
 
             Ok(JString::from_str(env, &result)?)
         })

@@ -432,7 +432,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                         item("LikeCount") {
                             SelectionContainer {
                                 Text(
-                                    stringResource(Res.string.favorite_count),
+                                    stringResource(Res.string.favorite_count).format(details.content?.likeCount ?: ""),
                                     Modifier.padding(6.dp, 2.dp)
                                 )
                             }

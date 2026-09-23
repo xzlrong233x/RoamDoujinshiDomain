@@ -272,22 +272,16 @@ impl EchClient {
         Err(last_err)
     }
 
-    /// 候选连接地址：ECH public name 的解析结果（IPv4 优先）+ 调用方给的候补
+    /// 候选连接地址：ECH public name 的解析结果（仅IPv4）+ 调用方给的候补
     async fn candidate_addrs(&self, candidates: &[IpAddr]) -> Result<Vec<SocketAddr>, Box<dyn Error>> {
         let lookup = self.resolver.lookup_ip(&self.ech_public_name).await?;
-        let mut addrs: Vec<SocketAddr> = lookup
+        let mut addrs: Vec<SocketAddr> = candidates
             .iter()
-            .filter(|ip| ip.is_ipv4())
-            .chain(lookup.iter().filter(|ip| !ip.is_ipv4()))
-            .map(|ip| SocketAddr::new(ip, 443))
+            .map(|ip| SocketAddr::new(*ip, 443))
             .collect();
 
-        for ip in candidates {
-            let addr = SocketAddr::new(*ip, 443);
-            if !addrs.contains(&addr) {
-                addrs.push(addr);
-            }
-        }
+        lookup.iter().filter(|ip| ip.is_ipv4())
+            .for_each(|ip| addrs.push(SocketAddr::new(ip, 443)));
 
         Ok(addrs)
     }
@@ -346,6 +340,30 @@ impl EchClient {
             })
             .collect();
 
+        let header_value = |name: &str| -> Option<String> {
+            headers
+                .iter()
+                .find(|(k, _)| k.eq_ignore_ascii_case(name))
+                .map(|(_, v)| v.to_ascii_lowercase())
+        };
+
+        // Cloudflare 对 API 响应常用 chunked；带 chunk 长度行会让 JSON/HTML 解析失败，必须先解码。
+        let body = if header_value("transfer-encoding")
+            .map(|v| v.contains("chunked"))
+            .unwrap_or(false)
+        {
+            decode_chunked(&body)?
+        } else {
+            body
+        };
+
+        // 我们始终请求 Accept-Encoding: identity；若服务端仍压缩，明确报错而不是返回二进制垃圾。
+        if let Some(encoding) = header_value("content-encoding") {
+            if !encoding.is_empty() && encoding != "identity" {
+                return Err(format!("unexpected content-encoding: {encoding}").into());
+            }
+        }
+
         Ok(EchResponse {
             status,
             headers,
@@ -394,6 +412,41 @@ impl EchClient {
 
         Ok(ech_config_lists)
     }
+}
+
+/// 在字节流中查找子串，返回首次出现的下标。
+fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() || haystack.len() < needle.len() {
+        return None;
+    }
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+}
+
+/// 解码 HTTP/1.1 chunked 实体（忽略 chunk 扩展，容忍尾部 trailer）。
+fn decode_chunked(body: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
+    let mut out = Vec::new();
+    let mut pos = 0usize;
+    loop {
+        let Some(line_end) = find_subslice(&body[pos..], b"\r\n") else {
+            return Err("chunked body: missing chunk size line".into());
+        };
+        let size_line = String::from_utf8_lossy(&body[pos..pos + line_end]);
+        let size_text = size_line.split(';').next().unwrap_or("").trim();
+        let size = usize::from_str_radix(size_text, 16)
+            .map_err(|_| format!("chunked body: bad chunk size {size_text:?}"))?;
+        pos += line_end + 2;
+        if size == 0 {
+            break;
+        }
+        if pos + size > body.len() {
+            return Err("chunked body: truncated chunk".into());
+        }
+        out.extend_from_slice(&body[pos..pos + size]);
+        pos += size + 2;
+    }
+    Ok(out)
 }
 
 /// 简单的 URL 编码

@@ -1,10 +1,6 @@
 package com.xlrr.roambendom.utils
 
-import androidx.compose.ui.util.fastJoinToString
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.*
 
 fun JsonObject.getAsString(k: String) : String {
     return this[k]?.jsonPrimitive?.content ?: ""
@@ -16,6 +12,10 @@ fun JsonObject.getAsInt(k: String, default: Int = 0) : Int {
 
 fun JsonObject.getAsBoolean(k: String, default: Boolean = false) : Boolean {
     return this[k]?.jsonPrimitive?.booleanOrNull ?: default
+}
+
+fun Json.simpleExtraJsonLike(str: String) : JsonObject {
+    return decodeFromString("\\{.+\\}".toRegex().find(str)?.value ?: "")
 }
 
 fun String.camelToSnack(): String = replace("([a-z])([A-Z])".toRegex()) {matchResult ->

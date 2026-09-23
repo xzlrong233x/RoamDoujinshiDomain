@@ -15,6 +15,7 @@ import com.xlrr.roambendom.utils.PixivTokenUtil.pixivToken
 import com.xlrr.roambendom.utils.TimeUtil
 import com.xlrr.roambendom.utils.getAsInt
 import com.xlrr.roambendom.utils.getAsString
+import com.xlrr.roambendom.utils.simpleExtraJsonLike
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -34,6 +35,7 @@ object PIXIVApiHelper {
     val appApiPrefix = "app-api.pixiv.net"
     val redirectUrl = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
     val authToken = "https://oauth.secure.pixiv.net/auth/token"
+    val CandidateForApi = "172.64.145.17,104.18.42.239"
 
     fun HttpRequestBuilder.pixivNormalSetting(useLang: Boolean = true) {
         defaultHeader()
@@ -85,6 +87,17 @@ object PIXIVApiHelper {
         val url = post.split("/").filter { it.isNotEmpty() }
             .joinToString("/", prefix = "https://$appApiPrefix/")
         try {
+            val pUrl = buildString {
+                append(url)
+                append("?")
+                append(parameters.formUrlEncode())
+            }
+            if (useGet) {
+                val text = EchRequestRustClass.baseHttpGet(pUrl, CandidateForApi, PixivTokenUtil.accessToken)
+                val v = NetHelper.json.simpleExtraJsonLike(text)
+                if (v.contains("error")) return Result.failure(Exception(v.getAsString("msg")))
+                return Result.success(v)
+            }
             val res = NetHelper.client.submitForm(url,parameters, useGet) {
                 builder()
                 pixivOSHeader()
@@ -269,11 +282,17 @@ object PIXIVApiHelper {
 
     // NOTE：不动
     suspend fun keywordSuggestion(keyword: String) : List<KeywordSuggestionItem> {
-        return NetHelper.client.get("https://$mainPrefix/rpc/cps.php") {
-            pixivNormalSetting()
-            parameter("keyword", keyword)
-        }.body<JsonObject>()["candidates"]?.let {
-             Json.decodeFromJsonElement(it)
+        val url = buildString {
+            append("https://$mainPrefix/rpc/cps.php")
+            append("?")
+            append(parameters {
+                append("keyword", keyword)
+                append("lang", ConfigUtil.pixivLanguage.value)
+            }.formUrlEncode())
+        }
+        val res = EchRequestRustClass.baseHttpGet(url, CandidateForApi)
+        return NetHelper.json.simpleExtraJsonLike(res)["candidates"]?.let {
+            Json.decodeFromJsonElement(it)
         } ?: listOf()
     }
 
