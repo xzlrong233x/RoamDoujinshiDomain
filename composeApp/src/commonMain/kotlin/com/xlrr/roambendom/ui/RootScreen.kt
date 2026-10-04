@@ -137,6 +137,12 @@ private val navItems: List<NavItem> = listOf(
         }
     ),
     NavItem(
+        Res.string.download_label.orResource(),
+        Res.drawable.download_icon,
+        { it is Routes.Root.Download },
+        { GlobalData.nav.push(Routes.Root.Download)}
+    ),
+    NavItem(
         Res.string.setting_label.orResource(),
         Res.drawable.settings_icon,
         { it is Routes.Root.Settings },
@@ -1055,6 +1061,7 @@ fun RootScreen(modifier: Modifier = Modifier) {
                 when (x) {
                     is Routes.Root.Home -> HomeScreen(modifier.padding(it))
                     is Routes.Root.Detail -> DetailScreen(x.detailModel, modifier.padding(it))
+                    is Routes.Root.Download -> DownloadViewScreen(Modifier.padding(it))
                     is Routes.Root.Settings -> SettingScreen(Modifier.padding(it))
                     is Routes.Root.Search -> SearchScreen(Modifier.padding(it), x.searchModel)
                     is Routes.Root.History -> HistoryScreen(Modifier.padding(it), x.searchModel)

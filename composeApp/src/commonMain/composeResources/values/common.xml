@@ -13,6 +13,7 @@
     <string name="history_label">History</string>
     <string name="favorite_label">Favorite</string>
     <string name="setting_label">Setting</string>
+    <string name="download_label">Download</string>
     <string name="refresh">Refresh</string>
     <string name="now_sys_lang">en</string>
     <string name="animated_artworks_label">Ugoira</string>

@@ -12,5 +12,7 @@
     <string name="favorite_count">收藏数：%s</string>
     <string name="load_recommend">加载推荐</string>
     <string name="read">阅读</string>
-    <string name="read_from">阅读（从第%s页开始）</string>
+    <string name="read_from">从第%s页续读</string>
+    <string name="download_normal">普通</string>
+    <string name="download_original">原图</string>
 </resources>

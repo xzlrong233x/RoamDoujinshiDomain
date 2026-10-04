@@ -63,7 +63,6 @@ actual fun MessageHandleComposition(content: @Composable (() -> Unit)) {
             MessageManager.delectMessage(X.key)
         }
     }
-    t++
 }
 
 @Composable

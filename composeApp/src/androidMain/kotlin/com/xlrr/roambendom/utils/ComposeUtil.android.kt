@@ -22,13 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.BitmapImage
 import coil3.compose.AsyncImagePainter
+import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
-import coil3.toBitmap
+import com.xlrr.roambendom.download.DownloadItem
+import com.xlrr.roambendom.download.ImageDownloader
+import com.xlrr.roambendom.download.saveImage
 import com.xlrr.roambendom.ugoira.MultiImagePackage
 import kotlinx.coroutines.launch
 
@@ -39,28 +40,19 @@ actual fun Coil3SaveImageButton(
 ) {
     val imgState = rememberAsyncImagePainter(imgRequest)
     val state = imgState.state.collectAsStateWithLifecycle()
-    val suc = state.value
-    val context = LocalContext.current
+    val context = LocalPlatformContext.current
     val c = rememberCoroutineScope()
     IconButton({
+        val suc = state.value
+        if (suc !is AsyncImagePainter.State.Success) return@IconButton
         c.launch {
-            if (suc !is AsyncImagePainter.State.Success) return@launch
-            val fileName = imgRequest.data.toString().split("/").last().split(".").first()
-            val success = when(val img = suc.result.image) {
-                is BitmapImage -> {
-                    saveBitmap(
-                        img.toBitmap(),
-                        context,
-                        fileName
-                    )
-                }
-                is MultiImagePackage -> {
-                    saveAnimatedDrawable(img, context, fileName)
-                }
-                else -> false
+            val item = DownloadItem.of(imgRequest.data.toString())
+            val success = if (item.ext == "zip") {
+                (suc.result.image as? MultiImagePackage)?.let { saveAnimatedDrawable(it, context, item.name) } ?: false
+            } else {
+                ImageDownloader.bytes(item.url, context)?.let { saveImage(context, it, item.name, item.ext) } ?: false
             }
-            val msg = if (success) "已保存到相册" else "保存失败"
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (success) "已保存到相册" else "保存失败", Toast.LENGTH_SHORT).show()
         }
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)

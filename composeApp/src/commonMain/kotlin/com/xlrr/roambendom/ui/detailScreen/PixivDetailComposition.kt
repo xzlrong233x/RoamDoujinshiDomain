@@ -121,7 +121,10 @@ fun ImageDialog(
                         ), n, ugoiraMetadata)
                         Row(Modifier.align(Alignment.BottomEnd).padding(14.dp)) {
                             Coil3SaveImageButton(
-                                defaultImageRequest(uws.url, LocalPlatformContext.current),
+                                defaultImageRequest(
+                                    if (n && uws.oriUrl.isNotEmpty()) uws.oriUrl else uws.url,
+                                    LocalPlatformContext.current
+                                ),
                                 painterResource(Res.drawable.img_download_icon)
                             )
                         }
@@ -368,6 +371,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                     details.content,
                                     Modifier
                                 )
+                                MultiDownloadButton(details)
                             }
                         }
                         item("Title") {

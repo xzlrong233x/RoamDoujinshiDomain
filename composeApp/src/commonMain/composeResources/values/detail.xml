@@ -13,4 +13,6 @@
     <string name="load_recommend">Load Recommend</string>
     <string name="read">Read</string>
     <string name="read_from">Read: From p%s</string>
+    <string name="download_normal">Normal</string>
+    <string name="download_original">Original</string>
 </resources>

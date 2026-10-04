@@ -1,5 +1,6 @@
 package com.xlrr.roambendom.progressive
 
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.text.TextMeasurer
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -7,7 +8,7 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 
 object SharedPainterManager {
-    val map = HashMap<String, ProgressivePainter>()
+    val map = SnapshotStateMap<String, ProgressivePainter>()
     private val keyCount = HashMap<String, Int>()
 
     fun add(

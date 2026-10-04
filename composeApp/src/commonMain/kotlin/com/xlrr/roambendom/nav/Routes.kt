@@ -43,6 +43,7 @@ sealed class Routes {
         })
         open class FixedSearch(searchParameterModel: SearchParameterModel, title: () -> StringOrResource)
             : SearchLike(searchParameterModel, false, title = title)
+        data object Download : Root()
         data object Settings : Root()
     }
     data class Artwork(

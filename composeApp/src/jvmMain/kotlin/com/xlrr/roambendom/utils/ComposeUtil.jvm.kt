@@ -16,29 +16,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toComposeImageBitmap
-import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
+import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
-import coil3.toBitmap
 import com.shakster.gifkt.GifEncoder
 import com.xlrr.roambendom.LocalStringResStorage
 import com.xlrr.roambendom.data.MessageData
+import com.xlrr.roambendom.download.DownloadItem
+import com.xlrr.roambendom.download.ImageDownloader
+import com.xlrr.roambendom.download.saveImage
 import com.xlrr.roambendom.gif.GifImage
 import com.xlrr.roambendom.manager.MessageManager
-import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
-import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
-import io.github.vinceglb.filekit.extension
-import io.github.vinceglb.filekit.name
-import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.sink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.io.asSink
 import kotlinx.io.buffered
-import org.jetbrains.skiko.toBufferedImage
-import java.awt.image.BufferedImage
-import javax.imageio.ImageIO
+import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -46,71 +42,42 @@ actual fun Coil3SaveImageButton(
     imgRequest: ImageRequest,
     icon: Painter
 ) {
-    val den = LocalDensity.current
     val txt = LocalStringResStorage.current
     val imgState = rememberAsyncImagePainter(imgRequest)
     val state = imgState.state.collectAsStateWithLifecycle()
-    val ssio = rememberCoroutineScope { Dispatchers.IO }
-    val launcher = rememberFileSaverLauncher(FileKitDialogSettings(
-        "保存图片"
-    )) { file ->
-        if (file != null && state.value is AsyncImagePainter.State.Success) {
-            val extension = file.extension
-            val format = when (extension.lowercase()) {
-                "jpg", "jpeg" -> "JPEG"
-                "png" -> "PNG"
-                "gif", "zip" -> "GIF"
-                else -> "PNG"
-            }
-            val img = (state.value as AsyncImagePainter.State.Success).result.image
-            ssio.launch {
-                try {
-                    if (img is GifImage) {
-                        val enc = GifEncoder(file.sink().buffered())
-                        for (i in img.map) {
-                            enc.writeFrame(i.key.toComposeImageBitmap().toAwtImage(), i.value.milliseconds)
-                        }
-                        enc.close()
-                    } else {
-                        val awtImage = img.toBitmap().toBufferedImage()
-                        val rgbImage = BufferedImage(awtImage.width, awtImage.height, BufferedImage.TYPE_INT_RGB)
-                        val g = rgbImage.createGraphics()
-                        g.drawImage(awtImage, 0, 0, null)
-                        g.dispose()
-                        ImageIO.write(
-                            rgbImage,
-                            if (awtImage.type == BufferedImage.TYPE_INT_RGB) format else "PNG",
-                            file.file
-                        )
-                    }
-                } catch (e: Exception) {
-                    MessageManager.addMessage(
-                        MessageData(
-                            txt["message_save_failed_title"]?.orResource() ?: "unknow".orResource(),
-                            txt["message_save_failed_content"]?.orResource(e.message.toString()) ?: "unknow".orResource(),
-                        )
-                    )
-                    return@launch
-                }
-                MessageManager.addMessage(
-                    MessageData(
-                        txt["message_save_successful_title"]?.orResource() ?: "unknow".orResource(),
-                        txt["message_save_successful_content"]?.orResource(file.name, file.path) ?: "unknow".orResource(),
-                    )
-                )
-            }
-        }
-    }
+    val context = LocalPlatformContext.current
+    val ssio = rememberCoroutineScope()
     IconButton({
         val suc = state.value
         if (suc !is AsyncImagePainter.State.Success) return@IconButton
-
-        val fn = imgRequest.data.toString().split("/").last().split(".").first()
-        val img = suc.result.image
-        launcher.launch(suggestedName = fn, defaultExtension = if (img is GifImage) "gif" else "png")
+        ssio.launch {
+            val item = DownloadItem.of(imgRequest.data.toString())
+            // ugoira 的 zip 需解码后转 gif，其余直接存原始字节
+            val gif = if (item.ext == "zip") (suc.result.image as? GifImage)?.let { encodeGif(it) } else null
+            val bytes = gif ?: ImageDownloader.bytes(item.url, context)
+            val ext = if (gif != null) "gif" else item.ext
+            val success = bytes != null && saveImage(context, bytes, item.name, ext)
+            MessageManager.addMessage(
+                MessageData(
+                    txt[if (success) "message_save_successful_title" else "message_save_failed_title"]
+                        ?.orResource() ?: "unknow".orResource(),
+                    if (success) "$item.name.$ext".orResource() else "unknow".orResource()
+                )
+            )
+        }
     }, enabled = state.value is AsyncImagePainter.State.Success) {
         Icon(icon, "save button", tint = Color.White)
     }
+}
+
+private suspend fun encodeGif(img: GifImage): ByteArray? = withContext(Dispatchers.IO) {
+    runCatching {
+        val out = ByteArrayOutputStream()
+        val enc = GifEncoder(out.asSink().buffered())
+        for ((f, d) in img.map) enc.writeFrame(f.toComposeImageBitmap().toAwtImage(), d.milliseconds)
+        enc.close()
+        out.toByteArray()
+    }.getOrNull()
 }
 
 @Composable

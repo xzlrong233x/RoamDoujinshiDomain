@@ -25,6 +25,7 @@ import coil3.request.ImageResult
 import com.fleeksoft.io.ByteArrayOutputStream
 import com.xlrr.roambendom.drawSpecial
 import com.xlrr.roambendom.gif.MultiImagePlayer
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 
 class ProgressivePainter(
@@ -51,6 +52,10 @@ class ProgressivePainter(
             field?.cancel()
             field = value
         }
+
+    /** 下载结束（写满/出错/销毁）时给出当前字节 */
+    val finished: Deferred<ByteArray>
+        field = CompletableDeferred<ByteArray>()
     var onSizeKnown: ((Int, Int) -> Unit)? = null
 
     override fun DrawScope.onDraw() {
@@ -126,6 +131,7 @@ class ProgressivePainter(
 
     fun write(byteArray: ByteArray) {
         _output.write(byteArray)
+        if (_totalFileSize > 0 && _output.size() == _totalFileSize) finish()
     }
 
     fun setSize(w: Float, h: Float) {
@@ -137,10 +143,16 @@ class ProgressivePainter(
     fun destroy() {
         invalidateTick = 0
         _markToDestroy = true
+        finish()
     }
 
     fun error() {
         _error = true
+        finish()
+    }
+
+    private fun finish() {
+        finished.complete(bytes())
     }
 
     fun isCompleted(): Boolean {
@@ -169,6 +181,10 @@ class ProgressivePainter(
 
     fun setFileSize(s: Long) {
         _totalFileSize = s.toInt()
+    }
+
+    fun getFileSize(): Long {
+        return _totalFileSize.toLong()
     }
 
     fun bytes(): ByteArray {

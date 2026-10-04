@@ -3,8 +3,13 @@ package com.xlrr.roambendom.ui.detailScreen
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -14,17 +19,23 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import coil3.compose.LocalPlatformContext
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
 import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.LocalPlatformForUI
 import com.xlrr.roambendom.config.UIEnablePlatform
 import com.xlrr.roambendom.data.ArtworkInfo
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.download.DownloadManager
+import com.xlrr.roambendom.download.ImageQuality
+import com.xlrr.roambendom.download.downloadItems
+import com.xlrr.roambendom.download.prepareDownloadTarget
 import com.xlrr.roambendom.manager.FavoriteDataManager
 import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.BaseDetailModel
@@ -38,15 +49,22 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.Res
 import roambendom.composeapp.generated.resources.artists
+import roambendom.composeapp.generated.resources.cancel
 import roambendom.composeapp.generated.resources.click_reload
+import roambendom.composeapp.generated.resources.download_icon
+import roambendom.composeapp.generated.resources.download_label
+import roambendom.composeapp.generated.resources.download_normal
+import roambendom.composeapp.generated.resources.download_original
 import roambendom.composeapp.generated.resources.error_info
 import roambendom.composeapp.generated.resources.groups
+import roambendom.composeapp.generated.resources.img_download_icon
 import roambendom.composeapp.generated.resources.language
 import roambendom.composeapp.generated.resources.love_btn_icon
 import roambendom.composeapp.generated.resources.love_count
 import roambendom.composeapp.generated.resources.loved_btn_icon
 import roambendom.composeapp.generated.resources.page
 import roambendom.composeapp.generated.resources.read
+import roambendom.composeapp.generated.resources.read_from
 import roambendom.composeapp.generated.resources.tags
 
 class DetailViewModel() : ViewModel() {
@@ -79,6 +97,102 @@ fun LoveButton(
             null,
         )
     }
+}
+
+@Composable
+fun MultiDownloadButton(details: BaseDetailModel, modifier: Modifier = Modifier) {
+    var opened by remember { mutableStateOf(false) }
+    Box {
+        IconButton({ opened = true }, modifier, enabled = details.content?.ugoiraMetadata == null && details.content != null) {
+            Icon(painterResource(Res.drawable.download_icon), null)
+        }
+        MultiSelectDialog(details, opened) { opened = false }
+    }
+}
+
+@Composable
+fun MultiSelectDialog(details: BaseDetailModel, open: Boolean, onDismiss: () -> Unit) {
+    if (!open) return
+    val content = details.content
+    val context = LocalPlatformContext.current
+    val scope = rememberCoroutineScope()
+    val thumbs = content?.thumbUrls.orEmpty()
+    val selected = remember { mutableStateListOf<Int>().apply { addAll(thumbs.indices) } }
+    var quality by remember { mutableStateOf(ImageQuality.Normal) }
+    var busy by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        modifier = Modifier.padding(0.dp, 24.dp),
+        confirmButton = {
+            Button({
+                val items = content?.downloadItems(selected, quality).orEmpty()
+                if (items.isEmpty()) return@Button
+                busy = true
+                scope.launch {
+                    val target = prepareDownloadTarget(context)
+                    if (target == null) {
+                        busy = false
+                    } else {
+                        onDismiss()
+                        DownloadManager.submit(context, items, target)
+                    }
+                }
+            }, enabled = !busy && selected.isNotEmpty()) {
+                if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text(stringResource(Res.string.download_label))
+            }
+        },
+        dismissButton = {
+            TextButton({ if (!busy) onDismiss() }) { Text(stringResource(Res.string.cancel)) }
+        },
+        title = {
+            if (details is PIXIVDetailModel) {
+                var exp by remember { mutableStateOf(false) }
+                Box {
+                    TextButton({ exp = true }) {
+                        Text(stringResource(quality.label()))
+                    }
+                    DropdownMenu(expanded = exp, onDismissRequest = { exp = false }) {
+                        ImageQuality.entries.forEach { q ->
+                            DropdownMenuItem({
+                                Text(stringResource(q.label()))
+                            }, { quality = q; exp = false }, enabled = q != quality)
+                        }
+                    }
+                }
+            }
+        },
+        text = {
+            if (content == null) {
+                CenterCircular()
+            } else {
+                LazyVerticalStaggeredGrid(
+                    StaggeredGridCells.Adaptive(96.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    modifier = Modifier.fillMaxSize().padding(8.dp),
+                    verticalItemSpacing = 4.dp
+                ) {
+                    itemsIndexed(thumbs) { i, uws ->
+                        val on = selected.contains(i)
+                        Box(Modifier.clip(RoundedCornerShape(8.dp))
+                            .clickable { if (on) selected.remove(i) else selected.add(i) }
+                            .run {
+                                if (on) border(2.dp, Color.Gray, RoundedCornerShape(8.dp)) else this
+                            }
+                        ) {
+                            DefaultErrorHandleImage(uws, Modifier.fillMaxSize())
+                            CardLabel(i.toString())
+                        }
+                    }
+                }
+            }
+        }
+    )
+}
+
+private fun ImageQuality.label() = when (this) {
+    ImageQuality.Normal -> Res.string.download_normal
+    ImageQuality.Original -> Res.string.download_original
 }
 
 @Composable
@@ -171,15 +285,20 @@ fun NHDetail(details: NHDetailModel) {
                                 )
                             })
                         }, shape = RoundedCornerShape(20),
-                            modifier = Modifier.padding(top = 12.dp).width(128.dp).height(36.dp),
+                            modifier = Modifier.padding(top = 12.dp).widthIn(128.dp).height(36.dp),
                             enabled = details.isSuccessful()) {
-                            Text(stringResource(Res.string.read))
+                            Text(
+                                HistoryDataManager.map[details.searchItemData.uid()]?.from?.takeIf { it > 0 }
+                                    ?.let { stringResource(Res.string.read_from).format(it + 1) }
+                                    ?: stringResource(Res.string.read)
+                            )
                         }
                         LoveButton(
                             details.searchItemData,
                             details.content,
                             Modifier.padding(top = 12.dp)
                         )
+                        MultiDownloadButton(details, Modifier.padding(top = 12.dp))
                     }
                 }
             }

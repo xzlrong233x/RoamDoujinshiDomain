@@ -1,5 +1,8 @@
 This is a Kotlin Multiplatform project targeting Android, Desktop (JVM).
 
+> ### Warning
+> there are clearly evidences show that this program has memory leak problem in desktop, maybe exist in android else.
+
 ### Environment Require
 
 Rust + Android NDK + JDK 17~

@@ -13,6 +13,7 @@
     <string name="history_label">历史</string>
     <string name="favorite_label">收藏</string>
     <string name="setting_label">设置</string>
+    <string name="download_label">下载</string>
     <string name="refresh">刷新</string>
     <string name="now_sys_lang">cn</string>
     <string name="animated_artworks_label">动图</string>
