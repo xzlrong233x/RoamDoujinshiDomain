@@ -138,6 +138,9 @@ tasks.matching { it.name == "jvmJar" }.configureEach {
 
 // ── Kotlin Multiplatform ────────────────────────────────────────
 
+val versionString = "1.3.0"
+val versionAndroidCode = 9
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -199,8 +202,8 @@ android {
         applicationId = "com.xlrr.roambendom"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 8
-        versionName = "1.2.5"
+        versionCode = versionAndroidCode
+        versionName = versionString
     }
     packaging {
         resources {
@@ -252,7 +255,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RoamDoujinshiDomain"
-            packageVersion = "1.2.5"
+            packageVersion = versionString
         }
     }
 }
