@@ -54,8 +54,8 @@ class ProgressivePainter(
         }
 
     /** 下载结束（写满/出错/销毁）时给出当前字节 */
-    val finished: Deferred<ByteArray>
-        field = CompletableDeferred<ByteArray>()
+    val finished: Deferred<ByteArrayOutputStream>
+        field = CompletableDeferred<ByteArrayOutputStream>()
     var onSizeKnown: ((Int, Int) -> Unit)? = null
 
     override fun DrawScope.onDraw() {
@@ -152,7 +152,7 @@ class ProgressivePainter(
     }
 
     private fun finish() {
-        finished.complete(bytes())
+        finished.complete(_output)
     }
 
     fun isCompleted(): Boolean {

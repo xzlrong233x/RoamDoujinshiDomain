@@ -25,7 +25,7 @@ object ImageDownloader {
         cached(request, context)?.let { return it }
         // 请求没用上 painter（内存缓存命中/不支持）就不必等
         if (!painter.isUsing() && painter.getFileSize() <= 0) return null
-        return withTimeoutOrNull(WAIT_MS.milliseconds) { painter.finished.await().takeIf { painter.isCompleted() } }
+        return withTimeoutOrNull(WAIT_MS.milliseconds) { painter.finished.await().takeIf { painter.isCompleted() }?.toByteArray() }
             ?: cached(request, context)
     }
 
@@ -39,7 +39,7 @@ object ImageDownloader {
             runCatching {
                 var snap = cache.openSnapshot(key)
                 val b = snap?.use { cache.fileSystem.read(it.data) { readByteArray() } }
-                snap?.closeAndOpenEditor()
+                snap?.close()
                 snap = null
                 b
             }.getOrNull()?.takeIf { it.isNotEmpty() }
