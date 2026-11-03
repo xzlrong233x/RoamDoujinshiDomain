@@ -48,6 +48,7 @@ sealed class Routes {
     }
     data class Artwork(
         val artworkInfo: ArtworkInfo,
+        val startPage: Int? = null,
         val pageChange: (Int) -> Unit = {},
     ) : Routes()
     sealed class Auth : Routes() {

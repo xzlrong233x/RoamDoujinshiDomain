@@ -43,7 +43,7 @@ fun MainContent() {
             MessageHandleComposition {
                 when (it) {
                     is Routes.Root -> RootScreen()
-                    is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo, pageChange = it.pageChange)
+                    is Routes.Artwork -> ArtworkViewScreen(it.artworkInfo, it.startPage, pageChange = it.pageChange)
                     is Routes.Auth -> TotalAuthScreen(Modifier)
                     else -> Text(stringResource(Res.string.nothing))
                 }

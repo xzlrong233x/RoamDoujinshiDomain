@@ -250,7 +250,7 @@ private fun ShowContent(
 
 @OptIn(ExperimentalZoomableApi::class)
 @Composable
-fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = viewModel { ArtworkViewModel() }, pageChange: (Int) -> Unit) {
+fun ArtworkViewScreen(artworkInfo: ArtworkInfo, start: Int? = null, artworkData: ArtworkViewModel = viewModel { ArtworkViewModel() }, pageChange: (Int) -> Unit) {
     if (artworkInfo.page < 1) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(stringResource(Res.string.invalid_content))
@@ -272,7 +272,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     var hide by remember { mutableStateOf(false) }
     var lockHide by remember { mutableStateOf(true) }
 
-    val pager = rememberPagerState { artworkInfo.page }
+    val pager = rememberPagerState(start ?: 0) { artworkInfo.page }
     val listState = rememberLazyListState()
     val ifZoomed by remember(zzm) {
         derivedStateOf {

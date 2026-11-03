@@ -270,6 +270,7 @@ fun NHDetail(details: NHDetailModel) {
                     label = "DetailToolBar"
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val pg = HistoryDataManager.map[details.searchItemData.uid()]?.from?.takeIf { it > 0 }
                         Button({
                             if (details.content == null) {
                                 return@Button
@@ -278,7 +279,7 @@ fun NHDetail(details: NHDetailModel) {
                                 details.searchItemData.fillSelf(details.content!!),
                                 true
                             )
-                            GlobalData.nav.push(Routes.Artwork(details.content!!) { i ->
+                            GlobalData.nav.push(Routes.Artwork(details.content!!, pg) { i ->
                                 HistoryDataManager.changeItemPage(
                                     details.searchItemData.uid(),
                                     i
@@ -288,8 +289,7 @@ fun NHDetail(details: NHDetailModel) {
                             modifier = Modifier.padding(top = 12.dp).widthIn(128.dp).height(36.dp),
                             enabled = details.isSuccessful()) {
                             Text(
-                                HistoryDataManager.map[details.searchItemData.uid()]?.from?.takeIf { it > 0 }
-                                    ?.let { stringResource(Res.string.read_from).format(it + 1) }
+                                pg ?.let { stringResource(Res.string.read_from).format(it + 1) }
                                     ?: stringResource(Res.string.read)
                             )
                         }
