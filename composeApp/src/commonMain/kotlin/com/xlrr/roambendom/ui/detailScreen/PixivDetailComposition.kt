@@ -241,6 +241,11 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
     val context = LocalPlatformContext.current
     val tm = rememberTextMeasurer(0)
     val preload = remember { Preload(context, tm) }
+    DisposableEffect(Unit) {
+        onDispose {
+            preload.clear()
+        }
+    }
     val screenWidth = with(LocalDensity.current) {
         (LocalWindowSize.current.width.coerceIn(null, PIXIV_DETAIL_MAIN) - PIXIV_DETAIL_MAIN_HORIZONTAL * 2).toPx()
     }

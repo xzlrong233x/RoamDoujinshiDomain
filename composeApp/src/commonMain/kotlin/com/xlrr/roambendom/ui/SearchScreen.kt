@@ -184,13 +184,17 @@ fun SearchContent(modifier: Modifier,searchParameterModel: SearchParameterModel,
                   ss: CoroutineScope = rememberCoroutineScope()) {
     if (useList) {
         val lstate = searchParameterModel.scrollState as? LazyListState ?: rememberLazyListState()
-        searchParameterModel.scrollState = lstate
-        GlobalData.forListState = lstate
+        SideEffect {
+            searchParameterModel.scrollState = lstate
+            GlobalData.forListState = lstate
+        }
         InfiniteScrollList(modifier, lstate, searchParameterModel, header, listMain, load, ss)
     } else {
         val lstate = searchParameterModel.scrollState as? LazyStaggeredGridState ?: rememberLazyStaggeredGridState()
-        searchParameterModel.scrollState = lstate
-        GlobalData.forListState = lstate
+        SideEffect {
+            searchParameterModel.scrollState = lstate
+            GlobalData.forListState = lstate
+        }
         InfiniteScrollStaggeredGrid(modifier, lstate, searchParameterModel, header, gridMain, load, ss, columns)
     }
 }

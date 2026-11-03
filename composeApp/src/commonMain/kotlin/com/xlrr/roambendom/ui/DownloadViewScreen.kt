@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.xlrr.roambendom.config.AppVisibility
 import com.xlrr.roambendom.progressive.SharedPainterManager
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -29,12 +30,14 @@ fun DownloadViewScreen(modifier: Modifier) {
     var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(500.milliseconds)
-            tick++
+            // ~40fps，
+            // TODO：优化触发方式
+            delay(if (AppVisibility.visible) 25.milliseconds else 2000.milliseconds)
+            if (AppVisibility.visible) tick++
         }
     }
     val entries = remember(tick) {
-        SharedPainterManager.map.entries
+        SharedPainterManager.snapshot().entries
             .filter { it.value.getFileSize() > 0 && it.value.fileSize() < it.value.getFileSize() }
             .toList()
     }

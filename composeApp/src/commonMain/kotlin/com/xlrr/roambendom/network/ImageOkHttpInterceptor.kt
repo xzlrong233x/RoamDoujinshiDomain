@@ -55,7 +55,10 @@ class ImageOkHttpInterceptor(
             return chain.proceed(newRequest)
         }
 
-        val painter = SharedPainterManager.map[request.url.toString()] // painter的存在应由外部显示组件负责
+        val painter = SharedPainterManager.findForUrl(request.url.toString()) // painter的存在应由外部显示组件负责
+        if (painter == null && !ConfigUtil.useMultithread.value) {
+            return chain.proceed(request)
+        }
         // 仅对符合条件的图片请求启用分块（可根据需求自定义）
         if (!isSupportedUrl(request) ||
             !(ConfigUtil.useMultithread.value || ConfigUtil.streamDisplay.value) ||
@@ -145,12 +148,15 @@ class ImageOkHttpInterceptor(
                 }
             }
 
-            val chunks = mutableListOf<ByteArray>()
+            // 按分块顺序直接合并：painter 已有的 al 字节作为前缀，之后每拿到一块就写入，
+            // 不再用 chunks 列表二次累积（省掉"所有分块常驻 + 再合并一份"的那份全量拷贝）
+            val merged = ByteArrayOutputStream(totalSize.toInt())
+            painter?.bytes()?.let { merged.write(it) }
             for (future in futures) {
                 try {
                     val bytes = future.get()
                     painter?.write(bytes)
-                    chunks.add(bytes)
+                    merged.write(bytes)
                     if (isCached(request.url.toString())) {
                         throw ItemAlreadyCachedException("url: ${request.url}")
                     }
@@ -164,15 +170,8 @@ class ImageOkHttpInterceptor(
                 }
             }
 
-            // 4. 合并所有分块数据
-            val mergedData = chunks.fold(ByteArrayOutputStream(totalSize.toInt()).apply {
-                painter?.bytes()?.let { write(it) }
-            }) { acc, bytes ->
-                acc.write(bytes)
-                acc
-            }.toByteArray()
-
-            // 5. 构建新的成功响应
+            // 4. 构建新的成功响应（merged 已在读取过程中按顺序合并完毕）
+            val mergedData = merged.toByteArray()
             val responseBody = mergedData.toResponseBody(request.body?.contentType())
             return successResponse(request, responseBody, mergedData.size)
         } catch (e: Exception) {
@@ -206,13 +205,71 @@ class ImageOkHttpInterceptor(
     ): Response {
         val originalRequest = chain.request()
         val alreadyLoaded = painter?.fileSize() ?: 0L
-        val buffer = Buffer()
-        if (painter != null && alreadyLoaded > 0) {
-            buffer.write(painter.bytes())
+        // review：有逻辑重复的问题。
+        //    文件不超过 painter 的缓冲上限就直接写 painter，完成后读取
+        if (painter != null && painter.canBufferAll()) {
+            val contentType = downloadRemaining(
+                client, originalRequest, alreadyLoaded, totalSize, chunkSize, maxRetries
+            ) { painter.write(it) }
+            val bytes = painter.bytes()
+            if (bytes.size.toLong() == totalSize) {
+                return successResponse(originalRequest, bytes.toResponseBody(contentType), totalSize)
+            }
+            // 极端情况：流式期间 painter 被清空了缓冲。那么应该退回 Buffer 路径从头完整下载。同时这也假定用户退出后一段时间内不回来
+            return bufferedResponse(client, originalRequest, 0L, totalSize, chunkSize, maxRetries, painter)
         }
 
-        var start = alreadyLoaded
-        var remaining = totalSize - alreadyLoaded
+        // 超过 32MB（或没有 painter）：保留 Buffer 路径，同时继续写 painter 维持进度
+        return bufferedResponse(
+            client, originalRequest, alreadyLoaded, totalSize, chunkSize, maxRetries, painter
+        )
+    }
+
+    /**
+     * Buffer 路径：[offset] 之前的字节已在 painter 里（断点续传），先作为前缀写入 Buffer，
+     * 之后边下载边写入 Buffer，同时继续写 painter 以维持渐进进度。
+     */
+    private fun bufferedResponse(
+        client: OkHttpClient,
+        originalRequest: Request,
+        offset: Long,
+        totalSize: Long,
+        chunkSize: Long,
+        maxRetries: Int,
+        painter: ProgressivePainter?,
+    ): Response {
+        val buffer = Buffer()
+        if (painter != null && offset > 0) {
+            val prefix = painter.bytes()
+            if (prefix.isNotEmpty()) buffer.write(prefix)
+        }
+        val contentType = downloadRemaining(
+            client, originalRequest, offset, totalSize, chunkSize, maxRetries
+        ) { chunk ->
+            painter?.write(chunk)
+            buffer.write(chunk)
+        }
+        return successResponse(
+            originalRequest,
+            buffer.readByteArray().toResponseBody(contentType),
+            totalSize
+        )
+    }
+
+    /**
+     * 从 [offset] 起把 [totalSize] - [offset] 字节读完，每块交给 [write]。
+     */
+    private fun downloadRemaining(
+        client: OkHttpClient,
+        originalRequest: Request,
+        offset: Long,
+        totalSize: Long,
+        chunkSize: Long,
+        maxRetries: Int,
+        write: (ByteArray) -> Unit,
+    ): MediaType? {
+        var start = offset
+        var remaining = totalSize - offset
         var contentType: MediaType? = null
 
         var attempt = 0
@@ -232,14 +289,13 @@ class ImageOkHttpInterceptor(
                     }
                     val source = response.body?.source() ?: throw IOException("Empty body")
 
-                    // 分块读取，边读边写入 painter 和 buffer
+                    // 分块读取，边读边交给调用方（写 painter / Buffer）
                     while (remaining > 0) {
                         val readSize = minOf(chunkSize, remaining)
                         val chunk = source.readByteArray(readSize)
                         if (chunk.isEmpty()) break  // 流提前结束
 
-                        painter?.write(chunk)
-                        buffer.write(chunk)
+                        write(chunk)
 
                         remaining -= chunk.size
                         start += chunk.size
@@ -247,7 +303,7 @@ class ImageOkHttpInterceptor(
 
                     // 如果正常读完，退出 while 循环
                     if (remaining == 0L) break
-                    else throw IOException("Stream ended prematurely, missing ${remaining} bytes")
+                    else throw IOException("Stream ended prematurely, missing $remaining bytes")
                 }
             } catch (e: IOException) {
                 attempt++
@@ -264,9 +320,7 @@ class ImageOkHttpInterceptor(
         if (remaining > 0) {
             throw IOException("Unable to complete download after $maxRetries retries")
         }
-
-        val responseBody = buffer.readByteArray().toResponseBody(contentType)
-        return successResponse(originalRequest, responseBody, totalSize)
+        return contentType
     }
 
     private fun failedRespond(request: Request,msg: String = "", code: Int = 404) : Response {

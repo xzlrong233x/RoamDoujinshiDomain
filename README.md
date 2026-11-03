@@ -2,9 +2,6 @@ This is a Kotlin Multiplatform project targeting Android, Desktop (JVM).
 
 English | [中文](README.zh.md)
 
-> ### Warning
-> there are clearly evidences show that this program has memory leak problem in desktop, maybe exist in android else.
-
 ### Program Structure
 
 * [/composeApp](./composeApp/src) is the main code of application

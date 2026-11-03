@@ -8,14 +8,15 @@ import com.xlrr.roambendom.manager.MessageManager
 
 @Composable
 actual fun MessageHandleComposition(content: @Composable (() -> Unit)) {
-    val map = MessageManager.get()
     val context = LocalContext.current
-    val titles = map.keys.map { it.title.getComposeOrString() }
-    LaunchedEffect(map) {
-        if (map.isNotEmpty()) {
-            val m = map.entries.last()
-            Toast.makeText(context, titles.last(), m.value.toEpochMilliseconds().toInt()).show()
-            MessageManager.delectMessage(m.key)
+    val entries = MessageManager.entries
+    val latest = entries.firstOrNull()
+    // getComposeOrString() 是 @Composable，必须在 composition 里取出，不能在 LaunchedEffect 内调用。
+    val latestTitle = latest?.data?.title?.getComposeOrString() ?: ""
+    LaunchedEffect(latest?.id) {
+        if (latest != null) {
+            Toast.makeText(context, latestTitle, Toast.LENGTH_LONG).show()
+            MessageManager.remove(latest.id)
         }
     }
     content()

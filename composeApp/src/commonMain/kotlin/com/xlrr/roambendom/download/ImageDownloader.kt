@@ -16,32 +16,31 @@ object ImageDownloader {
     /** 缓存命中直接给出原始字节，否则挂 ProgressivePainter 下载并在协程里等待 */
     suspend fun bytes(url: String, context: PlatformContext): ByteArray? {
         val request = defaultImageRequest(url, context)
+        val key = request.data.toString()
         cached(request, context)?.let { return it }
-        // 已结束的旧 painter 不能复用
-        SharedPainterManager.get(request)?.takeIf { it.isClosed() }?.let { SharedPainterManager.remove(request) }
-        val painter = SharedPainterManager.add(request, context)
-        val job = runCatching { SingletonImageLoader.get(context).enqueue(request).job }.getOrNull()
-        runCatching { job?.await() }
-        cached(request, context)?.let { return it }
-        // 请求没用上 painter（内存缓存命中/不支持）就不必等
-        if (!painter.isUsing() && painter.getFileSize() <= 0) return null
-        return withTimeoutOrNull(WAIT_MS.milliseconds) { painter.finished.await().takeIf { painter.isCompleted() }?.toByteArray() }
-            ?: cached(request, context)
+        val painter = SharedPainterManager.acquireDownload(request, context)
+        try {
+            val job = runCatching { SingletonImageLoader.get(context).enqueue(request).job }.getOrNull()
+            runCatching { job?.await() }
+            cached(request, context)?.let { return it }
+            if (!painter.isUsing() && painter.getFileSize() <= 0) return null
+            return withTimeoutOrNull(WAIT_MS.milliseconds) {
+                painter.finished.await().takeIf { painter.isCompleted() }?.toByteArray()
+            } ?: cached(request, context)
+        } finally {
+            SharedPainterManager.releaseDownload(key)
+        }
     }
 
     /** painter 已完成优先，其次磁盘缓存 */
     private suspend fun cached(request: ImageRequest, context: PlatformContext): ByteArray? {
-        SharedPainterManager.get(request)?.takeIf { it.isCompleted() }?.let { return it.bytes() }
+        SharedPainterManager.find(request)?.takeIf { it.isCompleted() }?.let { return it.bytes() }
         val loader = SingletonImageLoader.get(context)
         val key = request.diskCacheKey ?: return null
         val cache = loader.diskCache ?: return null
         return withContext(Dispatchers.IO) {
             runCatching {
-                var snap = cache.openSnapshot(key)
-                val b = snap?.use { cache.fileSystem.read(it.data) { readByteArray() } }
-                snap?.close()
-                snap = null
-                b
+                cache.openSnapshot(key)?.use { cache.fileSystem.read(it.data) { readByteArray() } }
             }.getOrNull()?.takeIf { it.isNotEmpty() }
         }
     }

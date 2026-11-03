@@ -13,11 +13,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.xlrr.roambendom.config.CalUI
 import com.xlrr.roambendom.config.ConfigUtil
+import com.xlrr.roambendom.data.MessageData
 import com.xlrr.roambendom.getFormatVersionString
+import com.xlrr.roambendom.manager.MessageManager
 import com.xlrr.roambendom.manager.SearchTokenManager
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.utils.CenterFlowRow
 import com.xlrr.roambendom.utils.GlobalData
+import com.xlrr.roambendom.utils.orResource
 import org.jetbrains.compose.resources.stringResource
 import roambendom.composeapp.generated.resources.*
 
@@ -65,6 +68,18 @@ fun SettingScreen(modifier: Modifier) {
             CenterFlowRow(Modifier.fillMaxWidth()) {
                 Text(stringResource(Res.string.version))
                 Text(getFormatVersionString())
+            }
+            Button(
+                {
+                    MessageManager.addMessage(
+                        MessageData(
+                            "test".orResource(),
+                            "hhhhh".orResource()
+                        )
+                    )
+                }
+            ) {
+                Text("test message")
             }
         }
     }

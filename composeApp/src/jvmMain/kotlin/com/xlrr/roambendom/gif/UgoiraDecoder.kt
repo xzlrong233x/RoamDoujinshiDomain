@@ -5,12 +5,9 @@ import coil3.decode.DecodeResult
 import coil3.decode.Decoder
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
-import com.shakster.gifkt.GifEncoder
 import com.xlrr.roambendom.data.pixiv.UgoiraFrameItem
 import com.xlrr.roambendom.utils.framesKey
 import com.xlrr.roambendom.utils.isZip
-import kotlinx.io.asSink
-import kotlinx.io.buffered
 import org.jetbrains.skia.Image
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
@@ -21,10 +18,8 @@ class UgoiraDecoder(
     val frames: List<UgoiraFrameItem>
 ): Decoder {
     override suspend fun decode(): DecodeResult? {
-        val out = ByteArrayOutputStream()
-        val enc = GifEncoder(out.asSink().buffered())
         var ent: ZipEntry? = zip.nextEntry
-        val mp = HashMap<Image, Int>()
+        val mp = LinkedHashMap<Image, Int>()
         while (ent != null) {
             try {
                 val byte = ByteArrayOutputStream()
@@ -36,10 +31,8 @@ class UgoiraDecoder(
             }
             ent = zip.nextEntry
         }
-        enc.close()
-        val s = out.size().toLong()
         return DecodeResult(
-            GifImage(mp.toMap(), s, 0),
+            GifImage(mp, 0),
             false
         )
     }

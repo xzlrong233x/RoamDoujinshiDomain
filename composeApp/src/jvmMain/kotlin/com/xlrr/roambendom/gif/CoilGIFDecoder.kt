@@ -25,7 +25,6 @@ class CoilGIFDecoder(
                         {it.toBufferedImage().toImage()},
                         {it.duration.toInt(DurationUnit.MILLISECONDS)}
                     ),
-                    ba.size.toLong(),
                     gifD.loopCount
                 ),
                 false

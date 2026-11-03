@@ -21,7 +21,6 @@ import androidx.compose.material3.*
 import androidx.compose.material3.SearchBarDefaults.InputFieldHeight
 import androidx.compose.material3.SearchBarDefaults.inputFieldColors
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -221,14 +220,6 @@ private class TopAppBarOffsetState(
                 toolbarOffsetHeightPx = newOffset.coerceIn(-maxUpPx, -minUpPx)
             }
             return Offset.Zero
-        }
-
-        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-//            if ((source == NestedScrollSource.SideEffect && !fling)
-//                || (available.y == 0f && consumed.y == 0f)) { // 桌面端在一些操作后会出现非用户操作的滑动事件
-//                startReturn()
-//            }
-            return super.onPostScroll(consumed, available, source)
         }
 
         override suspend fun onPreFling(available: Velocity): Velocity {
@@ -671,7 +662,6 @@ private fun screenSearch(it: String, ss: CoroutineScope, curScreen: Any, fM: Foc
     fM.clearFocus()
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState, topBarState: TopAppBarOffsetState,
                         should: Boolean, curScreen: Any,
@@ -851,7 +841,6 @@ private fun RootHeadBar(smallMode: Boolean, h: Float, searchText: TextFieldState
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     var lessThan3 by remember { mutableStateOf(false) }
@@ -873,7 +862,7 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
     val maxUpPx = with(LocalDensity.current) { RootBarHeight.roundToPx().toFloat() }
     val minUpPx = 0f
     //TODO：令其可以向下传递
-    val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx, scope) }
+     val topBarState: TopAppBarOffsetState = remember { TopAppBarOffsetState(maxUpPx, minUpPx, scope) }
 
     val toggleNav = {
         if (smallMode)
@@ -884,28 +873,21 @@ fun AdaptiveScaffold(content: @Composable (PaddingValues) -> Unit) {
             }
     }
 
-    if (LocalWindowSize.current.width < MediumScreenDpLine && !lessThan3) {
-        Snapshot.withMutableSnapshot {
+    val width = LocalWindowSize.current.width
+    LaunchedEffect(width) {
+        if (width < MediumScreenDpLine && !lessThan3) {
             lessThan3 = true
-            if (nailOpen) {
-                nailOpen = false
-            }
-        }
-    }
-    else if (LocalWindowSize.current.width >= MediumScreenDpLine && lessThan3) {
-        Snapshot.withMutableSnapshot {
+            nailOpen = false
+        } else if (width >= MediumScreenDpLine && lessThan3) {
             lessThan3 = false
-            if (!nailOpen) {
-                nailOpen = true
-            }
+            nailOpen = true
         }
-    }
-    if (LocalWindowSize.current.width < SmallScreenDpLine) {
-        smallMode = true
-    }
-    else if (smallMode) {
-        smallMode = false
-        topBarState.toolbarOffsetHeightPx = 0f
+        if (width < SmallScreenDpLine) {
+            smallMode = true
+        } else if (smallMode) {
+            smallMode = false
+            topBarState.toolbarOffsetHeightPx = 0f
+        }
     }
     LaunchedEffect(smallMode) {
         if (!smallMode && drawerState.isOpen) {

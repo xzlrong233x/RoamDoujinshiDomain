@@ -41,6 +41,7 @@ import androidx.compose.ui.util.fastJoinToString
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImagePainter
@@ -53,7 +54,6 @@ import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.config.StateWithUI
 import com.xlrr.roambendom.config.UIType
 import com.xlrr.roambendom.data.ArtworkInfo
-import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
 import com.xlrr.roambendom.progressive.SharedPainterManager
@@ -326,6 +326,8 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
     DisposableEffect(Unit) {
         GlobalData.hideStatusBar.tryEmit(true)
         onDispose {
+            // 离开阅读页：清空本页的预取窗口，释放窗口内空闲 painter
+            preload.clear()
             GlobalData.hideStatusBar.tryEmit(false)
         }
     }
@@ -590,36 +592,65 @@ fun ThumbDialog(lis: List<String>, changePage: (Int) -> Unit, dismiss: () -> Uni
 }
 
 class Preload(private val context: PlatformContext, private val textMeasurer: TextMeasurer? = null) {
-    private val preloadRequests = mutableSetOf<ImageRequest>()
+    /** 当前窗口内已经 enqueue 过的 URL，随窗口一起收缩 */
+    private val enqueued = LinkedHashSet<String>()
 
+    /**
+     * 声明 `cur..cur+preCount` 为当前预取窗口，并为窗口内 URL 建 painter / 入队。
+     * 窗口外的空闲 painter 由 [SharedPainterManager.setWindow] 立即释放。
+     */
     fun preload(data: List<String>, cur: Int, preCount: Int = 5) {
-        val end = min(data.size, cur + preCount + 1)
+        if (data.isEmpty()) {
+            clear()
+            return
+        }
         val imageLoader = SingletonImageLoader.get(context)
+        val start = (cur - preCount).coerceIn(0, data.lastIndex)
+        val end = min(data.size, start + preCount + 1)
+        val windowUrls = data.subList(start, end).toList()
 
-        for (x in cur + 1 until end) {
-            val req = defaultImageRequest(data[x], context)
+        SharedPainterManager.setWindow(this, windowUrls)
+        enqueued.retainAll(windowUrls.toHashSet())
 
-            if (preloadRequests.contains(req)) {
-                continue
+        if (!ConfigUtil.streamDisplay.value) {
+            for (x in start + 1 until end) {
+                val url = data[x]
+                if (url.isEmpty()) continue
+                enqueue(imageLoader, defaultImageRequest(url, context))
             }
-            preloadRequests.add(req)
+            return
+        }
+
+        for (url in windowUrls) {
+            if (url.isEmpty()) continue
+            val req = defaultImageRequest(url, context)
             try {
-                if (ConfigUtil.streamDisplay.value) {
-                    SharedPainterManager.add(
-                        req,
-                        context,
-                        textMeasurer,
-                        req.data.toString().let { it.endsWith(".gif") || it.endsWith(".zip") }
-                    )
-                }
-                imageLoader.enqueue(req)
+                val painter = SharedPainterManager.prefetch(
+                    req,
+                    context,
+                    textMeasurer,
+                    animated = url.endsWith(".gif") || url.endsWith(".zip")
+                )
+                // 已有字节、或拦截器正持有（下载中）就不再重复请求
+                if (painter.fileSize() > 0 || painter.isUsing()) continue
+                enqueue(imageLoader, req)
             } catch (e: Exception) {
                 println(e.message)
             }
         }
     }
 
+    private fun enqueue(imageLoader: ImageLoader, req: ImageRequest) {
+        if (!enqueued.add(req.data.toString())) return
+        try {
+            imageLoader.enqueue(req)
+        } catch (e: Exception) {
+            println(e.message)
+        }
+    }
+
     fun clear() {
-        preloadRequests.clear()
+        enqueued.clear()
+        SharedPainterManager.clearWindow(this)
     }
 }

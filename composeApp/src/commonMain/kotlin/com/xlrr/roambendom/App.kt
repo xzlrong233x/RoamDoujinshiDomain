@@ -35,7 +35,6 @@ import javax.net.ssl.X509TrustManager
 
 val LocalAnimatedVisibilityScope =
     compositionLocalOf<AnimatedVisibilityScope> { error("not provided") }
-@OptIn(ExperimentalSharedTransitionApi::class)
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope> { error("not provided") }
 val LocalStringResStorage = compositionLocalOf<Map<String, StringResource>> { error("not provided") }
 

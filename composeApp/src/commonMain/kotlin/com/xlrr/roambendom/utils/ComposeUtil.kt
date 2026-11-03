@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
-import coil3.decode.DataSource
 import coil3.network.HttpException
 import coil3.request.ImageRequest
 import com.xlrr.roambendom.LocalAnimatedVisibilityScope
@@ -64,9 +63,15 @@ val LocalPublicCommandItem = compositionLocalOf { listOf<CommandData>() }
 
 @Composable
 fun WindowSizeBox(modifier: Modifier,content: @Composable () -> Unit) {
+    val lastNonZeroSize = remember { mutableStateOf(DpSize.Zero) }
     BoxWithConstraints(modifier) {
+        val hasValidSize = maxWidth > 0.dp && maxHeight > 0.dp
+        val measuredSize = DpSize(maxWidth, maxHeight)
+        if (hasValidSize) {
+            SideEffect { lastNonZeroSize.value = measuredSize }
+        }
         CompositionLocalProvider(
-            LocalWindowSize provides DpSize(maxWidth, maxHeight),
+            LocalWindowSize provides if (hasValidSize) measuredSize else lastNonZeroSize.value,
             content = content
         )
     }
@@ -321,12 +326,18 @@ fun ProgressiveImage(
             modifier = modifier
         )
     } else {
-        val p = SharedPainterManager.add(
-            request,
-            LocalPlatformContext.current,
-            txtM,
-            animated = k.endsWith(".gif") || k.endsWith(".zip")
-        )
+        val platformContext = LocalPlatformContext.current
+        val p = remember(k) {
+            SharedPainterManager.acquireDisplay(
+                request,
+                platformContext,
+                txtM,
+                animated = k.endsWith(".gif") || k.endsWith(".zip")
+            )
+        }
+        DisposableEffect(k) {
+            onDispose { SharedPainterManager.releaseDisplay(k) }
+        }
         LaunchedEffect(width, height, onSizeKnown) {
             if (width != null && height != null) {
                 p.setSize(width, height)
@@ -344,9 +355,6 @@ fun ProgressiveImage(
             onSuccess = {
                 p.destroy()
                 it.result.image.let {s -> onSizeKnown?.invoke(s.width, s.height) }
-                if (it.result.dataSource != DataSource.NETWORK) {
-                    SharedPainterManager.checkDestroyed(request.context)
-                }
             },
             onError = {
                 if (
