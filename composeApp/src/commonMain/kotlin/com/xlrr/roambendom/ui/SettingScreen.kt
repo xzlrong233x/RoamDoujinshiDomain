@@ -69,18 +69,6 @@ fun SettingScreen(modifier: Modifier) {
                 Text(stringResource(Res.string.version))
                 Text(getFormatVersionString())
             }
-            Button(
-                {
-                    MessageManager.addMessage(
-                        MessageData(
-                            "test".orResource(),
-                            "hhhhh".orResource()
-                        )
-                    )
-                }
-            ) {
-                Text("test message")
-            }
         }
     }
 }
