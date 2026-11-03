@@ -464,7 +464,7 @@ fun ArtworkViewScreen(artworkInfo: ArtworkInfo, artworkData: ArtworkViewModel = 
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     val lbtn = pager.currentPage > 0
-                    val rbtn = pager.currentPage < pager.pageCount
+                    val rbtn = pager.currentPage < pager.pageCount - 1
                     Row(Modifier.padding(8.dp).height(48.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
