@@ -89,7 +89,7 @@ object HistoryDataManager : LoadFileManager("history.json") {
     suspend fun getList(): List<SearchItemData> {
         return map.keys.map {
             getCacheByUid(it).copy(time = map[it]?.time ?: 0)
-        }.sortedWith { a,b -> (b.time - a.time).toInt() }
+        }.sortedByDescending { it.time }
     }
 
     suspend fun search(key: String): List<SearchItemData> {
