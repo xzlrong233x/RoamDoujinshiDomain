@@ -225,6 +225,10 @@ object PIXIVApiHelper {
         info.source = CSources.PIXIV
         val r = apiRequest("/v1/illust/detail", Parameters.build {
             append("illust_id", id)
+            append("lang", when (ConfigUtil.pixivLanguage.value) { // 由ds挖掘
+                "kr" -> "ko"   // 神秘差异
+                else -> ConfigUtil.pixivLanguage.value
+            })
         }, true)
         if (r.isFailure) {
             throw Exception("artwork info get error info: ${r.exceptionOrNull()?.message
@@ -236,7 +240,7 @@ object PIXIVApiHelper {
         )
 
         info.title = detail.title
-        info.tags = detail.tags.map { it.name }
+        info.tags = detail.tags
         info.authors = listOf(detail.user.name, detail.user.id.toString())
         info.description = detail.caption
             .split("<\\s*br\\s*/\\s*>".toRegex()).joinToString("\n") {

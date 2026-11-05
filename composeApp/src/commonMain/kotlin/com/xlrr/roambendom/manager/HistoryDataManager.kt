@@ -98,6 +98,10 @@ object HistoryDataManager : LoadFileManager("history.json") {
         }
     }
 
+    fun has(sid: SearchItemData): Boolean {
+        return map.containsKey(sid.uid()) && (map[sid.uid()]?.count ?: 0) > 0
+    }
+
     fun removeAll() {
         map.clear()
         save()

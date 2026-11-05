@@ -17,6 +17,7 @@ import com.xlrr.roambendom.LocalSharedTransitionScope
 import com.xlrr.roambendom.config.ConfigUtil
 import com.xlrr.roambendom.data.CLanguage
 import com.xlrr.roambendom.data.SearchItemData
+import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.asDetail
 import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
@@ -78,6 +79,7 @@ fun ShowSearchItem(it: SearchItemData, orColumn: Boolean = true) {
                 if (it.time > 0) Text(TimeUtil.formatTime(it.time))
             },
             it.isAnimation,
+            HistoryDataManager.has(it),
             onClick = {
                 GlobalData.nav.push(Routes.Root.Detail(it.asDetail()))
             },

@@ -17,6 +17,7 @@
     <string name="refresh">刷新</string>
     <string name="now_sys_lang">cn</string>
     <string name="animated_artworks_label">动图</string>
+    <string name="book_read_label">读过</string>
 
     <string name="author_artworks">%s的作品</string>
     <string name="recommend_with_author">%s的推荐作品</string>

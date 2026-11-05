@@ -2,8 +2,7 @@ package com.xlrr.roambendom.network
 
 import com.xlrr.roambendom.data.*
 import com.xlrr.roambendom.data.nh.*
-import com.xlrr.roambendom.network.NHWebHelper.API_PREFIX
-import com.xlrr.roambendom.network.NHWebHelper.api
+import com.xlrr.roambendom.data.pixiv.search.Tag
 import com.xlrr.roambendom.third.EchRequestRustClass
 import io.ktor.http.*
 import kotlinx.serialization.json.JsonObject
@@ -158,7 +157,7 @@ object NHWebHelper {
         info.cover = s.cover.path.connectWithCdn(true)
         info.title = s.title.english
         info.altitle = s.title.japanese ?: ""
-        info.tags = s.tags.filter { it.type == NHGalleryTagType.tag }.map { it.name }
+        info.tags = s.tags.filter { it.type == NHGalleryTagType.tag }.map { Tag(it.name) }
         info.groups = s.tags.filter { it.type == NHGalleryTagType.group }.map { it.name }
         info.authors = s.tags.filter { it.type == NHGalleryTagType.artist }.map { it.name }
         info.page = s.numPages

@@ -311,7 +311,7 @@ fun NHDetail(details: NHDetailModel) {
             ) {
                 Column(Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
-                    MultiCardTagBox(stringResource(Res.string.tags), details.content?.tags.orEmpty()) //TODO: 实现标签搜索
+                    MultiCardTagBox(stringResource(Res.string.tags), details.content?.tags.orEmpty().map { it.name }) //TODO: 实现标签搜索
                     MultiCardTagBox(stringResource(Res.string.artists), details.content?.authors.orEmpty())
                     MultiCardTagBox(stringResource(Res.string.groups), details.content?.groups.orEmpty())
                 }

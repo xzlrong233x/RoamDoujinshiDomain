@@ -213,6 +213,7 @@ fun ItemInfoCardWithShared(
     extraText: String? = null,
     extraComposer: @Composable (ColumnScope.() -> Unit) = {},
     isAnimation: Boolean = false,
+    read: Boolean = false,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {},
     toColumn: Boolean = true,
@@ -265,7 +266,13 @@ fun ItemInfoCardWithShared(
                         itemHorizontalAlignment = Alignment.End
                     ) {
                         if (page > 1) CardLabel("P${page}")
-                        if (isAnimation) CardLabel(stringResource(Res.string.animated_artworks_label)) // animated_artworks_label
+                        if (isAnimation) CardLabel(stringResource(Res.string.animated_artworks_label))
+                    }
+                    FlowColumn(
+                        Modifier.align(Alignment.TopStart).padding(2.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+                        itemHorizontalAlignment = Alignment.End
+                    ) {
+                        if (read) CardLabel(stringResource(Res.string.book_read_label), sufColor = Color(63, 200, 63, 175))
                     }
                 }
                 Column(modifier = if (toColumn) Modifier else Modifier.padding(PaddingValues(start = 4.dp))) {

@@ -27,8 +27,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.LocalPlatformContext
@@ -40,6 +40,7 @@ import com.xlrr.roambendom.data.getColor
 import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
 import com.xlrr.roambendom.manager.HistoryDataManager
 import com.xlrr.roambendom.model.detail.PIXIVDetailModel
+import com.xlrr.roambendom.model.search.SearchParameterModel
 import com.xlrr.roambendom.nav.Routes
 import com.xlrr.roambendom.network.UrlWithSize
 import com.xlrr.roambendom.network.defaultImageRequest
@@ -55,15 +56,7 @@ import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import roambendom.composeapp.generated.resources.Res
-import roambendom.composeapp.generated.resources.ai_gen
-import roambendom.composeapp.generated.resources.book
-import roambendom.composeapp.generated.resources.favorite_count
-import roambendom.composeapp.generated.resources.img_download_icon
-import roambendom.composeapp.generated.resources.load_all
-import roambendom.composeapp.generated.resources.load_more
-import roambendom.composeapp.generated.resources.load_ori
-import roambendom.composeapp.generated.resources.load_recommend
+import roambendom.composeapp.generated.resources.*
 
 @Composable
 fun ImageDialog(
@@ -412,7 +405,7 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                             SelectionContainer {
                                 FlowRow(
                                     Modifier.fillMaxWidth().padding(6.dp, 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     details.content?.let { ct ->
                                         if (ct.restriction != CRestriction.Normal) {
@@ -423,7 +416,32 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                                             Text(stringResource(Res.string.ai_gen), fontWeight = FontWeight.Bold)
                                         }
                                         ct.tags.forEach {
-                                            if (!it.contains("R-18G*".toRegex())) Text("#$it")
+                                            if (!it.name.contains("R-18G*".toRegex())) {
+                                                Text(buildAnnotatedString {
+                                                    withStyle(style = SpanStyle(fontSize = MaterialTheme.typography.bodyMedium.fontSize)) {
+                                                        append("#${it.name}")
+                                                    }
+                                                    addLink(LinkAnnotation.Clickable(
+                                                        "jump",
+                                                        TextLinkStyles(
+                                                            SpanStyle(color = Color(0, 150, 250))
+                                                        )
+                                                    ) { _ ->
+                                                        GlobalData.nav.push(
+                                                            Routes.Root.Search(
+                                                                SearchParameterModel(it.name).config {
+                                                                    searchTarget.setAll(1)
+                                                                }
+                                                            )
+                                                        )
+                                                    },1,"#${it.name}".length)
+                                                    it.translatedName?.let { name ->
+                                                        withStyle(style = SpanStyle(Color.Gray, MaterialTheme.typography.labelSmall.fontSize)) {
+                                                            append(name)
+                                                        }
+                                                    }
+                                                })
+                                            }
                                         }
                                     }
                                 }
@@ -458,13 +476,23 @@ fun PIXIVDetail(details: PIXIVDetailModel) {
                             SelectionContainer {
                                 details.content?.let {
                                     Text(
-                                        "${it.authors.first()} (${it.authors.last()})",
-                                        Modifier.padding(6.dp, 6.dp).clickable {
-                                            GlobalData.nav.pushAuthorSearch(
-                                                it.authors.last(),
-                                                it.authors.first()
+                                        buildAnnotatedString {
+                                            append("${it.authors.first()} (${it.authors.last()})")
+                                            addLink(
+                                                LinkAnnotation.Clickable(
+                                                    "author",
+                                                    TextLinkStyles(
+                                                        SpanStyle(color = Color(0, 150, 250))
+                                                    )
+                                                ) { _ ->
+                                                    GlobalData.nav.pushAuthorSearch(
+                                                        it.authors.last(),
+                                                        it.authors.first()
+                                                    )
+                                                }, 0, it.authors.first().length
                                             )
-                                        }
+                                        },
+                                        Modifier.padding(6.dp, 6.dp)
                                     )
                                 }
 

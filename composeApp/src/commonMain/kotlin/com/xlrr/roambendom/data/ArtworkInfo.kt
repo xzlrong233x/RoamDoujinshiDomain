@@ -1,6 +1,7 @@
 package com.xlrr.roambendom.data
 
 import com.xlrr.roambendom.data.pixiv.UgoiraMetadata
+import com.xlrr.roambendom.data.pixiv.search.Tag
 import com.xlrr.roambendom.data.storage.ShortInfoItem
 import com.xlrr.roambendom.network.UrlWithSize
 
@@ -9,7 +10,7 @@ data class ArtworkInfo(
     var restriction: CRestriction = CRestriction.R18,
     var title: String = "",
     var altitle: String = "",
-    var tags: List<String> = listOf(),
+    var tags: List<Tag> = listOf(),
     var groups: List<String> = listOf(),
     var authors: List<String> = listOf(),
     var description: String = "",
